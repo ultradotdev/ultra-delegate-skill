@@ -33,6 +33,7 @@ SKILL_FILES = (
 SOURCE_FILES = (
     "README.md", "LICENSE", "CONTRIBUTING.md", ".github/workflows/tests.yml",
     "docs/compatibility.md", "docs/demo.md", "docs/ultra-dev-handoff.md", "docs/qualification.md",
+    "docs/release-audit.md", "docs/release-notes.md",
     "scripts/build_release.py", "scripts/demo_learning.py", "tests/test_demo.py",
     "tests/test_beta_safety.py", "tests/test_ultra_delegation.py",
     "tests/test_local_resources.py", "tests/test_release_packaging.py",

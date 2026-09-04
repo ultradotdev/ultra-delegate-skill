@@ -17,7 +17,9 @@ python3 -B scripts/build_release.py --check --source
 python3 -B scripts/demo_learning.py
 ```
 
-CI defines additional Python versions. A configured CI job is not evidence it has run; only the local version above was exercised here.
+[Release CI](https://github.com/ultradotdev/ultra-delegate-skill/actions/runs/33914545619) passed on Linux with Python 3.10, 3.12, and 3.14, including tests and both packaging checks. These are automated helper checks, not model benchmarks.
+
+The maintainer reports successful real-world use in Codex in another repository and in Claude Code. These reports support releasing a proof of concept; they do not supply exact model revisions, thinking settings, cost, latency, or controlled comparison evidence.
 
 ## Delegation value report
 
@@ -25,15 +27,15 @@ This implementation used Codex-native subagents for bounded evidence, resource-c
 
 Worker profiles inherited the coordinator configuration; this was **not** a controlled cheaper-model or thinking-budget bakeoff. Token cost, experiment savings, latency comparisons, and break-even count are **unavailable**. No preferred model recommendation was created from this implementation work.
 
-## Not yet qualified
+## Known experimental areas
 
 - Clean-context host/model/thinking comparisons with real accepted code changes across Codex, Claude Code, and OpenCode. Supplied templates and documentation remain experimental.
 - End-to-end Cortex graph reinforcement and reuse.
 - Any local execution adapter. Preflight and monitor decisions are tested, but actual runtime limits and owned-request cancellation are not implemented. Local execution remains disabled by default and unsupported even after policy opt-in.
 - The automated learning demonstration uses explicitly synthetic fixtures. It verifies bookkeeping and portability, not model quality or savings.
 
-The release gate permits only these scoped claims. Do not advertise unexercised combinations as verified or use synthetic reports as performance evidence.
+The proof-of-concept release permits these scoped claims with the README disclaimer. Further host qualification is follow-up work, not a requirement to publish this experimental beta. Do not advertise unexercised combinations as verified or use synthetic reports as performance evidence.
 
 ## Publication boundary
 
-A filename-only review found unrelated Cortex and host configuration in the development repository and its history. Do not push that history as the public release. Publish only the reviewed clean source archive into the intended repository, after reviewing its contents and checksums. Publication and live skill installation have not been performed by this implementation.
+A clean source snapshot has been pushed to the private review branch, and the beta was installed locally for Codex testing. The original development history and unrelated Cortex/host configuration were excluded. Public visibility is a separate owner-controlled decision. See [release audit](release-audit.md) for the content and history scan scope.

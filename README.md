@@ -4,6 +4,12 @@ Let a capable coordinator plan and verify the work while smaller models handle b
 
 **Public beta: 1.2.0-beta.1.** Python 3.10 or newer; no Python package dependencies. Host execution requires an installed agent host and access to its models. See the [compatibility matrix](docs/compatibility.md) for tested capabilities and limits.
 
+## Proof of concept — use with care
+
+This is an experimental proof of concept, not production-ready automation. It can make incorrect routing decisions, produce bad code, consume paid model usage, or cause unintended changes through your agent host. Use a disposable project or a backed-up Git checkout, limit host permissions, and review changes before accepting them. Do not use it for unattended production, security-critical, or destructive work. Guardrails are cooperative checks, not a sandbox or a guarantee against data loss, disclosure, or resource overload. Provided as-is under the MIT license.
+
+The maintainer reports successful use in **Codex and Claude Code**. These are real-world smoke reports, not a qualification of every model, thinking setting, platform, or task. Feedback and reproducible bug reports are welcome. OpenCode remains experimental; local model execution is disabled by default and unsupported in this beta.
+
 ## What it does
 
 - Routes work using project preferences, verified local outcomes, and compatible imported learning.
@@ -17,7 +23,7 @@ The Python helper makes deterministic bookkeeping decisions. Your agent host exe
 
 ## Install
 
-The intended public repository is [ultradotdev/ultra-delegate-skill](https://github.com/ultradotdev/ultra-delegate-skill); publication is pending. Once published, download the release archive and its SHA-256 checksum from its [releases page](https://github.com/ultradotdev/ultra-delegate-skill/releases). Until then, build from a reviewed source checkout as shown below. Verify the checksum before extraction. The archive contains one `ultra-delegation/` folder, including its license.
+Repository: [ultradotdev/ultra-delegate-skill](https://github.com/ultradotdev/ultra-delegate-skill). Download the installable skill archive and its SHA-256 checksum from the [releases page](https://github.com/ultradotdev/ultra-delegate-skill/releases), when available, or build from a reviewed source checkout as shown below. Verify the checksum before extraction. The archive contains one `ultra-delegation/` folder, including its license.
 
 For a repository-local Codex installation, extract that folder into `.agents/skills/` in the target project. For a personal installation, place it in `${CODEX_HOME:-~/.codex}/skills/`. If `ultra-delegation` already exists, preserve the previous folder before replacing it. Start a fresh task after installation and confirm the selected skill path, especially if both project and personal copies exist.
 

@@ -4,9 +4,9 @@ Status applies to this release, not every future host/model revision. A successf
 
 | Surface | Status | What is established | Remaining qualification |
 | --- | --- | --- | --- |
-| Python helper on macOS, Python 3.14.6 | Verified within test scope | Standard-library bookkeeping, resource policy, clean packaging checks | Other Python versions await CI; see [qualification](qualification.md) |
-| Codex native remote workers | Experimental | Host instructions and configuration example | Clean-context code-change, model/effort comparison, and learning reuse on recorded host version |
-| Claude Code native remote workers | Experimental | Documented custom subagent template | Actual host execution and available effort controls |
+| Python helper on macOS Python 3.14.6; Linux Python 3.10, 3.12, 3.14 | Verified within test scope | Unit/integration suite and packaging passed locally and in CI | Not a guarantee of runtime-host behavior; see [qualification](qualification.md) |
+| Codex native remote workers | User-reported working; proof of concept | Maintainer reports successful use in another repository | Exact model/effort combinations and performance remain unqualified |
+| Claude Code native remote workers | User-reported working; proof of concept | Maintainer reports successful use | Exact host version, model, effort settings, and performance remain unqualified |
 | OpenCode remote workers | Experimental | Documented subagent template | Actual host execution, configured provider, and variant controls |
 | OpenCode local models | Unsupported | Local policy defaults to disabled; conservative preflight contract | Enforced monitor, scoped cancellation, bounds, lease, and successful bounded task |
 | Direct Ollama or other cross-runtime adapter | Unsupported | No automatic runtime switch | Separate explicitly enabled adapter work |
