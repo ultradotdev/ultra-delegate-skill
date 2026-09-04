@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ultra Delegation"
+  short_description: "Route delegated work with context safety"
+  default_prompt: "Use $ultra-delegation to plan at high effort, delegate bounded host-native work, guard coordinator context, and report measured value."
