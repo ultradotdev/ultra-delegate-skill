@@ -7,7 +7,7 @@ Date: 2026-09-04. Scope: clean release source, distributable files, and the clea
 - Gitleaks 8.30.1 scanned the clean Git history and source directory with redacted output; no credential leaks were detected.
 - Targeted content checks covered personal filesystem paths, email-address patterns, common credential forms, and private-key markers. Matches were inspected as scanner rules or deliberately synthetic tests, not live credentials or personal contact data.
 - Release packaging uses an explicit file allowlist, rejects symlink inputs and recognizable secrets/personal paths, and does not include Git metadata or unrelated host configuration.
-- Git author metadata contains personal attribution. The repository owner must decide whether to retain that attribution before public visibility; it is not present in the distributable ZIPs. Do not confuse source-content scanning with author-metadata anonymization.
+- At the owner's request, release-branch author and committer metadata use `Keith <hello@ultra.dev>`. The original personal attribution is removed from the rewritten branch history. ZIPs contain no Git metadata. Hosting services may retain old, unreachable commit objects; rewriting branch history is not a guarantee of server-side erasure.
 
 ## Correctness scope
 
