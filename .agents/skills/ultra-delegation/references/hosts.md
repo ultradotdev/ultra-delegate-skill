@@ -2,6 +2,24 @@
 
 Read only the section for the active host. Discover controls from that installed host before use; documentation and templates are not availability checks. Preserve provider scope, worker tool authority, explicit model exclusions, and current user preferences.
 
+## Implemented boundaries and capability evidence
+
+| Surface | Implementation | Capability evidence |
+| --- | --- | --- |
+| TypeSafe / Jev | Direct HTTP decision adapter | Typed routing and shadow-judge responses; these do not prove worker quality |
+| Codex / OpenAI | Instructions and template for native host subagents | Host discovery plus observed outcomes for each exact model/effort/task profile |
+| Claude Code / Anthropic | Instructions and template for native Agent workers | Maintainer smoke report; discover exact models/effort locally and collect profile-specific outcomes |
+| OpenCode / current configured provider | Native subagent instructions and template, experimental | No general host-execution qualification; require discovery and observed outcomes |
+| Cross-provider APIs, Ollama, local runtimes | No worker execution adapter | Unavailable for automatic dispatch |
+
+The Python helper never launches a worker. The current session's host is the execution mechanism. Listing a host here does not imply it is available in another host or that its models have been benchmarked.
+
+Eligibility checks host/provider, exact available model, supported native effort, execution location, exclusions, and quarantine. Capability quality comes from matching task signatures and exact profile identities: task family, model revision, host, thinking, prompt profile, and tool policy. The default routine-evidence rule requires at least three comparable outcomes, all passing, with quality at the floor and conservative quality (mean minus standard deviation) at the floor. This rule is an evidence gate, not a statistical guarantee. Staleness or a latest failed outcome requires retesting. Imported priors retain first-use verification.
+
+Explicit worker modality, tool inventory, and input-plus-output context-window checks are not a complete discovered-capability contract in this release. The coordinator must verify these before dispatch. The context lifecycle guard only protects the coordinator's supplied context state; it does not prove a worker can accommodate a particular packet.
+
+The [standing shortlist](shortlist.md) ships unproven Codex discovery seeds and adapts its pool using supplied independent worker outcomes. It does not upgrade a model based on a Jev recommendation or shadow score.
+
 ## Codex
 
 Use native subagents with the selected model and supported reasoning setting. Supply the bounded packet and minimum necessary context. Do not launch a separate CLI as a substitute. If the native tool cannot apply an override, report it unavailable.

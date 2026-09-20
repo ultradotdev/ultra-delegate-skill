@@ -10,6 +10,8 @@ The helper performs deterministic local bookkeeping only. It never launches a mo
 
 For optional external Jev decisions and read-only OS credential lookup, use the separate [Jev adapter](jev.md). Its commands do not change this helper’s offline contract.
 
+For reproducible Jev work, use `jev_docs.py --check` (generated question documentation), `shortlist.py --input FILE` (offline adaptive candidate preparation), and `jev_benchmark.py` (downstream assessments, threshold sweeps, JSON/Markdown reports). Read their [question](jev-questions.md), [shortlist](shortlist.md), and [benchmark](jev-benchmark.md) contracts before supplying inputs. None launches workers.
+
 ## Commands
 
 - `init [--force]`: create policy and required `.gitignore` entries.

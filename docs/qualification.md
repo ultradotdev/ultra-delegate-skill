@@ -1,3 +1,33 @@
+# Jev evaluation infrastructure qualification: 1.3.0-rc.2
+
+Date: 2026-09-20. This is local implementation qualification, not live routing-quality evidence.
+
+- All 158 tests pass locally on macOS Python 3.14 and from the extracted source archive. Python 3.10 grammar checks pass; actual candidate remote Python/OS CI remains pending.
+- Six archive checks pass with site packages disabled and with optional keyring installed. The official skill validator passes.
+- Generated references are checked against the production payload builders and current field projection.
+- The standard benchmark runs offline with synthetic captures and independently labeled downstream observations supplied by the operator. Its demo remains synthetic and qualification pending.
+- Threshold selection uses calibration data only; held-out labels cannot change the selected threshold. Missing captures, outcomes, or costs remain explicit.
+- Downstream per-dimension floors and critical-defect vetoes prevent high clarity from compensating for missing requirements.
+- Standing discovery seeds require exact host/model/effort availability. Matching reviewed outcomes can change ranking; stale/failed results require retesting. Normalized records preserve latest-failure behavior when composing a Jev packet.
+- Capture tests use fake credentials and transports only. Existing/missing/unwritable output targets are rejected before requests; no real credential-store or endpoint operation was performed.
+- A Terra medium read-only review found a collector output-preflight defect; output is now reserved before a paid request. No remaining concrete findings were reported after correction. An independent forward test used the documented commands to generate question docs, a benchmark report, and the standing shortlist without credentials or network access.
+
+No live Jev call or worker bake-off was run for this candidate. No threshold or model has been qualified by this work. No personal skill installation or credential was modified. Candidate CI has not run remotely.
+
+Reproduce the synthetic report:
+
+```sh
+python3 .agents/skills/ultra-delegation/scripts/jev_benchmark.py --demo --output-prefix /tmp/jev-routing-demo
+python3 .agents/skills/ultra-delegation/scripts/jev_docs.py --check
+python3 -B -m unittest discover -s tests -v
+python3 scripts/build_release.py --check
+python3 scripts/build_release.py --source --check
+```
+
+The preceding release candidate subsequently passed all 120 tests across Python 3.10/3.12/3.14 and optional-keyring packaging jobs on Linux/macOS/Windows in [PR 2](https://github.com/ultradotdev/ultra-delegate-skill/pull/2). Those results are historical and do not establish the new candidate's remote compatibility.
+
+---
+
 # Jev candidate qualification: 1.3.0-rc.1
 
 Date: 2026-09-18. This candidate adds an external decision adapter while preserving the offline helper. The previous beta report follows as historical evidence, not a claim that its CI has run on this candidate.

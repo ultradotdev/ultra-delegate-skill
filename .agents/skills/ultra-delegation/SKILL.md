@@ -75,6 +75,8 @@ When project policy enables Jev, read [jev.md](references/jev.md) at packet-rout
 
 Prepare bounded summaries and exact discovered profiles with sanitized evidence. Honor sharing permissions independently: routing summaries do not authorize sending code or outputs to the shadow judge. Preview a new packet shape with `--dry-run`. In active mode, consume only effective `action` and exact profile IDs; experiment nominations require the existing experiment protocol. Shadow recommendations and judge scores do not authorize dispatch or establish capability evidence.
 
+The generated [question contract](references/jev-questions.md) shows exactly what Jev is asked and how code consumes each answer. Use the [shortlist workflow](references/shortlist.md) to combine shipped discovery seeds with validated local outcomes; seeds are unproven until independently exercised. Use the [benchmark workflow](references/jev-benchmark.md) for downstream assessment, threshold evaluation, and standard JSON/Markdown reports. Freeze rubric and calibration/test splits before reviewing outputs; only independent observed worker outcomes establish quality. Keep synthetic reports visibly labeled and leave unmeasured savings unavailable.
+
 Save routing decisions with `--write`, refresh host discovery/evidence, and run `recheck` immediately before dispatch. If inputs changed, reevaluate. Imported routes still require first-use verification. On uncertainty or service failure, retain coordinator ownership and consult the original ranking. Jev never changes the context guard, host permissions, worker acceptance, or promotion.
 
 ## Test one variable at a time

@@ -50,7 +50,7 @@ EVENT_KEYS = {
     "schema", "id", "run_id", "created_at", "kind", "mode", "status", "action",
     "selected_profile_id", "baseline_profile_id", "recommended_action", "recommended_profile_id",
     "nominated_profile_ids", "reason_codes", "input_hash", "policy_hash", "model", "rubric_version",
-    "question_hash", "uncertainty", "probabilities", "shadow_scores", "usage", "latency_ms", "attempts",
+    "question_hash", "question_version", "uncertainty", "probabilities", "shadow_scores", "usage", "latency_ms", "attempts",
     "estimated_cost_usd", "cost_kind", "price_date", "disagreement", "reference_comparison",
 }
 

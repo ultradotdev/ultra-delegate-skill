@@ -88,7 +88,11 @@ class ReleasePackagingTests(unittest.TestCase):
             for flags in (["-I", "-S"], ["-I"]):
                 for script, args in ((adapter, ["--help"]),
                                      (adapter, ["--root", str(state), "auth", "status"]),
-                                     (qualify, [])):
+                                     (qualify, []),
+                                     (adapter.with_name("jev_docs.py"), ["--check"]),
+                                     (adapter.with_name("shortlist.py"), ["--help"]),
+                                     (adapter.with_name("jev_benchmark_capture.py"), ["--help"]),
+                                     (adapter.with_name("jev_benchmark.py"), ["--demo", "--output-prefix", str(root / ("benchmark-" + str(len(flags))))])):
                     result = subprocess.run([sys.executable, *flags, str(script), *args],
                                             cwd=root, env=env, text=True, capture_output=True, timeout=20)
                     self.assertEqual(0, result.returncode, result.stderr)

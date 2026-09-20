@@ -2,7 +2,7 @@
 
 Let a capable coordinator plan and verify the work while smaller models handle bounded tasks. Learn which model, thinking setting, and prompt work for each task family, then reuse that evidence.
 
-**Development release candidate: 1.3.0-rc.1.** Python 3.10 or newer. The offline helper and HTTP adapter have no required Python package dependencies; optional read-only OS credential lookup uses `keyring`. Host execution requires an installed agent host and access to its models. See the [compatibility matrix](docs/compatibility.md) for tested capabilities and limits.
+**Development release candidate: 1.3.0-rc.2.** Python 3.10 or newer. The offline helper and HTTP adapter have no required Python package dependencies; optional read-only OS credential lookup uses `keyring`. Host execution requires an installed agent host and access to its models. See the [compatibility matrix](docs/compatibility.md) for tested capabilities and limits.
 
 ## Proof of concept — use with care
 
@@ -62,6 +62,8 @@ Inspect `--help` and the [CLI reference](.agents/skills/ultra-delegation/referen
 Jev can select suitable host-native worker profiles or nominate controlled experiments. Routing supports off, shadow, and explicitly enabled active modes; judging is shadow-only and never changes acceptance or promotions. Both default to off. Sending selected code/output excerpts requires a separate opt-in from sending task summaries.
 
 The adapter reads an existing OS credential entry or `TYPESAFE_API_KEY`. Configure the existing service/account names if needed; it never creates, changes, or deletes credentials. The ordinary helper remains offline. See the [Jev setup, packet contracts and qualification guide](.agents/skills/ultra-delegation/references/jev.md). Active routing quality and judge quality require live qualification on relevant tasks; mocked tests establish implementation behavior only.
+
+The [generated question reference](.agents/skills/ultra-delegation/references/jev-questions.md) exposes the exact questions and how code consumes them. CI checks it against the production payload builders. The [adaptive shortlist](.agents/skills/ultra-delegation/references/shortlist.md) combines unproven shipped discovery seeds with validated local results. The [quantitative benchmark](.agents/skills/ultra-delegation/references/jev-benchmark.md) produces standard JSON and Markdown artifacts from independently assessed downstream outcomes, with a calibration/test split and explicit limits on performance claims.
 
 ## Local models and resource budgets
 

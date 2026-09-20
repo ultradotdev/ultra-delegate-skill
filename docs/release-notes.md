@@ -1,3 +1,18 @@
+# Ultra Delegation 1.3.0-rc.2
+
+This candidate adds generated Jev question documentation, quantitative downstream routing evaluation, and an adaptive standing shortlist. Runtime routing questions and the default 0.90 threshold remain unchanged pending real evaluation.
+
+- Exact routing/judging question JSON and Markdown are generated from the production payload builders; CI checks freshness.
+- Independent downstream assessments require mandatory gates, per-dimension floors, and no critical defects. Jev shadow scores are never reference labels.
+- Captured responses replay through the production router for calibration and held-out testing. Standard JSON/Markdown reports separate coverage, quality, uncertainty, costs, and missing data.
+- A separate explicit live collector reads existing credentials, honors project summary sharing, bounds calls, and saves validated typed responses. It never launches workers or accesses their artifacts.
+- Shipped Codex Luna/Terra medium discovery seeds combine with exact matching local outcomes. They make no quality, cost, or availability claim and do not authorize dispatch.
+- New resources are included in both release allowlists. No live model-performance or savings claim is established by the synthetic demonstration.
+
+The previous candidate notes follow as history.
+
+---
+
 # Ultra Delegation 1.3.0-rc.1
 
 Unpublished development candidate adding optional Jev decisions. Existing offline workflows remain available with no credentials or dependencies.

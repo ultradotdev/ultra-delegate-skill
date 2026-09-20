@@ -1,6 +1,6 @@
 # Jev candidate addendum
 
-Development candidate: 1.3.0-rc.1, not published. See the [Jev reference](../.agents/skills/ultra-delegation/references/jev.md) for credential setup, explicit project opt-ins, packet contracts, rechecks, and qualification. Jev supports native-worker routing and experiment nominations plus shadow judging. It does not enable external worker adapters or promote profiles from its own scores. The previous beta handoff follows for historical context.
+Development candidate: 1.3.0-rc.2, not published. See the [Jev reference](../.agents/skills/ultra-delegation/references/jev.md) for credential setup, explicit project opt-ins, packet contracts, rechecks, and qualification. Jev supports native-worker routing and experiment nominations plus shadow judging. It does not enable external worker adapters or promote profiles from its own scores. The previous beta handoff follows for historical context.
 
 # Ultra.dev release handoff
 
