@@ -1,10 +1,11 @@
-# Compatibility: 1.2.0-beta.1
+# Compatibility: 1.3.0-rc.1
 
-Status applies to this release, not every future host/model revision. A successful helper test is not a successful host execution test.
+Existing host smoke reports and Linux CI results below describe the previous public beta; new candidate checks are recorded in [qualification](qualification.md). Status does not generalize to every future host/model revision. A successful helper test is not a successful host execution test.
 
 | Surface | Status | What is established | Remaining qualification |
 | --- | --- | --- | --- |
 | Python helper on macOS Python 3.14.6; Linux Python 3.10, 3.12, 3.14 | Verified within test scope | Unit/integration suite and packaging passed locally and in CI | Not a guarantee of runtime-host behavior; see [qualification](qualification.md) |
+| Jev decision adapter | Experimental; mocked tests | Policy, credential, HTTP failure and routing/judging contracts tested locally | Live model quality, real endpoint operation, and native credential-store operations |
 | Codex native remote workers | User-reported working; proof of concept | Maintainer reports successful use in another repository | Exact model/effort combinations and performance remain unqualified |
 | Claude Code native remote workers | User-reported working; proof of concept | Maintainer reports successful use | Exact host version, model, effort settings, and performance remain unqualified |
 | OpenCode remote workers | Experimental | Documented subagent template | Actual host execution, configured provider, and variant controls |

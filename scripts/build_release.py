@@ -12,7 +12,7 @@ import re
 import tempfile
 import zipfile
 
-VERSION = "1.2.0-beta.1"
+VERSION = "1.3.0-rc.1"
 REPOSITORY = Path(__file__).resolve().parents[1]
 SKILL = Path(".agents/skills/ultra-delegation")
 SKILL_FILES = (
@@ -20,6 +20,11 @@ SKILL_FILES = (
     "agents/openai.yaml",
     "scripts/ultra_delegation.py",
     "scripts/evidence.py",
+    "scripts/jev_contract.py",
+    "scripts/jev_transport.py",
+    "scripts/jev.py",
+    "scripts/jev_qualification.py",
+    "references/jev.md",
     "scripts/local_resources.py",
     "references/cli.md",
     "references/host-native.md",
@@ -37,7 +42,7 @@ SOURCE_FILES = (
     "scripts/build_release.py", "scripts/demo_learning.py", "tests/test_demo.py",
     "tests/test_beta_safety.py", "tests/test_ultra_delegation.py",
     "tests/test_local_resources.py", "tests/test_release_packaging.py",
-    "tests/test_evidence.py", "tests/test_guard_freshness.py",
+    "tests/test_evidence.py", "tests/test_guard_freshness.py", "tests/test_jev.py",
 )
 SOURCE_PREFIX = f"ultra-delegate-skill-{VERSION}"
 SOURCE_GITIGNORE = b"__pycache__/\n*.py[cod]\n/dist/\n/.ultra-delegation/\n.env\n"
@@ -62,7 +67,9 @@ def read_checked(repository: Path, relative: Path) -> bytes:
     data.decode("utf-8")
     if PERSONAL_PATH.search(data) or SECRET.search(data):
         raise ValueError(f"Review personal path or recognizable secret in: {relative}")
-    return data
+    # All allowlisted inputs are UTF-8 text. Normalize checkout line endings
+    # so Windows CRLF checkouts produce the same archive as LF checkouts.
+    return data.replace(b"\r\n", b"\n")
 
 
 def release_entries(repository: Path) -> dict[str, bytes]:

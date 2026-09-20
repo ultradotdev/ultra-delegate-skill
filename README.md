@@ -2,7 +2,7 @@
 
 Let a capable coordinator plan and verify the work while smaller models handle bounded tasks. Learn which model, thinking setting, and prompt work for each task family, then reuse that evidence.
 
-**Public beta: 1.2.0-beta.1.** Python 3.10 or newer; no Python package dependencies. Host execution requires an installed agent host and access to its models. See the [compatibility matrix](docs/compatibility.md) for tested capabilities and limits.
+**Development release candidate: 1.3.0-rc.1.** Python 3.10 or newer. The offline helper and HTTP adapter have no required Python package dependencies; optional read-only OS credential lookup uses `keyring`. Host execution requires an installed agent host and access to its models. See the [compatibility matrix](docs/compatibility.md) for tested capabilities and limits.
 
 ## Proof of concept — use with care
 
@@ -56,6 +56,12 @@ For an experiment:
 > Use Ultra Delegation to compare two available remote worker models on one bounded patch proposal at the same supported thinking setting. Define gates before execution, evaluate both, and record the outcome. Do not claim savings when telemetry is unavailable.
 
 Inspect `--help` and the [CLI reference](.agents/skills/ultra-delegation/references/cli.md) for ranking, recording, reports, catalog promotion, import/export, and guards. Cortex is optional; the fallback is project-local JSON evidence. Import recommendations as priors, then verify them in your environment.
+
+## Optional Jev routing and judging
+
+Jev can select suitable host-native worker profiles or nominate controlled experiments. Routing supports off, shadow, and explicitly enabled active modes; judging is shadow-only and never changes acceptance or promotions. Both default to off. Sending selected code/output excerpts requires a separate opt-in from sending task summaries.
+
+The adapter reads an existing OS credential entry or `TYPESAFE_API_KEY`. Configure the existing service/account names if needed; it never creates, changes, or deletes credentials. The ordinary helper remains offline. See the [Jev setup, packet contracts and qualification guide](.agents/skills/ultra-delegation/references/jev.md). Active routing quality and judge quality require live qualification on relevant tasks; mocked tests establish implementation behavior only.
 
 ## Local models and resource budgets
 

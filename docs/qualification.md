@@ -1,3 +1,35 @@
+# Jev candidate qualification: 1.3.0-rc.1
+
+Date: 2026-09-18. This candidate adds an external decision adapter while preserving the offline helper. The previous beta report follows as historical evidence, not a claim that its CI has run on this candidate.
+
+## Candidate checks
+
+- All 119 dependency-free tests pass locally on macOS Python 3.14, including existing regression tests and mocked Jev routing, judge, credential, transport and ledger tests.
+- Extracted skill archives run with site packages disabled and in a separate temporary environment with keyring 25.7.0 installed. This tests packaging/import compatibility, not real Keychain reads or cross-platform native-store operation.
+- Credential lifecycle is user-owned: tests reject all mutation commands before lookup, prove existing service/account entries are read without writes, and verify missing entries never trigger creation.
+- An owned delayed transport process is terminated under a shortened test deadline. Mock HTTP checks cover retry caps, authentication errors, malformed responses, redirects and size limits.
+- Official skill validation passes using PyYAML only in the isolated validation environment.
+- A Codex-native Terra medium read-only review examined the adapter boundaries. Follow-up changes bound dispatch rechecks to saved decisions and kept cleanup within the request budget. Imported-prior first-use routing remains intentional and explicitly pending verification, consistent with the existing trust-but-verify contract.
+- An independent Terra medium forward test exercised keyless CLI configuration, routing/judging previews, safe missing-credential behavior and mock experiment/judge behavior. Its profile-location documentation finding was corrected with an explicit requirement and complete minimal packet.
+- Optional-keyring archive checks are configured for Linux, macOS and Windows CI. New remote CI results are pending; local success does not qualify all operating systems or Python versions.
+
+## Pending qualification
+
+No real TypeSafe endpoint request, live routing-quality benchmark, or live judge-quality benchmark was performed. No credential was requested, saved, or read from the user's OS store. The opt-in synthetic runner reports `pending` until explicitly run with access. Synthetic authored labels are not a substitute for representative independent review and held-out task families.
+
+No installed personal skill or external provider configuration was modified. No worker was dispatched through Jev. Worker gates, acceptance and promotion remain coordinator-owned. Review cost and latency comparisons are unavailable; no savings claim is made.
+
+Reproduce:
+
+```sh
+python3 -B -m unittest discover -s tests -v
+python3 scripts/build_release.py --check
+python3 scripts/build_release.py --source --check
+python3 .agents/skills/ultra-delegation/scripts/jev_qualification.py
+```
+
+---
+
 # Beta qualification — 1.2.0-beta.1
 
 Qualification date: 2026-09-04. This is a scoped implementation report, not a certification of every host or model.

@@ -1,3 +1,18 @@
+# Ultra Delegation 1.3.0-rc.1
+
+Unpublished development candidate adding optional Jev decisions. Existing offline workflows remain available with no credentials or dependencies.
+
+- Removed credential-setting/deletion commands; existing Keychain entries are read using configurable service/account names.
+- Separate standard-library HTTP adapter, read-only OS credential lookup through optional keyring, and environment credentials.
+- Disabled-by-default active/shadow native-worker routing, evidence-aware candidate selection, and controlled-experiment nominations.
+- Separately enabled shadow judging with anonymized inputs, fixed rubric, deterministic gates, and no acceptance or promotion authority.
+- Saved decision rechecks, bounded requests/deadlines, redacted failures, isolated metadata ledger, and explicit overhead reporting.
+- Synthetic opt-in live qualification runner; no paid evaluation or real model-quality claim included in this candidate.
+
+See [qualification](qualification.md) for executed checks and remaining limits. Installing this candidate does not change existing policies or enable sharing. No cross-provider worker adapter, local inference, or tool authorization is added.
+
+---
+
 # Ultra Delegation 1.2.0-beta.1
 
 An experimental proof of concept for frontier planning with bounded worker delegation, verification, and portable learning. Read the README disclaimer before use; this is not production-ready automation.

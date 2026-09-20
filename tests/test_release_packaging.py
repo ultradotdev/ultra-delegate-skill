@@ -19,6 +19,20 @@ SPEC.loader.exec_module(release)
 
 
 class ReleasePackagingTests(unittest.TestCase):
+    def test_crlf_checkout_produces_identical_archives(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paths = {Path(name) for name in release.SOURCE_FILES}
+            paths.update(release.SKILL / name for name in release.SKILL_FILES)
+            for path in paths:
+                target = root / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                data = (REPOSITORY / path).read_bytes().replace(b"\r\n", b"\n")
+                target.write_bytes(data.replace(b"\n", b"\r\n"))
+            for collect in (release.release_entries, release.source_entries):
+                self.assertEqual(release.zip_bytes(collect(REPOSITORY)),
+                                 release.zip_bytes(collect(root)))
+
     def test_source_archive_has_only_public_inputs_and_rebuilds(self):
         entries = release.source_entries(REPOSITORY)
         expected = {f"{release.SOURCE_PREFIX}/{p}" for p in release.SOURCE_FILES}
@@ -57,6 +71,33 @@ class ReleasePackagingTests(unittest.TestCase):
                                         cwd=root, env=env, text=True, capture_output=True,
                                         timeout=20, check=False)
                 self.assertEqual(0, result.returncode, result.stderr)
+
+    def test_extracted_jev_runs_without_site_packages_and_with_optional_keyring(self):
+        entries = release.release_entries(REPOSITORY)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with zipfile.ZipFile(io.BytesIO(release.zip_bytes(entries))) as archive:
+                archive.extractall(root)
+            adapter = root / "ultra-delegation/scripts/jev.py"
+            qualify = adapter.with_name("jev_qualification.py")
+            state = root / "state"
+            env = dict(os.environ)
+            env.pop("TYPESAFE_API_KEY", None)
+            env["PYTHON_KEYRING_BACKEND"] = "keyring.backends.null.Keyring"
+            # -S demonstrates that site dependencies are not needed at all.
+            for flags in (["-I", "-S"], ["-I"]):
+                for script, args in ((adapter, ["--help"]),
+                                     (adapter, ["--root", str(state), "auth", "status"]),
+                                     (qualify, [])):
+                    result = subprocess.run([sys.executable, *flags, str(script), *args],
+                                            cwd=root, env=env, text=True, capture_output=True, timeout=20)
+                    self.assertEqual(0, result.returncode, result.stderr)
+            # An actual keyring installation, when present, must not disturb env auth.
+            env["TYPESAFE_API_KEY"] = "synthetic-private-credential"
+            result = subprocess.run([sys.executable, "-I", str(adapter), "--root", str(state), "auth", "status"],
+                                    cwd=root, env=env, text=True, capture_output=True, timeout=20)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertNotIn(env["TYPESAFE_API_KEY"], result.stdout + result.stderr)
 
     def test_unrelated_private_files_are_not_packaged(self):
         with tempfile.TemporaryDirectory() as directory:
