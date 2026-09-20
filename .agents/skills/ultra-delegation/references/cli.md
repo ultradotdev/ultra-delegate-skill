@@ -8,6 +8,8 @@ python3 <skill-directory>/scripts/ultra_delegation.py --root /absolute/project/.
 
 The helper performs deterministic local bookkeeping only. It never launches a model, provider CLI, or provider API.
 
+For optional external Jev decisions and read-only OS credential lookup, use the separate [Jev adapter](jev.md). Its commands do not change this helper’s offline contract.
+
 ## Commands
 
 - `init [--force]`: create policy and required `.gitignore` entries.

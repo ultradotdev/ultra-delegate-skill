@@ -9,7 +9,7 @@ Use this skill when delegation can improve cost, throughput, or reliability with
 
 ## Host boundary
 
-Stay in the current host and provider family. In Codex, use only Codex-native subagents and supported OpenAI model and effort controls. Do not invoke OpenCode, Claude Code, Ollama, another CLI, or any provider API as a fallback.
+Stay in the current host and provider family. In Codex, use only Codex-native subagents and supported OpenAI model and effort controls. Do not invoke OpenCode, Claude Code, Ollama, another CLI, or a worker provider API as a fallback. The separately enabled Jev decision adapter may evaluate permitted packets; it cannot execute workers or widen provider scope.
 
 In Claude Code or OpenCode, use that host's native workers instead. Read the relevant section of [hosts.md](references/hosts.md); templates are not proof of compatibility. The helper performs bookkeeping, not execution. Unexercised combinations are experimental.
 
@@ -68,6 +68,14 @@ Select in this order:
 Choose the lowest-cost eligible profile that passes the quality floor. Do not infer that success transfers between languages, task families, prompts, tools, or reasoning settings.
 
 Read [orchestration.md](references/orchestration.md) before creating packets, running an experiment, scoring results, or producing a report.
+
+## Optional Jev decisions
+
+When project policy enables Jev, read [jev.md](references/jev.md) at packet-routing or result-evaluation boundaries. Use the separate `scripts/jev.py` adapter; the ordinary helper remains offline. Credentials are read-only: use the user’s existing OS credential entry or `TYPESAFE_API_KEY`. Never create, update, delete, migrate, or prompt for a credential. Configure only the non-secret service/account locator when needed.
+
+Prepare bounded summaries and exact discovered profiles with sanitized evidence. Honor sharing permissions independently: routing summaries do not authorize sending code or outputs to the shadow judge. Preview a new packet shape with `--dry-run`. In active mode, consume only effective `action` and exact profile IDs; experiment nominations require the existing experiment protocol. Shadow recommendations and judge scores do not authorize dispatch or establish capability evidence.
+
+Save routing decisions with `--write`, refresh host discovery/evidence, and run `recheck` immediately before dispatch. If inputs changed, reevaluate. Imported routes still require first-use verification. On uncertainty or service failure, retain coordinator ownership and consult the original ranking. Jev never changes the context guard, host permissions, worker acceptance, or promotion.
 
 ## Test one variable at a time
 

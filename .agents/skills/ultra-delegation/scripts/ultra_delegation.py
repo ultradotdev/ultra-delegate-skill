@@ -23,10 +23,11 @@ from typing import Any, Iterable
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from local_resources import evaluate_local, DEFAULT_LOCAL_POLICY
+from jev_contract import DEFAULT_JEV_POLICY, validate_policy as validate_jev_policy, summarize_events
 from evidence import normalize_outcome, validate_outcome, validate_public_value, sanitize_learning
 
 SCHEMA = "ultra-delegation-learning-v1"
-RELEASE = "1.2.0-beta.1"
+RELEASE = "1.3.0-rc.1"
 LEVELS = {"off", "low", "medium", "high", "xhigh", "max", "custom"}
 TASK_SIGNATURE_KEYS = ("task_family", "operation", "language", "language_version", "framework", "framework_major", "framework_version", "risk", "coupling", "validation", "tools")
 DEFAULT_CONTEXT_GUARD = {
@@ -58,6 +59,7 @@ DEFAULT_POLICY = {
     "import_compatibility_floor": 0.8,
     "models": {}, "pins": [], "exclusions": [], "quarantined_imports": [], "price_table": {},
     "context_guard": DEFAULT_CONTEXT_GUARD,
+    "jev": DEFAULT_JEV_POLICY,
     "local_execution": DEFAULT_LOCAL_POLICY,
 }
 
@@ -199,6 +201,7 @@ def load_policy(root: Path) -> dict[str, Any]:
     local = raw.get("local_execution", {})
     if not isinstance(local, dict): raise UserError("local_execution must be an object")
     policy["local_execution"] = {**DEFAULT_LOCAL_POLICY, **local}
+    policy["jev"] = validate_jev_policy(raw.get("jev", {}))
     return policy
 
 
@@ -708,6 +711,9 @@ def markdown_report(data: dict[str, Any], title: str) -> str:
                       f"- Latest risk: {guard.get('latest_risk', 'unavailable')}",
                       f"- Delegation allowed: {guard.get('delegation_allowed', 'unavailable')}",
                       f"- Required action: {guard.get('required_action', 'unavailable')}", ""])
+    if data.get("jev"):
+        lines.extend(["## Jev decision overhead", "", canonical(data["jev"]),
+                      "Worker savings above exclude decision overhead; no counterfactual Jev savings claimed.", ""])
     lines.extend([data["telemetry_note"], ""])
     return "\n".join(lines)
 
@@ -723,6 +729,7 @@ def cmd_init(args: argparse.Namespace) -> dict[str, Any]:
         f"{root.name}/runs/",
         f"{root.name}/reports/",
         f"{root.name}/imports/",
+        f"{root.name}/jev/",
     ]
     existing = ignore_path.read_text().splitlines() if ignore_path.exists() else []
     missing = [entry for entry in ignore_entries if entry not in existing]
@@ -807,14 +814,10 @@ def cmd_guard_checkpoint(args: argparse.Namespace) -> dict[str, Any]:
             "next_action": summary.get("next_action", "Start a fresh task from this handoff.")}
 
 
-def cmd_rank(args: argparse.Namespace) -> dict[str, Any]:
-    root = root_from(args); policy = load_policy(root); context = object_arg(args.context, "context")
-    task = object_arg(args.task, "task"); candidates = json_arg(args.candidates, "candidates")
-    if not isinstance(candidates, list): raise UserError("candidates must be a JSON list")
-    if policy.get("global_catalog") and catalog_path().exists():
-        candidates += [{"profile": entry.get("profile", {}), "imported_prior": entry, "source": "global"}
-                       for entry in (sanitize_learning(r) for r in read_jsonl(catalog_path()))]
-    records = read_records_input(getattr(args, "records", None), evidence_path(root)); results = []
+def rank_candidates(task: dict[str, Any], context: dict[str, Any], candidates: list[dict[str, Any]],
+                    records: list[dict[str, Any]], policy: dict[str, Any]) -> dict[str, Any]:
+    """Pure ranking: all discovery, catalogs and evidence are supplied by the caller."""
+    results = []
     seen = set()
     for candidate in candidates:
         if not isinstance(candidate, dict): raise UserError("each candidate must be an object")
@@ -859,6 +862,18 @@ def cmd_rank(args: argparse.Namespace) -> dict[str, Any]:
                         "cost_usd": state["stats"]["mean_cost_usd"] if same else source_stats.get("mean_cost_usd")})
     results.sort(key=lambda x: (not x["eligible"], -x["tier"], x["cost_usd"] is None, x["cost_usd"] if x["cost_usd"] is not None else float("inf"), -(x["stats"]["conservative_quality"] or -1)))
     return {"task": task, "ranked": results, "rule": "locality filter precedes evidence and cost"}
+
+
+
+def cmd_rank(args: argparse.Namespace) -> dict[str, Any]:
+    root = root_from(args); policy = load_policy(root); context = object_arg(args.context, "context")
+    task = object_arg(args.task, "task"); candidates = json_arg(args.candidates, "candidates")
+    if not isinstance(candidates, list): raise UserError("candidates must be a JSON list")
+    if policy.get("global_catalog") and catalog_path().exists():
+        candidates += [{"profile": entry.get("profile", {}), "imported_prior": entry, "source": "global"}
+                       for entry in (sanitize_learning(r) for r in read_jsonl(catalog_path()))]
+    records = read_records_input(getattr(args, "records", None), evidence_path(root))
+    return rank_candidates(task, context, candidates, records, policy)
 
 
 def cmd_experiment_score(args: argparse.Namespace) -> dict[str, Any]:
@@ -955,6 +970,9 @@ def cmd_report(args: argparse.Namespace) -> dict[str, Any]:
         data["context_guard"] = {"events": len(guard_states), "latest_risk": latest.get("risk"),
                                  "delegation_allowed": latest.get("delegation_allowed"),
                                  "required_action": latest.get("required_action")}
+    events = read_jsonl(root / "jev" / "decisions.jsonl")
+    if args.report_kind == "run": events = [e for e in events if e.get("run_id") == args.run_id]
+    if events: data["jev"] = summarize_events(events)
     output = {"data": data, "markdown": markdown_report(data, title)}
     if args.write:
         report_id = args.run_id or "project"
