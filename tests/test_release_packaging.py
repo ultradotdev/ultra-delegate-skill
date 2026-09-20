@@ -19,6 +19,20 @@ SPEC.loader.exec_module(release)
 
 
 class ReleasePackagingTests(unittest.TestCase):
+    def test_crlf_checkout_produces_identical_archives(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paths = {Path(name) for name in release.SOURCE_FILES}
+            paths.update(release.SKILL / name for name in release.SKILL_FILES)
+            for path in paths:
+                target = root / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                data = (REPOSITORY / path).read_bytes().replace(b"\r\n", b"\n")
+                target.write_bytes(data.replace(b"\n", b"\r\n"))
+            for collect in (release.release_entries, release.source_entries):
+                self.assertEqual(release.zip_bytes(collect(REPOSITORY)),
+                                 release.zip_bytes(collect(root)))
+
     def test_source_archive_has_only_public_inputs_and_rebuilds(self):
         entries = release.source_entries(REPOSITORY)
         expected = {f"{release.SOURCE_PREFIX}/{p}" for p in release.SOURCE_FILES}

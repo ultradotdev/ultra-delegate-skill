@@ -67,7 +67,9 @@ def read_checked(repository: Path, relative: Path) -> bytes:
     data.decode("utf-8")
     if PERSONAL_PATH.search(data) or SECRET.search(data):
         raise ValueError(f"Review personal path or recognizable secret in: {relative}")
-    return data
+    # All allowlisted inputs are UTF-8 text. Normalize checkout line endings
+    # so Windows CRLF checkouts produce the same archive as LF checkouts.
+    return data.replace(b"\r\n", b"\n")
 
 
 def release_entries(repository: Path) -> dict[str, bytes]:
