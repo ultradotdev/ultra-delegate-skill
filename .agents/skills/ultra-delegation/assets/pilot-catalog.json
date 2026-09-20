@@ -1,0 +1,17 @@
+{
+  "schema": "ultra-pilot-catalog-v1",
+  "version": "1",
+  "status": "discovery-seeds-unqualified",
+  "note": "These are candidate discovery hints, not availability or performance claims. Discover exact native controls, effective context limits, tools and resolved revision before constructing a packet. Users may supply additional discovered candidates.",
+  "seeds": [
+    {"host": "codex", "provider": "openai", "model": "gpt-5.6-luna", "effort": "medium", "role": "economical"},
+    {"host": "codex", "provider": "openai", "model": "gpt-5.6-terra", "effort": "medium", "role": "specialist"},
+    {"host": "codex", "provider": "openai", "model": "gpt-5.6-sol", "effort": "high", "role": "fallback"},
+    {"host": "codex", "provider": "openai", "model": "gpt-6-astra", "effort": "high", "role": "fallback"},
+    {"host": "codex", "provider": "openai", "model": "gpt-5.5", "effort": "medium", "role": "challenger"}
+  ],
+  "other_hosts": [
+    {"host": "claude-code", "adapter": "claude-code-native", "instruction": "Discover available exact model and effort configurations on this host; do not invent provider IDs."},
+    {"host": "opencode", "adapter": "opencode-native", "instruction": "Supply discovered current-provider remote candidates; host integration is experimental."}
+  ]
+}

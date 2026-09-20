@@ -7,6 +7,12 @@ description: Plan high-effort work while delegating bounded tasks to the lowest-
 
 Use this skill when delegation can improve cost, throughput, or reliability without giving up frontier ownership of the plan and integration.
 
+## New project test drives
+
+For the Jev v2 pilot, including Yarn consolidation, read [pilot.md](references/pilot.md) and use `scripts/pilot.py`. It provides one batched semantic routing request, broader discovered candidate pools, scoped independent outcome learning, and self-contained HTML/JSON telemetry. The generated [pilot question contract](references/pilot-questions.md) is the source of exact question wording. Security assessment is optional and advisory, off by default; an unavailable evaluator must not block recording an otherwise independently assessed result.
+
+Pilot policy and evidence are separate from the legacy helper below. In the pilot, prompt wording versions are audit metadata; a material prompt contract or tool-policy change separates capability evidence. Use effective routes, perform `recheck`, and execute through the native host. Trials are proposals until the coordinator has an authorized isolated execution plan. Keep comparisons scoped, and do not turn synthetic demos or Jev shadow scores into observed worker quality.
+
 ## Host boundary
 
 Stay in the current host and provider family. In Codex, use only Codex-native subagents and supported OpenAI model and effort controls. Do not invoke OpenCode, Claude Code, Ollama, another CLI, or a worker provider API as a fallback. The separately enabled Jev decision adapter may evaluate permitted packets; it cannot execute workers or widen provider scope.
@@ -49,7 +55,7 @@ Delegate only a bounded task packet with an explicit goal, scope, baseline, acce
 
 For routine work, pass minimal context rather than conversation history. Cache capability discovery within the session, invalidating it on host/model configuration changes or rejected settings. Use one worker, one bounded result, and at most one repair attempt before coordinator escalation. Run bakeoffs only when requested or when evidence is missing, stale, or conflicting. Load references only for the current operation.
 
-## Route each packet
+## Legacy helper: route each packet
 
 Classify the packet by task family, language/framework, operation, risk, coupling, tools, validation method, and affected paths. Use this exact profile identity:
 
@@ -69,7 +75,7 @@ Choose the lowest-cost eligible profile that passes the quality floor. Do not in
 
 Read [orchestration.md](references/orchestration.md) before creating packets, running an experiment, scoring results, or producing a report.
 
-## Optional Jev decisions
+## Legacy helper: optional Jev decisions
 
 When project policy enables Jev, read [jev.md](references/jev.md) at packet-routing or result-evaluation boundaries. Use the separate `scripts/jev.py` adapter; the ordinary helper remains offline. Credentials are read-only: use the user’s existing OS credential entry or `TYPESAFE_API_KEY`. Never create, update, delete, migrate, or prompt for a credential. Configure only the non-secret service/account locator when needed.
 
@@ -79,7 +85,7 @@ The generated [question contract](references/jev-questions.md) shows exactly wha
 
 Save routing decisions with `--write`, refresh host discovery/evidence, and run `recheck` immediately before dispatch. If inputs changed, reevaluate. Imported routes still require first-use verification. On uncertainty or service failure, retain coordinator ownership and consult the original ranking. Jev never changes the context guard, host permissions, worker acceptance, or promotion.
 
-## Test one variable at a time
+## Legacy helper: test one variable at a time
 
 Compare exactly one of model, thinking budget, or prompt profile per experiment. Hold the task packet, baseline, tool policy, validation, and evaluator constant. Ask for explicit approval before a factorial experiment.
 

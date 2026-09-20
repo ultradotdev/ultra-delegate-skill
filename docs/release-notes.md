@@ -1,3 +1,9 @@
+# Ultra Delegation 1.3.0-rc.3
+
+Adds an opt-in Jev v2 project pilot with one batched routing request, broader candidate discovery seeds, scope-based outcome confidence, prompt wording versions as audit metadata, mandatory acceptance-gate validation, and standalone HTML/JSON reports. The security evaluator is off by default and advisory: unavailable service or malformed security input never prevents ordinary outcome recording. Existing credential entries are read only.
+
+The native host remains responsible for worker execution and independent acceptance. The offline synthetic Yarn example demonstrates the workflow; it does not qualify live Jev routing, security accuracy, thresholds, or savings. No Rust runtime, cross-provider execution adapter, automatic trial scheduler, live installation or publication is included.
+
 # Ultra Delegation 1.3.0-rc.2
 
 This candidate adds generated Jev question documentation, quantitative downstream routing evaluation, and an adaptive standing shortlist. Runtime routing questions and the default 0.90 threshold remain unchanged pending real evaluation.

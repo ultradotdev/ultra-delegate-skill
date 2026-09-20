@@ -2,7 +2,7 @@
 
 Let a capable coordinator plan and verify the work while smaller models handle bounded tasks. Learn which model, thinking setting, and prompt work for each task family, then reuse that evidence.
 
-**Development release candidate: 1.3.0-rc.2.** Python 3.10 or newer. The offline helper and HTTP adapter have no required Python package dependencies; optional read-only OS credential lookup uses `keyring`. Host execution requires an installed agent host and access to its models. See the [compatibility matrix](docs/compatibility.md) for tested capabilities and limits.
+**Development release candidate: 1.3.0-rc.3.** Python 3.10 or newer. The offline helper and HTTP adapter have no required Python package dependencies; optional read-only OS credential lookup uses `keyring`. Host execution requires an installed agent host and access to its models. See the [compatibility matrix](docs/compatibility.md) for tested capabilities and limits.
 
 ## Proof of concept — use with care
 
@@ -57,7 +57,21 @@ For an experiment:
 
 Inspect `--help` and the [CLI reference](.agents/skills/ultra-delegation/references/cli.md) for ranking, recording, reports, catalog promotion, import/export, and guards. Cortex is optional; the fallback is project-local JSON evidence. Import recommendations as priors, then verify them in your environment.
 
-## Optional Jev routing and judging
+## Jev v2 project pilot
+
+The new [project pilot](.agents/skills/ultra-delegation/references/pilot.md) provides a Python CLI and importable functions for batched routing, native-host handoff, independently assessed outcome learning, and self-contained HTML + JSON telemetry. Security assessment is optional and advisory, off by default; evaluator failures are recorded without blocking ordinary outcome recording. Existing mandatory project tests remain authoritative.
+
+Start with an offline synthetic demonstration:
+
+```sh
+python3 .agents/skills/ultra-delegation/scripts/pilot.py --root /tmp/ultra-pilot-demo demo
+```
+
+Use a fresh output directory. The command prints paths to HTML and JSON reports and never reads credentials or calls an API. The [pilot guide](.agents/skills/ultra-delegation/references/pilot.md) describes the Yarn consolidation test drive, explicit live opt-in, existing credential locators, packet preview, outcome forms, and native dispatch rechecks. [Generated question documentation](.agents/skills/ultra-delegation/references/pilot-questions.md) stays synchronized in CI. No live quality, security accuracy, savings or thresholds are qualified by the synthetic demo.
+
+The first iteration keeps Python 3.10+ and a versioned JSON boundary so the future Yarn app, or a later Rust CLI, can consume the same explicit contracts. The older router and benchmark below remain available for comparison.
+
+## Legacy optional Jev routing and judging
 
 Jev can select suitable host-native worker profiles or nominate controlled experiments. Routing supports off, shadow, and explicitly enabled active modes; judging is shadow-only and never changes acceptance or promotions. Both default to off. Sending selected code/output excerpts requires a separate opt-in from sending task summaries.
 

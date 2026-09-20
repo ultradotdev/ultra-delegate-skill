@@ -90,6 +90,9 @@ class ReleasePackagingTests(unittest.TestCase):
                                      (adapter, ["--root", str(state), "auth", "status"]),
                                      (qualify, []),
                                      (adapter.with_name("jev_docs.py"), ["--check"]),
+                                     (adapter.with_name("pilot_questions.py"), ["--check"]),
+                                     (adapter.with_name("pilot.py"), ["catalog"]),
+                                     (adapter.with_name("pilot.py"), ["--root", str(root / ("pilot-" + str(len(flags)))), "demo"]),
                                      (adapter.with_name("shortlist.py"), ["--help"]),
                                      (adapter.with_name("jev_benchmark_capture.py"), ["--help"]),
                                      (adapter.with_name("jev_benchmark.py"), ["--demo", "--output-prefix", str(root / ("benchmark-" + str(len(flags))))])):

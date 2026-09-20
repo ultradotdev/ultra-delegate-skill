@@ -1,3 +1,11 @@
+# Jev project pilot qualification: 1.3.0-rc.3
+
+The first iteration is Python 3.10+ with local metadata ledgers and HTML/JSON telemetry. New tests exercise batched question contracts, scoped group evidence, independent acceptance gates, shadow versus active behavior, unavailable service, dispatch rechecks, redacted responses, optional nonblocking security evaluation, output escaping, and archive portability. The synthetic Yarn demo covers proposals, accepted/failed observations, confidence accumulation, security unavailability and pending results.
+
+No real Yarn source has been evaluated by this candidate. No live Jev request, native worker bake-off, security-accuracy benchmark or threshold qualification was performed. The report's synthetic observations and prices are illustrative. Browser visual inspection of the generated local HTML was blocked by the browser URL policy; source/escaping and report-generation behavior are covered by automated checks instead.
+
+Local validation: all 196 tests pass on macOS Python 3.14 and from the extracted source archive; all six archive checks also pass in the isolated optional-keyring environment. Python 3.10 grammar checks pass for 34 Python files. Generated references, reproducible skill/source packaging checks and the official skill validator pass. An independent forward test exercised the documented offline CLI workflow, rejected an incomplete outcome form, and confirmed recheck, security-off and pending-cost behavior. Actual Python 3.10 execution and new remote CI remain pending; historical results below do not establish this candidate's live quality.
+
 # Jev evaluation infrastructure qualification: 1.3.0-rc.2
 
 Date: 2026-09-20. This is local implementation qualification, not live routing-quality evidence.
