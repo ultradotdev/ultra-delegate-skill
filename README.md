@@ -4,6 +4,8 @@ Let a capable coordinator plan and verify the work while smaller models handle b
 
 **Development release candidate: 1.3.0-rc.3.** Python 3.10 or newer. The offline helper and HTTP adapter have no required Python package dependencies; optional read-only OS credential lookup uses `keyring`. Host execution requires an installed agent host and access to its models. See the [compatibility matrix](docs/compatibility.md) for tested capabilities and limits.
 
+For a limited local validation run, see the [repository pilot test drive](docs/pilot-test-drive.md).
+
 ## Proof of concept — use with care
 
 This is an experimental proof of concept, not production-ready automation. It can make incorrect routing decisions, produce bad code, consume paid model usage, or cause unintended changes through your agent host. Use a disposable project or a backed-up Git checkout, limit host permissions, and review changes before accepting them. Do not use it for unattended production, security-critical, or destructive work. Guardrails are cooperative checks, not a sandbox or a guarantee against data loss, disclosure, or resource overload. Provided as-is under the MIT license.

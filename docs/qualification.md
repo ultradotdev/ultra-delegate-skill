@@ -1,3 +1,29 @@
+# Post-merge repository test drive
+
+PR 3 merged at `5a7e79d584c9cea11aa6284cfa0b13960c0a7206` after its
+Python 3.10/3.12/3.14 and optional-keyring Linux/macOS/Windows CI passed.
+The following changes are an unreleased development snapshot of that candidate.
+
+The repository test drive adds 14 tests for executable behavior specifications,
+real CLI subprocess flows, a bounded synthetic smoke runner, transport attempt
+limits and a live-discovered Score rounding mismatch. All 210 tests pass locally
+on macOS Python 3.14. Generated question references and reproducible skill/source
+packaging checks pass. Archive tests pass both with site packages disabled and
+with optional keyring installed. New-branch remote CI remains pending.
+
+Two authorized live Jev requests completed using authored synthetic inputs and a
+read-only existing OS-store credential. The first failed strict response
+validation; the second isolated a scalar Score discrepancy compatible with
+hundredths rounding. A bounded compatibility fix is regression-tested and
+independently reviewed. The third attempt stalled in Keychain lookup before HTTP
+and was terminated. Live verification of the fix, ambiguity/security live cases,
+worker bake-offs, real downstream quality and threshold calibration remain
+pending. Cost for the two diagnostic requests is unknown; no savings claim is
+made. No live-installed skill or credential was changed.
+
+See [the reproducible test-drive guide](pilot-test-drive.md) for examples,
+executable contracts, response-compatibility policy and payload boundaries.
+
 # Jev project pilot qualification: 1.3.0-rc.3
 
 The first iteration is Python 3.10+ with local metadata ledgers and HTML/JSON telemetry. New tests exercise batched question contracts, scoped group evidence, independent acceptance gates, shadow versus active behavior, unavailable service, dispatch rechecks, redacted responses, optional nonblocking security evaluation, output escaping, and archive portability. The synthetic Yarn demo covers proposals, accepted/failed observations, confidence accumulation, security unavailability and pending results.

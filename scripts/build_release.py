@@ -58,12 +58,14 @@ SOURCE_FILES = (
     "docs/compatibility.md", "docs/demo.md", "docs/ultra-dev-handoff.md", "docs/qualification.md",
     "docs/release-audit.md", "docs/release-notes.md",
     "docs/jev-routing-v2-design.md",
+    "docs/pilot-test-drive.md", "scripts/pilot_smoke.py",
     "scripts/build_release.py", "scripts/demo_learning.py", "tests/test_demo.py",
     "tests/test_beta_safety.py", "tests/test_ultra_delegation.py",
     "tests/test_local_resources.py", "tests/test_release_packaging.py",
     "tests/test_evidence.py", "tests/test_guard_freshness.py", "tests/test_jev.py",
     "tests/test_jev_docs.py", "tests/test_jev_benchmark.py", "tests/test_jev_benchmark_capture.py", "tests/test_shortlist.py",
     "tests/test_pilot.py", "tests/test_pilot_core.py", "tests/test_pilot_questions.py", "tests/test_pilot_report.py",
+    "tests/test_pilot_integration.py", "tests/test_pilot_smoke.py", "tests/test_pilot_spec.py",
 )
 SOURCE_PREFIX = f"ultra-delegate-skill-{VERSION}"
 SOURCE_GITIGNORE = b"__pycache__/\n*.py[cod]\n/dist/\n/.ultra-delegation/\n.env\n"

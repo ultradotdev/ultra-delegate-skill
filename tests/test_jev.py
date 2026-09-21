@@ -291,6 +291,32 @@ class JevBehaviorTests(unittest.TestCase):
 class TransportTests(unittest.TestCase):
     def payload(self): return {'model':'jev-1.13.0', 'state':'synthetic', 'questions':{'yes':{'type':'noul','instructions':'Is this synthetic?'}}}
 
+    def test_live_score_rounding_retains_probabilities_and_rejects_inconsistency(self):
+        p = {'model':'jev-1.13.0', 'state':'synthetic', 'questions':{'impact':{
+            'type':'score', 'instructions':'Rate impact', 'criteria':['none','small','large','severe']}}}
+        r = response(p)
+        a = r['answers']['impact']
+        a.update(probabilities={'0':.97,'1':.03,'2':0.,'3':0.}, score=.04)
+        clean, _ = t.validate_response(p,r)
+        self.assertEqual(clean['impact'], a['probabilities'])
+        for score in (.06, -.01, 3.01, True, float('nan'), .040001):
+            with self.subTest(score=score), self.assertRaises(t.ServiceError):
+                a['score'] = score
+                t.validate_response(p,r)
+        a['score'] = .04
+        a['probabilities']['0'] = .96
+        with self.assertRaises(t.ServiceError): t.validate_response(p,r)
+        a['probabilities']['0'] = .97
+        a['legend']['0'] = 'changed'
+        with self.assertRaises(t.ServiceError): t.validate_response(p,r)
+        # Legacy shadow judging uses five levels and retains the scalar score.
+        p['questions']['impact']['criteria'].append('critical')
+        a['legend'] = {str(i): level for i, level in enumerate(p['questions']['impact']['criteria'])}
+        a['probabilities']['4'] = 0.
+        t.validate_response(p,r)
+        a['probabilities'].update({'0':.969, '1':.031})
+        with self.assertRaises(t.ServiceError): t.validate_response(p,r)
+
     def test_invalid_response_values_and_coverage(self):
         p = self.payload()
         for change in ({'model':'other'}, {'answers':{}}, {'usage':{'input_tokens':True,'output_tokens':1}}, {'answers':{'yes':{'type':'noul','noul':float('nan')}}}):
@@ -306,6 +332,23 @@ class TransportTests(unittest.TestCase):
         p = {'model':'jev-1.13.0','state':'test','questions':{'route':{'type':'choice','instructions':'Choose','criteria':{'a':None,'b':None}}}}
         r = {'model':p['model'],'usage':{'input_tokens':1,'output_tokens':1},'answers':{'route':{'type':'choice','choice':'invented','confidence':1,'probabilities':{'a':0.5,'b':0.5}}}}
         with self.assertRaises(t.ServiceError): t.validate_response(p,r)
+
+    def test_single_attempt_budget_never_retries_transient_failure(self):
+        class Opener:
+            calls = 0
+            def open(self, *args, **kwargs):
+                self.calls += 1
+                raise urllib.error.HTTPError(t.ENDPOINT, 503, 'private-provider-body', {}, io.BytesIO(b'private'))
+        opener = Opener()
+        with self.assertRaises(t.ServiceError) as error:
+            t._request_loop(b'{}', 'fixture', time.monotonic()+20, opener,
+                            sleep=lambda _: self.fail('single attempt must not sleep'), max_attempts=1)
+        self.assertEqual(opener.calls, 1)
+        self.assertEqual(error.exception.attempts, 1)
+        self.assertNotIn('private', str(error.exception))
+        for invalid in (0, 3, True, '1'):
+            with self.subTest(invalid=invalid), patch.object(t.multiprocessing, 'get_context', side_effect=AssertionError), self.assertRaisesRegex(t.ServiceError, 'invalid-attempt-limit'):
+                t.request(self.payload(), 'fixture', max_attempts=invalid)
 
     def test_request_response_bounds_and_redirect(self):
         with self.assertRaises(t.ServiceError): t.encoded_payload({'state':'x'*t.REQUEST_LIMIT})
