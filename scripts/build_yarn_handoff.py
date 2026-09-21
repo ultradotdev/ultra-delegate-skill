@@ -20,8 +20,8 @@ ROOT = Path(__file__).resolve().parents[1]
 VERSION = "1.3.0-rc.3"
 BASELINE = "eff47efbc55bdf02b6d722cf9628d1858eef2d7a"
 ARCHIVES = {
-    "ultra-delegation-1.3.0-rc.3.zip": "fb0a43ecc9f1013e58f4e3074c54948308c258caef23f90558b3fad790d0c4a5",
-    "ultra-delegate-skill-1.3.0-rc.3-source.zip": "64540ab93309353984f0c471b9fd2b345ccde958a6e7a07d542aa8102e906fc3",
+    "ultra-delegation-1.3.0-rc.3.zip": "91b855db3aa6673007337f0f91f65620bdabdc51015748a9d69c55dce94f7bd9",
+    "ultra-delegate-skill-1.3.0-rc.3-source.zip": "60c45de514808faae18674f169cce309e552842c8af388cd206161cd5d100116",
 }
 DOCS = ("START-HERE.md", "PLAN.md", "RUNBOOK.md", "templates/task-cards.json", "templates/acceptance-checklist.md")
 
