@@ -12,7 +12,7 @@ import re
 import tempfile
 import zipfile
 
-VERSION = "1.3.0-rc.4"
+VERSION = "1.3.0-rc.5"
 REPOSITORY = Path(__file__).resolve().parents[1]
 SKILL = Path(".agents/skills/ultra-delegation")
 SKILL_FILES = (
@@ -35,6 +35,7 @@ SKILL_FILES = (
     "scripts/pilot_codex.py",
     "references/pilot.md",
     "references/pilot-codex.md",
+    "references/pilot-demands.md",
     "references/pilot-questions.md",
     "references/pilot-questions.json",
     "assets/pilot-catalog.json",
@@ -68,7 +69,7 @@ SOURCE_FILES = (
     "tests/test_jev_docs.py", "tests/test_jev_benchmark.py", "tests/test_jev_benchmark_capture.py", "tests/test_shortlist.py",
     "tests/test_pilot.py", "tests/test_pilot_core.py", "tests/test_pilot_questions.py", "tests/test_pilot_report.py",
     "tests/test_pilot_integration.py", "tests/test_pilot_smoke.py", "tests/test_pilot_spec.py",
-    "tests/test_pilot_native_capacity.py",
+    "tests/test_pilot_native_capacity.py", "tests/test_pilot_demands.py",
 )
 SOURCE_PREFIX = f"ultra-delegate-skill-{VERSION}"
 SOURCE_GITIGNORE = b"__pycache__/\n*.py[cod]\n/dist/\n/.ultra-delegation/\n.env\n"

@@ -11,7 +11,7 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
-ROUTING_VERSION = "pilot-routing-v2"
+ROUTING_VERSION = "pilot-routing-v3"
 SECURITY_VERSION = "pilot-security-v1"
 MAX_CANDIDATES = 12
 MAX_COHORTS = 2
@@ -55,20 +55,20 @@ IMPACT_LEVELS = [
 
 ROUTING_REGISTRY = (
     _entry("work_kind", "choice", "What kind of work produces the deliverable requested in `task`?",
-           criteria=WORK_KINDS, consumer="task-kind conflict detection/repackage; diagnostic grouping and later evidence retrieval",
+           criteria=WORK_KINDS, consumer="diagnostic grouping and later evidence retrieval; never a routing veto or signature rewrite",
            applicability="always", polarity="descriptive", state_deps=("task",)),
     _entry("missing_requirement", "noul", "Is a requirement needed to determine an acceptable deliverable missing from `task`? Ordinary worker discretion is not missing information.",
            consumer="clarify or repackage", applicability="always", polarity="affirmative blocks routine routing", state_deps=("task.requirements", "task.intended_use")),
     _entry("coordinator_coupling", "noul", "Does completing the requested deliverable require a decision outside `task.worker_boundary` that the coordinator has not supplied? Topic labels alone do not establish coupling.",
            consumer="repackage or retain with coordinator", applicability="always", polarity="affirmative blocks delegation", state_deps=("task.worker_boundary", "task.operation", "task.requirements")),
     _entry("reasoning_depth", "score", "What depth of reasoning does the requested operation require? Do not map this score to a provider effort label.",
-           criteria=REASONING_LEVELS, consumer="applicable evidence domain and review plan", applicability="always", polarity="higher increases demand", state_deps=("task.operation", "task.requirements", "task.input_tokens", "task.output_tokens")),
+           criteria=REASONING_LEVELS, consumer="candidate reasoning evidence and mandatory review-reasoning gate; no global complexity veto", applicability="always", polarity="higher increases demand", state_deps=("task.operation", "task.requirements", "task.input_tokens", "task.output_tokens")),
     _entry("failure_impact", "score", "What is the consequence of a materially incorrect deliverable under `task.intended_use`? Unknown intended use is incomplete state, not low impact.",
            criteria=IMPACT_LEVELS, consumer="policy impact band while respecting authoritative risk", applicability="always", polarity="higher increases required safeguards", state_deps=("task.intended_use", "task.risk", "task.operation")),
     _entry("code_interaction", "noul", "Does the requested operation require reasoning about behavioral interactions across multiple functions or components?",
-           consumer="interaction evidence and review requirements", applicability="when work kind includes coding", polarity="affirmative increases demand", state_deps=("task.operation", "task.requirements", "task.work_kind")),
+           consumer="candidate interaction evidence and mandatory review-code-interaction gate; unused for non-code tasks", applicability="when work kind includes coding", polarity="affirmative increases demand", state_deps=("task.operation", "task.requirements", "task.work_kind")),
     _entry("context_synthesis", "noul", "Does the deliverable require combining facts from separated portions of the supplied material? This measures semantic demand, not token capacity.",
-           consumer="synthesis evidence requirements", applicability="when supplied material has separated facts", polarity="affirmative increases demand", state_deps=("task.requirements", "task.input_tokens", "task.operation")),
+           consumer="candidate synthesis evidence and mandatory review-context-synthesis gate; no global complexity veto", applicability="when supplied material has separated facts", polarity="affirmative increases demand", state_deps=("task.requirements", "task.input_tokens", "task.operation")),
     _entry("external_information", "noul", "Does producing the deliverable require information absent from supplied material that must be obtained from an external source? This never grants network access.",
            consumer="recheck reachable authorized retrieval tools or repackage", applicability="when operation might require unsupplied facts", polarity="affirmative requires tool check", state_deps=("task.operation", "task.requirements", "task.required_tools", "task.required_modalities")),
     _entry("operation_match_{i}", "noul", "Does the operation requested in `task` fall within the operations described in `candidates[{i}].capability_description`? This is semantic match, not demonstrated success.",
@@ -184,10 +184,14 @@ ROUTING_THRESHOLDS = {"missing_requirement": 0.20, "coordinator_coupling": 0.20,
                       "operation_match": 0.85, "scope_exceeded": 0.15,
                       "evidence_comparable": 0.80, "demand": 0.70,
                       "severe_impact": 0.10}
+DEMAND_BANDS = {tag: {"absent": 0.30, "required": 0.70}
+                for tag in ("reasoning", "code_interaction", "context_synthesis")}
+
 PROPOSED_THRESHOLDS = {
     "status": "experimental pilot defaults; unqualified pending calibration",
     "values": ROUTING_THRESHOLDS,
-    "interpretation": "Each Noul uses a separate affirmative, negative, and middle band. Do not multiply Noul values or treat them as separate confidence measurements.",
+    "demand_bands": DEMAND_BANDS,
+    "interpretation": "Demand signals use independently configurable absent/required boundaries: absent, uncertain, required. Required and uncertain demands select candidate evidence and review gates, not a global complexity stop. Other gates retain their stated cutoffs; no universal three-way calibration is claimed. Do not multiply Noul values or interpret them as worker success confidence.",
     "operation_match": "affirmative supports a candidate; a middle result needs trial, review, or repackage",
     "scope_exceeded": "affirmative excludes routine dispatch; a middle result needs trial, review, or repackage",
 }

@@ -1,3 +1,39 @@
+# Routing-design correction: 1.3.0-rc.5
+
+An implementation audit found that the pilot used reasoning, interaction and
+synthesis signals as a global complexity veto, whereas the design called for
+candidate-specific evidence and review requirements. RC5 corrects that rule,
+keeps task-kind classification diagnostic, derives cohort descriptions from
+recorded outcome metadata, and rejects active observations outside selected or
+nominated configurations. Old decisions require reevaluation; old outcomes are
+not silently given new demand qualifications.
+
+An offline replay verified the exact original payload hash and reused its
+recorded Jev answers. The recommendation changed from `repackage` to reviewed
+experiment proposals for Terra and Luna with interaction/synthesis review gates.
+There were zero new HTTP calls, worker executions or accepted outcomes. This
+isolates the deterministic rule correction, not improved live model selection.
+The original trial and its failed routing expectation remain historical records.
+
+All 246 tests pass locally and from the extracted source archive with site
+packages disabled. Six archive tests pass with optional keyring installed. Python
+3.10 grammar checks pass for 42 files; generated references, skill validation and
+deterministic archive checks pass.
+
+Validation covers routine interaction, uncertain demands, relevant proof versus
+generic successes, retained failures, independent band overrides, actual cohort
+counts, active/shadow acceptance separation, blocked active outcomes, current
+policy rechecks and report privacy/clarity. The generated atomic question wording
+is unchanged; its consumption metadata and version now reflect the new rule.
+Current automated and packaging results are tracked on
+[PR 4](https://github.com/ultradotdev/ultra-delegate-skill/pull/4).
+
+The [demand contract](../.agents/skills/ultra-delegation/references/pilot-demands.md)
+documents both corrected behavior and remaining design gaps: full-path cost and
+latency optimization, calibrated thresholds, broader semantic evidence retrieval,
+and automatic trial scheduling. The pilot is not the full proposed design.
+No live installation or publication was performed.
+
 # Native repository readiness: 1.3.0-rc.4
 
 PR 3 merged at `5a7e79d584c9cea11aa6284cfa0b13960c0a7206` after its

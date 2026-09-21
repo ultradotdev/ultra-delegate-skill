@@ -4,6 +4,8 @@ Status: design proposal, 2026-09-20. No runtime changes, live inference, worker 
 
 Implementation follow-up: the first Python pilot is documented in [pilot.md](../.agents/skills/ultra-delegation/references/pilot.md). It implements a bounded subset of this architecture for the Yarn consolidation test drive. The discussion subsequently clarified that prompt wording versions are audit metadata, qualification is scoped, and the new security evaluator is optional/advisory rather than an acceptance gate. Current pilot contracts and qualification status take precedence over proposed behavior below. Full adapter execution, automatic trials and live calibration remain future work.
 
+RC5 conformance correction: [demand-based candidate evaluation](../.agents/skills/ultra-delegation/references/pilot-demands.md) replaces the pilot’s unintended blanket complexity veto with candidate evidence and review requirements. That reference also enumerates remaining design gaps; this pilot is not full implementation of every proposal below.
+
 ## 1. Objective
 
 Choose the least expensive available execution configuration that meets the task's quality and latency requirements, including the cost of preparation, routing, review, retries, and fallback. Return a specific reason when the system cannot make that choice. Learn from independently assessed results without turning a recommendation into evidence that the worker succeeded.

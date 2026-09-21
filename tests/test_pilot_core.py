@@ -115,9 +115,13 @@ class PilotCoreTests(unittest.TestCase):
         self.assertEqual((row["evidence"]["groups"], row["evidence"]["passed_groups"]), (1, 0))
         self.assertFalse(row["evidence"]["qualified"])
 
-    def test_complex_demand_requires_complex_scope(self):
+    def test_reasoning_demand_requires_reviewed_trial_without_applicable_evidence(self):
         base = packet(); prepared = {"shortlist": [{"configuration_id": core.configuration_id(base["candidates"][0]), "evidence": {"qualified": False}}], "cards": [{"evidence_cohorts": []}]}
-        self.assertEqual(core.recommendation(base, prepared, answers(extended=True), core.policy())["reason_codes"], ["complex-scope-required"])
+        rec = core.recommendation(base, prepared, answers(extended=True), core.policy())
+        self.assertEqual(rec["action"], "experiment")
+        self.assertEqual(rec["required_demands"], ["reasoning"])
+        self.assertEqual(rec["review_requirements"], ["review-reasoning"])
+        self.assertEqual(base["task"]["complexity"], "routine")
 
     def test_assess_outcome_requires_independent_acceptance_gates(self):
         c = candidate(); decision = {"id": "decision-a", "task_id": "task-a", "group_id": "group-current", "scope_id": "parser", "operation": "repair-parser", "risk": "low", "work_kind": "coding", "complexity": "routine", "synthetic": False, "acceptance_gates": ["tests-pass"], "candidates": [{"configuration_id": core.configuration_id(c), "eligible": True}]}

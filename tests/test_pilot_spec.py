@@ -92,7 +92,7 @@ class PilotSpecTests(unittest.TestCase):
         packet = real_packet(); packet["candidates"] = [packet["candidates"][0]]
         prepared = core.prepare(packet, core.policy())
         result = core.recommendation(packet, prepared, answers(1, external=.70), core.policy())
-        self.assertEqual((result["action"], result["reason_codes"]), ("coordinator", ["no-suitable-candidate"]))
+        self.assertEqual((result["action"], result["reason_codes"]), ("repackage", ["external-information-unavailable"]))
         packet["candidates"][0]["tools"].append("external-retrieval")
         prepared = core.prepare(packet, core.policy())
         result = core.recommendation(packet, prepared, answers(1, external=.70), core.policy())

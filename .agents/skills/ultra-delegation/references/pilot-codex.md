@@ -119,6 +119,8 @@ python3 "$SKILL_PATH/scripts/pilot.py" --root .ultra-delegation/pilot observe \
 python3 "$SKILL_PATH/scripts/pilot.py" --root .ultra-delegation/pilot report
 ```
 
+Review `review_requirements` before running an active trial. The reviewer should fill `reviewed_demands` only for capabilities actually exercised, with the corresponding mandatory gates from [the demand contract](pilot-demands.md). Shadow advice does not add acceptance gates automatically.
+
 Keep the reviewed artifact and test evidence locally alongside the metadata
 report. Accepted observations contribute only to matching configuration and task
 scope. One successful independent group does not qualify a model; confidence

@@ -16,6 +16,12 @@ from typing import Any
 
 DECISION_SCHEMA = "ultra-pilot-decision-v1"
 OUTCOME_SCHEMA = "ultra-pilot-outcome-v1"
+DEMANDS = ("reasoning", "code_interaction", "context_synthesis")
+DEMAND_STATES = ("absent", "required", "uncertain", "not-applicable")
+REVIEW_GATES = ("review-reasoning", "review-code-interaction", "review-context-synthesis")
+DIAGNOSTICS = ("work-kind-disagreement",)
+DEMAND_LABELS = {"reasoning": "reasoning", "code_interaction": "code interaction", "context_synthesis": "context synthesis"}
+OBSERVATION_ROLES = ("selected-route", "nominated-trial", "coordinator-reviewed-comparison")
 
 
 def _value(value: Any, default: Any = None) -> Any:
@@ -75,6 +81,28 @@ def _question_answer(value: Any) -> dict[str, Any] | None:
     return answer
 
 
+def _demand_profile(value: Any) -> dict[str, str]:
+    if not isinstance(value, dict) or set(value) != set(DEMANDS):
+        return {}
+    if any(value[key] not in DEMAND_STATES for key in DEMANDS):
+        return {}
+    return {key: value[key] for key in DEMANDS}
+
+
+def _demand_list(value: Any) -> list[str]:
+    if not isinstance(value, list) or any(item not in DEMANDS for item in value):
+        return []
+    return list(dict.fromkeys(value))
+
+
+def _assessment_evidence(value: Any) -> dict[str, Any]:
+    value = value if isinstance(value, dict) else {}
+    return {"groups": _number(value.get("groups"), 0), "passed_groups": _number(value.get("passed_groups"), 0),
+            "failed_groups": _number(value.get("failed_groups"), 0), "lower_bound": _number(value.get("lower_bound")),
+            "qualified": value.get("qualified") is True, "observed_mean_cost_usd": _number(value.get("observed_mean_cost_usd")),
+            "cost_observations": _number(value.get("cost_observations"), 0)}
+
+
 def _project_decision(raw: Any) -> dict[str, Any] | None:
     if not isinstance(raw, dict) or raw.get("schema") != DECISION_SCHEMA:
         return None
@@ -102,7 +130,22 @@ def _project_decision(raw: Any) -> dict[str, Any] | None:
                 clean = _question_answer(answer)
                 if clean is not None:
                     signals[key] = clean
+    candidate_ids = {c["configuration_id"] for c in candidates}
+    assessments = []
+    for assessment in raw.get("candidate_assessments", []) if isinstance(raw.get("candidate_assessments"), list) else []:
+        if not isinstance(assessment, dict) or assessment.get("configuration_id") not in candidate_ids:
+            continue
+        status = assessment.get("status")
+        if status not in ("qualified", "trial-required", "excluded"):
+            continue
+        assessments.append({"configuration_id": assessment["configuration_id"], "status": status,
+                            "reason_codes": [code for code in _labels(assessment.get("reason_codes")) if _metadata_label(code)],
+                            "evidence": _assessment_evidence(assessment.get("evidence"))})
     router = raw.get("router") if isinstance(raw.get("router"), dict) else {}
+    demand_profile = _demand_profile(raw.get("demand_profile"))
+    required_demands = _demand_list(raw.get("required_demands"))
+    if not demand_profile or any(demand_profile.get(item) not in ("required", "uncertain") for item in required_demands):
+        required_demands = []
     return {
         "id": _label(raw.get("id")), "created_at": _label(raw.get("created_at")), "task_id": _label(raw.get("task_id")),
         "scope_id": _label(raw.get("scope_id")), "group_id": _label(raw.get("group_id")), "synthetic": raw.get("synthetic") is True,
@@ -117,10 +160,14 @@ def _project_decision(raw: Any) -> dict[str, Any] | None:
         "question_version": _label(raw.get("question_version")), "model": _label(raw.get("model")),
         "policy_hash": _label(raw.get("policy_hash")), "input_hash": _label(raw.get("input_hash")), "question_hash": _label(raw.get("question_hash")),
         "payload_hash": _label(raw.get("payload_hash")), "evidence_hash": _label(raw.get("evidence_hash")),
+        "decision_policy_version": raw.get("decision_policy_version") if raw.get("decision_policy_version") == "pilot-selection-v3" else None,
+        "demand_profile": demand_profile, "required_demands": required_demands,
+        "review_requirements": [x for x in _labels(raw.get("review_requirements")) if x in REVIEW_GATES],
+        "diagnostics": [x for x in _labels(raw.get("diagnostics")) if x in DIAGNOSTICS],
         "configuration_metadata": {k: {field: v[field] for field in
             ("provider", "model_revision", "host", "adapter", "effort", "prompt_contract", "tool_policy", "prompt_version") if _metadata_label(v.get(field))}
             for k, v in (raw.get("configuration_metadata") or {}).items() if k in {c["configuration_id"] for c in candidates} and _metadata_label(k) and isinstance(v, dict)},
-        "candidates": candidates, "signals": signals,
+        "candidates": candidates, "candidate_assessments": assessments, "signals": signals,
         "router": {"attempts": _number(router.get("attempts"), 0), "latency_ms": _number(router.get("latency_ms"), 0),
                    "cost_usd": _number(router.get("cost_usd")), "cost_kind": router.get("cost_kind") if router.get("cost_kind") in ("measured", "estimated", "unknown") else "unknown",
                    "input_tokens": _number(router.get("input_tokens")), "output_tokens": _number(router.get("output_tokens"))},
@@ -142,6 +189,8 @@ def _project_outcome(raw: Any) -> dict[str, Any] | None:
         "created_at": _label(raw.get("created_at")), "synthetic": raw.get("synthetic") is True, "artifact_hash": _label(raw.get("artifact_hash")),
         "reviewer_kind": raw.get("reviewer_kind") if raw.get("reviewer_kind") in ("human", "frontier", "synthetic") else "synthetic",
         "reviewer_id": _label(raw.get("reviewer_id")), "accepted": raw.get("accepted") is True, "gates": gates,
+        "reviewed_demands": _demand_list(raw.get("reviewed_demands")),
+        "observation_role": raw.get("observation_role") if raw.get("observation_role") in OBSERVATION_ROLES else None,
         "scores": {key: _number(scores.get(key)) for key in ("coverage", "correctness", "maintainability", "clarity")},
         "costs": {key: _cost(costs.get(key)) for key in ("preparation", "worker", "review", "retry", "fallback")},
         "latency_ms": _number(raw.get("latency_ms")),
@@ -220,6 +269,7 @@ def build_report(decisions: list[dict[str, Any]], outcomes: list[dict[str, Any]]
                "recommended_outcomes_observed": len(reviewed_recommendations),
                "recommended_outcomes_accepted": sum(o["accepted"] for o in reviewed_recommendations),
                "recommended_outcomes_pending": len(suggestions)-len(reviewed_recommendations),
+               "action_disagreements": sum(d["recommended_action"] != d["action"] for d in inferred),
                "baseline_disagreements": sum(d["recommended_configuration_id"] != d["baseline_configuration_id"] for d in suggestions if d["baseline_configuration_id"]),
                "paired_comparisons": dict(pairs), "paired_comparisons_total": sum(pairs.values())}
     return {
@@ -237,6 +287,11 @@ def build_report(decisions: list[dict[str, Any]], outcomes: list[dict[str, Any]]
 def _e(value: Any) -> str: return html.escape(str(_value(value, "-")), quote=True)
 def _money(cost: dict[str, Any]) -> str: return "unknown" if cost["usd"] is None else f"${cost['usd']:.4f} ({cost.get('kind', 'unknown')})"
 def _pill(value: str) -> str: return f'<span class="pill">{_e(value)}</span>'
+def _demand_name(value: str) -> str: return DEMAND_LABELS.get(value, value)
+def _evidence_text(value: dict[str, Any]) -> str:
+    return (f"{value.get('passed_groups', 0)}/{value.get('groups', 0)} groups passing; "
+            f"{value.get('failed_groups', 0)} failed; lower bound {value.get('lower_bound', 'unknown')}; "
+            f"{'qualified' if value.get('qualified') else 'not qualified'}")
 
 
 def render_html(report: dict[str, Any]) -> str:
@@ -249,22 +304,39 @@ def render_html(report: dict[str, Any]) -> str:
                 f"independently accepted: {_e(routing.get('recommended_outcomes_accepted', 0))}/"
                 f"{_e(routing.get('recommended_outcomes_observed', 0))} observed; "
                 f"pending: {_e(routing.get('recommended_outcomes_pending', 0))}. "
-                f"Baseline disagreements: {_e(routing.get('baseline_disagreements', 0))}; "
+                f"Action disagreements: {_e(routing.get('action_disagreements', 0))}; baseline-model disagreements: {_e(routing.get('baseline_disagreements', 0))}. "
                 f"actual paired comparisons: {_e(routing.get('paired_comparisons_total', 0))}. "
                 f"Pair outcomes: {_e(routing.get('paired_comparisons', {}))}. "
                 "These are descriptive counts, not calibrated success probabilities.</p>")
     cards = []
     for d in decisions:
         rows = outcome_map[d["id"]]
+        candidates_by_id = {c["configuration_id"]: c for c in d["candidates"]}
+        assessments = {a["configuration_id"]: a for a in d["candidate_assessments"]}
         selected_pending = d["action"] == "route" and d["selected_configuration_id"] and not any(o["configuration_id"] == d["selected_configuration_id"] for o in rows)
         experiment_pending = d["action"] == "experiment" and not rows
-        choices = f"selected {_e(d['selected_configuration_id'])} · baseline {_e(d['baseline_configuration_id'])} · recommended {_e(d['recommended_configuration_id'])}"
-        candidate_rows = "".join(f"<tr><td>{_e(c['configuration_id'])}</td><td>{_e(c['model'])} / {_e(c['effort'])}</td><td>{'eligible' if c['eligible'] else 'ineligible'}; output {_e(c['output_limit_source'])}, limit {_e(c['max_output_tokens'] if c['max_output_tokens'] is not None else 'unreported')}</td><td>{c['evidence']['passed_groups']}/{c['evidence']['groups']} groups; lower bound {_e(c['evidence']['lower_bound'])}; {'qualified' if c['evidence']['qualified'] else 'pending qualification'}</td></tr>" for c in d["candidates"])
-        outcome_rows = "".join(f"<tr><td>{_e(o['configuration_id'])}</td><td>{'accepted' if o['accepted'] else 'not accepted'}</td><td>{_e(o['scores'])}</td><td>prep {_money(o['costs']['preparation'])}; worker {_money(o['costs']['worker'])}; review {_money(o['costs']['review'])}; retry {_money(o['costs']['retry'])}; fallback {_money(o['costs']['fallback'])}</td><td>{'advisory ' + _e(o['security']['status']) + '; ' + _money({'usd': o['security']['cost_usd'], 'kind': o['security']['cost_kind']}) if o['security']['mode'] == 'advisory' else 'off'}</td></tr>" for o in rows) or "<tr><td colspan=5>Pending - no outcome recorded.</td></tr>"
+        selected = candidates_by_id.get(d["selected_configuration_id"])
+        recommended = candidates_by_id.get(d["recommended_configuration_id"])
+        effective = f"{_e(selected['model'])} / {_e(selected['effort'])}" if selected else "No worker selected"
+        recommendation = f"{_e(recommended['model'])} / {_e(recommended['effort'])}" if recommended else _e(d["recommended_configuration_id"])
+        nominee_pairs = [(cid, f"{_e(candidates_by_id[cid]['model'])} / {_e(candidates_by_id[cid]['effort'])}") for cid in d["nominated_configuration_ids"] if cid in candidates_by_id]
+        candidate_rows = "".join(f"<tr><td>{_e(c['model'])} / {_e(c['effort'])}<br><small>{_e(c['configuration_id'])}</small></td><td>{'eligible' if c['eligible'] else 'ineligible'}; output {_e(c['output_limit_source'])}, limit {_e(c['max_output_tokens'] if c['max_output_tokens'] is not None else 'unreported')}</td><td>{_e(assessments.get(c['configuration_id'], {}).get('status', 'not assessed'))}; {_e(', '.join(assessments.get(c['configuration_id'], {}).get('reason_codes', [])) or 'no assessment reasons')}</td><td>{_e(_evidence_text(assessments.get(c['configuration_id'], {}).get('evidence', c['evidence'])))}</td></tr>" for c in d["candidates"])
+        outcome_rows = "".join(f"<tr><td>{_e(candidates_by_id.get(o['configuration_id'], {}).get('model', o['configuration_id']))} / {_e(candidates_by_id.get(o['configuration_id'], {}).get('effort', 'unreported'))}<br><small>{_e(o['observation_role'] or 'role unrecorded')}</small></td><td>{'accepted' if o['accepted'] else 'not accepted'}<br><small>reviewed demands: {_e(', '.join(_demand_name(x) for x in o['reviewed_demands']) or 'none recorded')}</small></td><td>{_e(o['scores'])}</td><td>prep {_money(o['costs']['preparation'])}; worker {_money(o['costs']['worker'])}; review {_money(o['costs']['review'])}; retry {_money(o['costs']['retry'])}; fallback {_money(o['costs']['fallback'])}</td><td>{'advisory ' + _e(o['security']['status']) + '; ' + _money({'usd': o['security']['cost_usd'], 'kind': o['security']['cost_kind']}) if o['security']['mode'] == 'advisory' else 'off'}</td></tr>" for o in rows) or "<tr><td colspan=5>Pending - no outcome recorded.</td></tr>"
         signals = " ".join(f"{_pill(k + ': ' + json.dumps(v, separators=(',', ':')))}" for k, v in d["signals"].items()) or "No validated question probabilities recorded."
         synthetic = '<p class="warning">Synthetic telemetry - pending qualification; it does not establish live routing evidence.</p>' if d["synthetic"] else ""
         pending = '<p class="warning">Selected worker outcome pending - comparator outcomes do not establish selected-worker acceptance.</p>' if selected_pending else ('<p class="warning">Experiment pending - no routine acceptance conclusion is available.</p>' if experiment_pending else '')
-        cards.append(f'''<article class="decision" data-scope="{_e(d['scope_id'])}" data-action="{_e(d['action'])}"><header><div><h2>{_e(d['task_id'])}</h2><p>{_pill(d['mode'])} {_pill(d['status'])} {_pill(d['action'])} <span>{_e(d['created_at'])}</span></p></div></header>{synthetic}{pending}<p><b>Routing choice:</b> {choices}</p><p><b>Decision trace:</b> {_e(', '.join(d['reason_codes']) or 'No reason codes')} · model {_e(d['model'])} · {d['router']['attempts']} attempt(s), {_e(d['router']['latency_ms'])} ms, {_money({'usd': d['router']['cost_usd'], 'kind': d['router']['cost_kind']})}</p><p><b>Question probabilities:</b> {signals}</p><h3>Candidate evidence</h3><table><thead><tr><th>Configuration</th><th>Worker</th><th>Eligibility</th><th>Evidence confidence</th></tr></thead><tbody>{candidate_rows or '<tr><td colspan=4>No candidates recorded.</td></tr>'}</tbody></table><h3>Observed outcomes</h3><table><thead><tr><th>Configuration</th><th>Acceptance</th><th>Quality</th><th>Cost breakdown</th><th>Security</th></tr></thead><tbody>{outcome_rows}</tbody></table></article>''')
+        shadow = '<p class="note">Shadow mode retained the baseline effective route; the recommendation did not replace it.</p>' if d["mode"] == "shadow" and d["action"] == "route" and d["selected_configuration_id"] == d["baseline_configuration_id"] else ''
+        diagnostic = '<p class="note">Nonblocking diagnostic: work-kind classification differs from the prepared authoritative task kind.</p>' if "work-kind-disagreement" in d["diagnostics"] else ''
+        demand_text = ", ".join(f"{_demand_name(key)}: {value}" for key, value in d["demand_profile"].items()) or "not recorded"
+        experiment_proposed = d["action"] == "experiment" or d["recommended_action"] == "experiment"
+        recorded = {o["configuration_id"] for o in rows}
+        missing_nominees = [name for cid, name in nominee_pairs if cid not in recorded]
+        if experiment_proposed:
+            nominees = (f"<p class=warning>Experiment proposal; No outcome recorded for: {', '.join(missing_nominees) or 'none'}.</p>"
+                        if missing_nominees else "<p class=note>Experiment proposal; all nominated outcomes recorded.</p>")
+        else:
+            nominees = ''
+        cards.append(f'''<article class="decision" data-scope="{_e(d['scope_id'])}" data-action="{_e(d['action'])}"><header><div><h2>{_e(d['task_id'])}</h2><p>{_pill(d['mode'])} {_pill(d['status'])} {_pill(d['action'])} <span>{_e(d['created_at'])}</span></p></div></header>{synthetic}{pending}{nominees}<p><b>Effective selected route:</b> {effective} · <b>router recommendation:</b> {_e(d['recommended_action'])} {recommendation}</p>{shadow}{diagnostic}<p><b>Demand contract:</b> {_e(demand_text)} · required/uncertain: {_e(', '.join(_demand_name(x) for x in d['required_demands']) or 'none')} · independent review gates: {_e(', '.join(d['review_requirements']) or 'none')}</p><h3>Candidate applicability and demand evidence</h3><table><thead><tr><th>Worker</th><th>Eligibility</th><th>Assessment</th><th>Applicable evidence</th></tr></thead><tbody>{candidate_rows or '<tr><td colspan=4>No candidates recorded.</td></tr>'}</tbody></table><h3>Observed outcomes</h3><table><thead><tr><th>Worker</th><th>Acceptance / demand review</th><th>Quality</th><th>Cost breakdown</th><th>Security</th></tr></thead><tbody>{outcome_rows}</tbody></table><details><summary>Audit trace and question probabilities</summary><p>Reasons: {_e(', '.join(d['reason_codes']) or 'none')} · router {_e(d['model'])}, {d['router']['attempts']} attempt(s), {_e(d['router']['latency_ms'])} ms, {_money({'usd': d['router']['cost_usd'], 'kind': d['router']['cost_kind']})}</p><p>{signals}</p><p>Policy {_e(d['decision_policy_version'])}; input {_e(d['input_hash'])}; question {_e(d['question_hash'])}; evidence {_e(d['evidence_hash'])}</p></details></article>''')
     scopes = sorted({_label(d.get("scope_id")) for d in decisions})
     actions = sorted({_label(d.get("action")) for d in decisions})
     safe_json = (json.dumps(report, ensure_ascii=False, separators=(",", ":"))
