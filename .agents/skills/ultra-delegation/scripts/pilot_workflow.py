@@ -45,10 +45,11 @@ def _require_evidence_snapshot(request, decision, outcomes, identifier):
     core.require(core.digest(frozen) == decision['evidence_hash'], 'decision-evidence-changed')
     frozen_ids = {row['id'] for row in frozen}
     cutoff = core.timestamp(request['evidence_cutoff_at'])
+    current = core.timestamp(core.now())
     for row in outcomes:
         if row['id'] in frozen_ids:
             continue
-        core.require(row.get('request_id') == identifier and core.timestamp(row['created_at']) >= cutoff,
+        core.require(row.get('request_id') == identifier and cutoff <= core.timestamp(row['created_at']) <= current,
                      'decision-evidence-changed')
 
 

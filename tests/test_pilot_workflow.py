@@ -1,6 +1,7 @@
 import copy
 from concurrent.futures import ThreadPoolExecutor
 import datetime as dt
+import json
 from pathlib import Path
 import sys
 import tempfile
@@ -234,6 +235,20 @@ class RecoveryTests(unittest.TestCase):
         r = self.start(); r = self.review(self.complete(r), 0, True)
         r = self.event(r, 'cancel', 'attempt-2', reason_code='accepted-result-available')
         self.assertEqual(r['state'], 'accepted'); self.assertEqual(r['attempts'][1]['state'], 'canceled')
+
+    def test_future_same_request_outcome_blocks_comparison_until_clock_is_valid(self):
+        r = self.start()
+        r = self.review(self.complete(r), 0, False)
+        outcome = pilot.load_records(self.root, 'outcomes')[0]
+        path = self.root/'outcomes'/(outcome['id']+'.json')
+        original = path.read_text()
+        outcome['created_at'] = '2999-01-01T00:00:00+00:00'
+        path.write_text(json.dumps(outcome))
+        with self.assertRaisesRegex(core.PilotError, 'decision-evidence-changed'):
+            workflow.recheck(self.root, r['id'], 'attempt-2', self.packet)
+        self.assertEqual(workflow.get(self.root, r['id'])['attempts'][1]['state'], 'planned')
+        path.write_text(original)
+        self.assertEqual(workflow.recheck(self.root, r['id'], 'attempt-2', self.packet)['recheck'], 'passed')
 
     def test_cancel_does_not_create_a_fallback(self):
         r = self.start('off')
