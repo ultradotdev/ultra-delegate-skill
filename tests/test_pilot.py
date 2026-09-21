@@ -20,7 +20,7 @@ class PilotWorkflowTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        self.p = pilot.init_project(self.root, {"mode": "shadow", "share_summaries": True,
+        self.p = pilot.init_project(self.root, {"mode": "active", "share_summaries": True,
                                                "baseline_id": "candidate-2", "share_artifacts": True})
         self.packet = pilot.fixture()
         self.packet["synthetic"] = False
@@ -34,7 +34,7 @@ class PilotWorkflowTests(unittest.TestCase):
 
     def raw(self, d):
         raw = pilot.outcome_fixture(d, d["baseline_configuration_id"])
-        raw.update(reviewer_kind="frontier", reviewer_id="independent-reviewer")
+        raw.update(worker_id="native-worker-run", reviewer_kind="frontier", reviewer_id="independent-reviewer")
         return raw
 
     def test_dry_run_has_no_credentials_calls_or_writes(self):
@@ -44,30 +44,23 @@ class PilotWorkflowTests(unittest.TestCase):
         self.assertEqual(4, len(preview["payload"]["state"]["candidates"]))
         self.assertEqual([], list((self.root / "decisions").iterdir()))
 
-    def test_shadow_preserves_baseline_and_active_only_nominates_unproven(self):
+    def test_active_routes_without_history_and_keeps_alternatives(self):
         d = self.decision(live=True, call=pilot.synthetic_response, key="SECRET-SENTINEL")
-        self.assertEqual("route", d["action"])
-        self.assertEqual(d["baseline_configuration_id"], d["selected_configuration_id"])
-        self.assertEqual("experiment", d["recommended_action"])
-        active = pilot.route_packet(self.packet, {**self.p, "mode": "active"}, live=True, call=pilot.synthetic_response, key="x")
-        self.assertEqual("experiment", active["action"])
-        self.assertIsNone(active["selected_configuration_id"])
-        self.assertEqual(4, len(active["nominated_configuration_ids"]))
+        self.assertEqual(d["action"], "route")
+        self.assertEqual(d["recommended_action"], "route")
+        self.assertIsNotNone(d["selected_configuration_id"])
+        self.assertEqual(len(d["alternative_configuration_ids"]), 3)
         self.assertNotIn("SECRET-SENTINEL", json.dumps(d))
 
-    def test_active_demand_review_is_mandatory_but_shadow_does_not_change_acceptance(self):
+    def test_active_demand_review_is_mandatory_without_history(self):
         def interacting(payload, key):
             result, meta = pilot.synthetic_response(payload, key)
             result["answers"]["code_interaction"]["noul"] = .81
             result["answers"]["context_synthesis"]["noul"] = .76
             return result, meta
-        shadow = pilot.route_packet(self.packet, self.p, live=True, call=interacting, key="fixture")
-        active = pilot.route_packet(self.packet, {**self.p, "mode": "active"}, live=True, call=interacting, key="fixture")
-        self.assertEqual((shadow["action"], shadow["recommended_action"]), ("route", "experiment"))
-        self.assertEqual(shadow["acceptance_gates"], self.packet["task"]["acceptance_gates"])
-        self.assertEqual(shadow["selected_configuration_id"], shadow["baseline_configuration_id"])
-        self.assertEqual(active["action"], "experiment")
-        self.assertIsNone(active["selected_configuration_id"])
+        active = pilot.route_packet(self.packet, self.p, live=True, call=interacting, key="fixture")
+        self.assertEqual(active["action"], "route")
+        self.assertIsNotNone(active["selected_configuration_id"])
         self.assertEqual(active["review_requirements"], ["review-code-interaction", "review-context-synthesis"])
         self.assertTrue(set(active["review_requirements"]) <= set(active["acceptance_gates"]))
         raw = pilot.outcome_fixture(active, active["candidates"][0]["configuration_id"])
@@ -193,13 +186,29 @@ class PilotWorkflowTests(unittest.TestCase):
         d = self.decision()
         raw = self.raw(d)
         pilot.observe(self.root, raw)
+        self.assertTrue((self.root / "outcomes" / (core.assess_outcome(raw, d, self.p)["id"] + ".lock")).exists())
         with patch.object(pilot, "security_assessment", side_effect=AssertionError):
             with self.assertRaises(FileExistsError):
                 pilot.observe(self.root, raw, security_check=True, live=True)
 
+    def test_interrupted_pending_observation_recovers_without_repeating_evaluator(self):
+        d = self.decision()
+        raw = self.raw(d)
+        outcome_id = core.assess_outcome(raw, d, self.p)["id"]
+        pending = self.root / "outcomes" / (outcome_id + ".pending")
+        pending.write_text("interrupted-before-evaluator-result")
+        with patch.object(pilot, "security_assessment", side_effect=AssertionError("must not repeat paid evaluation")):
+            outcome = pilot.observe(self.root, raw, security_check=True, live=True)
+        self.assertTrue(outcome["accepted"])
+        self.assertEqual(outcome["security"]["status"], "unavailable")
+        self.assertEqual(outcome["security"]["reason_codes"], ["interrupted-evaluation-not-repeated"])
+        self.assertEqual(outcome["security"]["cost_kind"], "unknown")
+        self.assertFalse(pending.exists())
+        self.assertTrue((self.root / "outcomes" / (outcome_id + ".json")).exists())
+
     def test_incomplete_template_cannot_poison_learning(self):
         d = self.decision()
-        raw = pilot.outcome_template(d, "candidate-0")
+        raw = pilot.outcome_template(d, "candidate-2")
         with self.assertRaises(core.PilotError):
             pilot.observe(self.root, raw)
 

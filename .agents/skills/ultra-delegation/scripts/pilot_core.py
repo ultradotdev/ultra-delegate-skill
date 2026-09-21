@@ -12,7 +12,7 @@ import re
 import jev_transport as transport
 from pilot_questions import ROUTING_THRESHOLDS, DEMAND_BANDS
 
-SCHEMA = "ultra-pilot-policy-v1"
+SCHEMA = "ultra-pilot-policy-v2"
 DEFAULTS = {
     "schema": SCHEMA, "mode": "off", "share_summaries": False,
     "share_artifacts": False, "security_check": False,
@@ -20,13 +20,13 @@ DEFAULTS = {
     "model": "jev-1.13.0", "credential_service": transport.SERVICE,
     "credential_ref": "default", "baseline_id": None, "pin_id": None,
     "excluded_models": [], "quarantined_configurations": [], "shortlist_limit": 8, "allowed_risks": ["low"],
-    "minimum_groups": 5, "minimum_success_lower_bound": 0.70,
+    "workflow": {},
     "evidence_days": 90, "capability_age_seconds": 300,
     "quality_floor": 80, "dimension_floor": 70,
     "thresholds": copy.deepcopy(ROUTING_THRESHOLDS),
     "demand_bands": copy.deepcopy(DEMAND_BANDS),
 }
-DECISION_POLICY_VERSION = "pilot-selection-v3"
+DECISION_POLICY_VERSION = "pilot-selection-v4"
 DEMAND_GATES = {"reasoning": "review-reasoning", "code_interaction": "review-code-interaction",
                 "context_synthesis": "review-context-synthesis"}
 
@@ -101,7 +101,7 @@ def policy(value=None):
     p = copy.deepcopy(DEFAULTS)
     p.update(value)
     p["thresholds"] = {**DEFAULTS["thresholds"], **value.get("thresholds", {})}
-    require(p["schema"] == SCHEMA and p["mode"] in {"off", "shadow", "active"}, "invalid-policy")
+    require(p["schema"] == SCHEMA and p["mode"] in {"off", "active"}, "invalid-policy")
     for key in ("share_summaries", "share_artifacts", "security_check", "allow_host_managed_output"):
         require(type(p[key]) is bool, "invalid-policy")
     require(isinstance(p["model"], str) and re.fullmatch(r"jev-\d+\.\d+\.\d+", p["model"]), "unpinned-model")
@@ -114,12 +114,14 @@ def policy(value=None):
     labels(p["quarantined_configurations"])
     labels(p["allowed_risks"])
     require(set(p["allowed_risks"]) <= {"low", "medium", "high"}, "invalid-risk")
-    for key in ("minimum_groups", "evidence_days", "capability_age_seconds", "shortlist_limit"):
+    for key in ("evidence_days", "capability_age_seconds", "shortlist_limit"):
         integer(p[key], 1)
     require(p["shortlist_limit"] <= 12, "shortlist-too-large")
     for key in ("quality_floor", "dimension_floor"):
         require(transport.number(p[key], 0, 100), "invalid-quality-floor")
-    require(transport.number(p["minimum_success_lower_bound"], 0, 1), "invalid-confidence-floor")
+    fields(p["workflow"], set(), {"max_attempts", "max_concurrency", "max_elapsed_seconds"})
+    for limit in p["workflow"].values():
+        if limit is not None: integer(limit, 1)
     require(set(p["thresholds"]) == set(DEFAULTS["thresholds"]), "invalid-thresholds")
     require(all(transport.number(v) for v in p["thresholds"].values()), "invalid-thresholds")
     bands = value.get("demand_bands", {})
@@ -220,22 +222,28 @@ def demand_profile(task, answers, p):
     return profile
 
 
+def task_family(task):
+    """Broad retrieval index, never a statistical admission gate."""
+    operation = task["operation"].lower()
+    if "review" in operation or "audit" in operation:
+        return "review"
+    if "test" in operation:
+        return "tests"
+    return "implementation" if task.get("work_kind") in {"coding", "mixed"} else task.get("work_kind", "other")
+
+
 def matching_outcomes(candidate, packet, outcomes, p, clock):
-    """Select only existing, compatible history before building any cohort cards."""
-    cid, t = configuration_id(candidate), packet["task"]
+    """Reuse broad relevant history; keep exact configuration provenance."""
+    cid, task = configuration_id(candidate), packet["task"]
     for o in outcomes:
-        if (o["configuration_id"] != cid or o["scope_id"] != t["scope_id"]
-                or o.get("operation") != t["operation"] or o.get("risk") != t["risk"]
-                or o.get("work_kind") != t["work_kind"]
-                or o.get("complexity") != t["complexity"]
+        if o.get("provenance") == "imported-unverified":
+            continue
+        if (o["configuration_id"] != cid or task_family(o) != task_family(task)
                 or o["group_id"] == packet.get("group_id", packet["task_id"])
                 or o["synthetic"] != packet.get("synthetic", False)):
             continue
         age = (clock - timestamp(o["created_at"])).total_seconds()
-        if not 0 <= age <= p["evidence_days"] * 86400:
-            continue
-        mandatory = {g["id"] for g in o["gates"] if g["mandatory"]}
-        if set(t["acceptance_gates"]) <= mandatory:
+        if 0 <= age <= p["evidence_days"] * 86400:
             yield o
 
 
@@ -244,14 +252,17 @@ def historical_cohort(records, evidence):
         return []
     # These are retained outcome metadata, not a restatement of the new task.
     origin = records[0]
+    domains = sorted({o["scope_id"] for o in records})
     coverage = {tag: len({o["group_id"] for o in records if tag in o.get("reviewed_demands", [])})
                 for tag in DEMAND_GATES}
-    description = (f"Recorded historical outcomes: scope {origin['scope_id']}; operation {origin['operation']}; "
-                   f"kind {origin['work_kind']}; risk {origin['risk']}; complexity {origin['complexity']}. "
+    description = (f"Broad {task_family(origin)} history across {len(domains)} scopes; first example scope {origin['scope_id']}; operation {origin['operation']}; "
+                   f"kind {origin['work_kind']}; risk {origin['risk']}; complexity {origin['complexity']}. Other scopes: {', '.join(domains[:4])}. "
                    f"Independent groups {evidence['groups']}; passing {evidence['passed_groups']}; "
                    f"failed {evidence['failed_groups']}. Reviewer-confirmed demand coverage counts: "
                    + ", ".join(f"{tag}={n}" for tag, n in coverage.items())
                    + ". Missing coverage earns no positive demand credit; failures are retained.")
+    if any(o.get("provenance") == "imported-unverified" for o in records):
+        description += " Contains imported unverified observations; local independent review is still required."
     return [{"task_description": description}]
 
 
@@ -261,7 +272,7 @@ def evidence_for(candidate, packet, outcomes, p, clock, required_demands=()):
 
 def summarize_evidence(records, p, required_demands=()):
     groups = {}
-    costs = []
+    costs = {}
     for o in records:
         accepted = (o["accepted"] and all(g["passed"] for g in o["gates"] if g["mandatory"])
                     and min(o["scores"].values()) >= p["dimension_floor"]
@@ -277,14 +288,15 @@ def summarize_evidence(records, p, required_demands=()):
                 continue
         groups.setdefault(o["group_id"], []).append(accepted)
         components = [o["costs"][k]["usd"] for k in ("worker", "review", "retry", "fallback")]
-        if all(v is not None for v in components):
-            costs.append(sum(components))
+        costs.setdefault(o["group_id"], []).append(sum(components) if all(v is not None for v in components) else None)
+    complete_costs = [sum(v) for v in costs.values() if all(x is not None for x in v)]
     passed = sum(all(values) for values in groups.values())
     lower = wilson_lower(passed, len(groups))
     return {"groups": len(groups), "passed_groups": passed, "failed_groups": len(groups)-passed,
-            "lower_bound": lower, "qualified": passed > 0 and len(groups) >= p["minimum_groups"] and lower >= p["minimum_success_lower_bound"],
-            "observed_mean_cost_usd": sum(costs)/len(costs) if costs else None,
-            "cost_observations": len(costs)}
+            "lower_bound": lower, "support": "observed" if groups else "unobserved",
+            "recent_failure": bool(groups) and not all(groups[max(records, key=lambda o: o["created_at"])["group_id"]]) if groups and not required_demands else bool(groups) and passed < len(groups),
+            "observed_mean_cost_usd": sum(complete_costs)/len(complete_costs) if complete_costs else None,
+            "cost_observations": len(complete_costs)}
 
 
 def prepare(packet, p, outcomes=(), clock=None):
@@ -340,7 +352,7 @@ def prepare(packet, p, outcomes=(), clock=None):
     ranked = sorted(eligible, key=cost_key)
     baseline = next((r for r in eligible if r["id"] == p["baseline_id"]), None)
     if baseline is None:
-        baseline = next((r for r in ranked if r["evidence"]["qualified"]), None)
+        baseline = next(iter(ranked), None)
     override_id = packet.get("user_choice_id") or p["pin_id"]
     override = next((r for r in eligible if r["id"] == override_id), None)
     chosen = []
@@ -349,7 +361,11 @@ def prepare(packet, p, outcomes=(), clock=None):
             chosen.append(row)
     add(override); add(baseline)
     for role in ("economical", "specialist", "fallback", "challenger"):
-        add(next((r for r in ranked if role in by_id[r["id"]].get("roles", [])), None))
+        pool = [r for r in ranked if role in by_id[r["id"]].get("roles", [])]
+        if role == "challenger" and pool:
+            # Stable per-task rotation avoids a permanent pair without hidden RNG.
+            pool.sort(key=lambda r: digest([packet["task_id"], r["configuration_id"]]))
+        add(next(iter(pool), None))
     for row in ranked:
         add(row)
     cards = []
@@ -374,7 +390,7 @@ def recommendation(packet, prepared, answers, p):
                    and t["work_kind"] not in {"mixed", "other"} else [])
     def result(action, reason, row=None, nominees=()):
         return {"action": action, "configuration_id": row["configuration_id"] if row else None,
-                "reason_codes": [reason], "nominees": list(nominees),
+                "reason_codes": [reason], "nominees": list(nominees), "alternatives": [],
                 "demand_profile": profile, "required_demands": demands,
                 "review_requirements": [DEMAND_GATES[k] for k in demands],
                 "candidate_assessments": assessments, "diagnostics": diagnostics}
@@ -390,13 +406,13 @@ def recommendation(packet, prepared, answers, p):
     # Work-kind classification is diagnostic. Reasoning, interaction and synthesis
     # choose applicable evidence and review, never a blanket complexity stop.
     by_cfg = {configuration_id(c): c for c in packet["candidates"]}
-    qualified, nominees = [], []
+    suitable = []
     for i, row in enumerate(prepared["shortlist"]):
         c = by_cfg[row["configuration_id"]]
         evidence = (row.get("demand_evidence", {}).get(demand_key(demands)) if demands else row["evidence"])
         if evidence is None:
             evidence = {"groups": 0, "passed_groups": 0, "failed_groups": 0, "lower_bound": 0.0,
-                        "qualified": False, "observed_mean_cost_usd": None, "cost_observations": 0}
+                        "support": "unobserved", "observed_mean_cost_usd": None, "cost_observations": 0}
         assessment = {"configuration_id": row["configuration_id"], "status": "excluded",
                       "reason_codes": [], "evidence": evidence}
         assessments.append(assessment)
@@ -410,19 +426,23 @@ def recommendation(packet, prepared, answers, p):
             assessment["reason_codes"] = ["candidate-scope-exceeded-or-uncertain"]
             continue
         comparable = all(answers[f"evidence_comparable_{i}_{j}"]["noul"] >= th["evidence_comparable"] for j in range(len(prepared["cards"][i]["evidence_cohorts"])))
-        if evidence["qualified"] and comparable:
-            assessment.update(status="qualified", reason_codes=["applicable-evidence-qualified"])
-            # Use costs from the applicable cohort, not unrelated generic successes.
-            cost = evidence.get("observed_mean_cost_usd")
-            qualified.append({**row, "evidence": evidence, "estimate_usd": cost if cost is not None else c["estimate_usd"]})
-        else:
-            assessment.update(status="trial-required", reason_codes=["demand-evidence-unqualified" if demands else "scoped-evidence-unqualified"] if comparable else ["evidence-not-comparable"])
-            nominees.append(row["configuration_id"])
-    if qualified:
-        chosen = min(qualified, key=lambda r: (r["estimate_usd"] is None, r["estimate_usd"] or 0, -r["evidence"]["lower_bound"], r["configuration_id"]))
-        return result("route", "scoped-evidence-and-semantic-match", chosen)
-    if nominees:
-        return result("experiment", "reviewed-trial-required", nominees=nominees)
+        assessment.update(status="suitable", reason_codes=["semantic-match-with-history" if evidence.get("groups", 0) and comparable else "semantic-match-without-history"])
+        # History informs selection, never authorizes it or blocks a cold start.
+        used = evidence if comparable else {"groups": 0, "lower_bound": 0, "recent_failure": False}
+        cost = used.get("observed_mean_cost_usd")
+        suitable.append({**row, "evidence": used, "estimate_usd": cost if cost is not None else c["estimate_usd"]})
+    if suitable:
+        baseline = prepared.get("baseline")
+        comparable_costs = all(r["estimate_usd"] is not None for r in suitable)
+        def preference(r):
+            history = r["evidence"]
+            return (history.get("recent_failure", False),
+                    r["estimate_usd"] if comparable_costs else (0 if baseline and r["configuration_id"] == baseline["configuration_id"] else 1),
+                    -history.get("lower_bound", 0), r["configuration_id"])
+        ranked = sorted(suitable, key=preference)
+        answer = result("route", "jev-semantic-selection", ranked[0])
+        answer["alternatives"] = [r["configuration_id"] for r in ranked[1:]]
+        return answer
     if assessments and all(a["reason_codes"] == ["missing-retrieval-tool"] for a in assessments):
         return result("repackage", "external-information-unavailable")
     return result("coordinator", "no-suitable-candidate")
@@ -439,13 +459,14 @@ def validate_cost(value):
 def observation_role(decision, configuration_id_value):
     selected = decision.get("action") == "route" and configuration_id_value == decision.get("selected_configuration_id")
     nominated = decision.get("action") == "experiment" and configuration_id_value in decision.get("nominated_configuration_ids", [])
+    alternative = configuration_id_value in decision.get("alternative_configuration_ids", [])
     if decision.get("mode") == "active":
-        require(selected or nominated, "outcome-outside-decision")
+        require(selected or nominated or alternative, "outcome-outside-decision")
     return "selected-route" if selected else "nominated-trial" if nominated else "coordinator-reviewed-comparison"
 
 
 def assess_outcome(raw, decision, p):
-    fields(raw, {"decision_id", "configuration_id", "artifact_hash", "reviewer_id", "reviewer_kind", "review_accepted", "gates", "scores", "costs", "latency_ms"}, {"prompt_version", "reviewed_demands"})
+    fields(raw, {"decision_id", "configuration_id", "artifact_hash", "reviewer_id", "reviewer_kind", "review_accepted", "gates", "scores", "costs", "latency_ms"}, {"prompt_version", "reviewed_demands", "request_id", "attempt_id", "attempt_kind", "critical_defects", "worker_id"})
     require(raw["decision_id"] == decision["id"], "decision-mismatch")
     require(raw["configuration_id"] in {c["configuration_id"] for c in decision["candidates"] if c["eligible"]}, "unknown-outcome-candidate")
     role = observation_role(decision, raw["configuration_id"])
@@ -473,14 +494,27 @@ def assess_outcome(raw, decision, p):
     for c in raw["costs"].values(): validate_cost(c)
     amount(raw["latency_ms"])
     if "prompt_version" in raw: label(raw["prompt_version"])
-    accepted = (raw["review_accepted"] and all(g["passed"] for g in gates if g["mandatory"])
+    defects = raw.get("critical_defects", [])
+    labels(defects)
+    attempt_fields = {"request_id", "attempt_id", "attempt_kind"}
+    require(not (attempt_fields & set(raw)) or attempt_fields <= set(raw), "incomplete-attempt-link")
+    for k in attempt_fields & set(raw): label(raw[k])
+    if "attempt_kind" in raw:
+        require(raw["attempt_kind"] in {"initial", "comparison", "repair", "fallback"}, "invalid-attempt-kind")
+    if decision.get("decision_policy_version") == DECISION_POLICY_VERSION and not decision["synthetic"]:
+        require(raw["reviewer_kind"] != "synthetic", "synthetic-review-for-real-task")
+        require(bool(raw.get("worker_id")), "missing-worker-id")
+    if "worker_id" in raw:
+        label(raw["worker_id"])
+        require(raw["worker_id"] != raw["reviewer_id"], "worker-cannot-review-self")
+    accepted = (not defects and raw["review_accepted"] and all(g["passed"] for g in gates if g["mandatory"])
                 and min(raw["scores"].values()) >= p["dimension_floor"]
                 and sum(raw["scores"].values()) / len(DIMENSIONS) >= p["quality_floor"])
     o = {**copy.deepcopy(raw), "schema": "ultra-pilot-outcome-v1", "created_at": now(), "accepted": accepted,
          "task_id": decision["task_id"], "group_id": decision["group_id"], "scope_id": decision["scope_id"],
          "operation": decision["operation"], "risk": decision["risk"], "work_kind": decision["work_kind"],
          "complexity": decision["complexity"], "reviewed_demands": sorted(reviewed_demands),
-         "observation_role": role,
+         "observation_role": role, "critical_defects": defects, "task_family": task_family(decision),
          "synthetic": decision["synthetic"] or raw["reviewer_kind"] == "synthetic", "policy_hash": digest(p)}
-    o["id"] = "out_" + digest({"decision": decision["id"], "configuration": raw["configuration_id"]})[:24]
+    o["id"] = "out_" + digest({"decision": decision["id"], "configuration": raw["configuration_id"], "attempt": raw.get("attempt_id")})[:24]
     return o

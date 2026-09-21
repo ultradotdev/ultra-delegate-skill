@@ -1,5 +1,7 @@
 # Jev routing v2: proposed behavior and evaluation model
 
+**Superseded for active implementation:** follow [the approved active routing and recovery plan](active-router-plan.md). The earlier qualification gates, routing shadow mode, and frozen promotion checkpoints below are historical design context.
+
 Status: design proposal, 2026-09-20. No runtime changes, live inference, worker runs, or policy activation are included in this document. The existing implementation is a reference experiment, not a compatibility requirement. User-managed credentials, explicit data-sharing permissions, and user authority remain requirements.
 
 Implementation follow-up: the first Python pilot is documented in [pilot.md](../.agents/skills/ultra-delegation/references/pilot.md). It implements a bounded subset of this architecture for the Yarn consolidation test drive. The discussion subsequently clarified that prompt wording versions are audit metadata, qualification is scoped, and the new security evaluator is optional/advisory rather than an acceptance gate. Current pilot contracts and qualification status take precedence over proposed behavior below. Full adapter execution, automatic trials and live calibration remain future work.

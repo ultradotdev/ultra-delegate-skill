@@ -48,7 +48,7 @@ def run(root, *, live=False, locator=None):
     clear, unclear, security = fixtures()
     cases = []
     report = {'schema':'ultra-pilot-smoke-v1', 'fixture_version':'repo-smoke-2', 'synthetic_inputs':True, 'transport':'live' if live else 'mock',
-              'qualification':'unqualified', 'maximum_http_attempts':3, 'cases':cases}
+              'evaluation':'observational', 'maximum_http_attempts':3, 'cases':cases}
     key = 'synthetic-offline-key'
     if live:
         try:
@@ -71,7 +71,7 @@ def run(root, *, live=False, locator=None):
         if 'material_vulnerability' in result['answers']:
             result['answers']['material_vulnerability']['noul'] = .99
         return result, meta
-    for name, packet, expected in [('bounded-test-draft', clear, 'experiment'), ('missing-requirements', unclear, 'clarify')]:
+    for name, packet, expected in [('bounded-test-draft', clear, 'route'), ('missing-requirements', unclear, 'clarify')]:
         # Exact preview is safe here because every input is authored synthetic data.
         pilot.write_new(root/(name+'-preview.json'), pilot.route_packet(packet,p,dry_run=True))
         d = pilot.route_packet(packet,p,live=True,call=call,key=key)

@@ -22,7 +22,7 @@ def build_packet(task_packet, catalog, host, profiles, capability, envelope):
     core.timestamp(host['observed_at'])
     core.require(type(host['delegation_allowed']) is bool, 'invalid-context-guard')
     core.labels(host['tools'])
-    core.require(set(host['tools']) <= {'read-files'}, 'unsupported-native-tool-policy')
+    core.require(set(host['tools']) <= {'read-files', 'edit-files', 'run-tests'}, 'unsupported-native-tool-policy')
     core.require(isinstance(host['models'], dict), 'invalid-host-models')
     for name, efforts in host['models'].items():
         core.label(name); core.labels(efforts)
@@ -59,7 +59,7 @@ def build_packet(task_packet, catalog, host, profiles, capability, envelope):
             'id':'candidate-'+str(i), 'provider':'openai', 'host':'codex', 'adapter':'codex-native',
             'model':model, 'model_revision':model+':hostcfg-'+core.digest(manifest)[:12],
             'effort':effort, 'prompt_contract':'native-bounded-v1', 'prompt_version':'1',
-            'tool_policy':'native-read-only-v1', 'capability_description':capability, 'scope_envelope':envelope,
+            'tool_policy':'native-tools-'+core.digest(sorted(host['tools']))[:12], 'capability_description':capability, 'scope_envelope':envelope,
             'available':True, 'tools':copy.deepcopy(host['tools']), 'modalities':copy.deepcopy(modalities),
             'context_window':int(window*percent/100), 'max_output_tokens':output,
             'output_limit_source':'native-host' if output is None else 'explicit',

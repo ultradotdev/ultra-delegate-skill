@@ -12,7 +12,7 @@ import re
 import tempfile
 import zipfile
 
-VERSION = "1.3.0-rc.5"
+VERSION = "1.3.0-rc.6"
 REPOSITORY = Path(__file__).resolve().parents[1]
 SKILL = Path(".agents/skills/ultra-delegation")
 SKILL_FILES = (
@@ -29,16 +29,18 @@ SKILL_FILES = (
     "scripts/jev_benchmark_capture.py",
     "scripts/shortlist.py",
     "scripts/pilot.py",
+    "scripts/pilot_workflow.py", "scripts/pilot_judge.py", "scripts/pilot_benchmark.py", "scripts/pilot_learning.py",
     "scripts/pilot_core.py",
     "scripts/pilot_questions.py",
     "scripts/pilot_report.py",
     "scripts/pilot_codex.py",
     "references/pilot.md",
+    "references/pilot-workflow.md", "references/pilot-benchmark.md",
     "references/pilot-codex.md",
     "references/pilot-demands.md",
     "references/pilot-questions.md",
     "references/pilot-questions.json",
-    "assets/pilot-catalog.json",
+    "assets/pilot-catalog.json", "assets/pilot-benchmark.json",
     "scripts/jev_qualification.py",
     "references/jev.md",
     "references/jev-questions.md",
@@ -69,6 +71,11 @@ SOURCE_FILES = (
     "tests/test_jev_docs.py", "tests/test_jev_benchmark.py", "tests/test_jev_benchmark_capture.py", "tests/test_shortlist.py",
     "tests/test_pilot.py", "tests/test_pilot_core.py", "tests/test_pilot_questions.py", "tests/test_pilot_report.py",
     "tests/test_pilot_integration.py", "tests/test_pilot_smoke.py", "tests/test_pilot_spec.py",
+    "tests/test_pilot_workflow.py", "tests/test_pilot_judge.py", "tests/test_pilot_benchmark.py", "tests/test_pilot_learning.py",
+    "tests/test_pilot_native_regressions.py", "docs/active-recovery-results.json",
+    "scripts/build_yarn_handoff.py", "docs/active-router-plan.md", "docs/active-recovery-validation.md",
+    "handoffs/yarn/START-HERE.md", "handoffs/yarn/PLAN.md", "handoffs/yarn/RUNBOOK.md",
+    "handoffs/yarn/templates/task-cards.json", "handoffs/yarn/templates/acceptance-checklist.md",
     "tests/test_pilot_native_capacity.py", "tests/test_pilot_demands.py",
 )
 SOURCE_PREFIX = f"ultra-delegate-skill-{VERSION}"

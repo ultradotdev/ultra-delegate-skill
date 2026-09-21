@@ -63,7 +63,7 @@ def load_policy(root):
     return core.policy(read_json(Path(root) / "policy.json"))
 
 
-def load_records(root, kind):
+def load_records(root, kind, *, include_retracted=False):
     directory = Path(root) / kind
     records = []
     for path in sorted(directory.glob("*.json")):
@@ -72,6 +72,10 @@ def load_records(root, kind):
         core.require(path.stem == row.get("id"), "ledger-id-mismatch")
         records.append(row)
         core.require(len(records) <= 10000, "ledger-limit")
+    if kind == "outcomes" and not include_retracted:
+        import pilot_learning
+        removed = {r['outcome_id'] for r in pilot_learning.retractions(root)}
+        records = [r for r in records if r['id'] not in removed]
     return records
 
 
@@ -143,14 +147,14 @@ def route_packet(packet, p, outcomes=(), *, live=False, dry_run=False, call=None
          "synthetic": packet.get("synthetic", False), "mode": p["mode"], "status": "skipped",
          "action": "route" if baseline else "coordinator", "selected_configuration_id": baseline_id,
          "baseline_configuration_id": baseline_id, "recommended_action": "coordinator",
-         "recommended_configuration_id": None, "nominated_configuration_ids": [],
+         "recommended_configuration_id": None, "nominated_configuration_ids": [], "alternative_configuration_ids": [],
          "reason_codes": [], "decision_policy_version": core.DECISION_POLICY_VERSION,
          "demand_profile": {}, "required_demands": [], "review_requirements": [], "candidate_assessments": [], "diagnostics": [],
          "question_version": questions.ROUTING_VERSION, "model": p["model"],
          "policy_hash": core.digest(p), "input_hash": core.digest(packet),
          "question_hash": core.digest(payload["questions"]), "payload_hash": core.digest(payload),
          "evidence_hash": core.digest(outcomes), "candidates": prepared["rows"], "signals": {}, "router": empty_usage(),
-         "dispatch_authorized": False, "qualification": "experimental-unqualified",
+         "dispatch_authorized": False, "evidence_status": "observational",
          "configuration_metadata": {core.configuration_id(c): {k: c[k] for k in ("provider", "model_revision", "host", "adapter", "effort", "prompt_contract", "tool_policy", "prompt_version") if k in c} for c in packet["candidates"]}}
     if prepared["override_missing"]:
         d.update(action="coordinator", selected_configuration_id=None, reason_codes=["explicit-choice-unavailable"])
@@ -173,7 +177,7 @@ def route_packet(packet, p, outcomes=(), *, live=False, dry_run=False, call=None
             rec = core.recommendation(packet, prepared, answers, p)
             d.update(status="ok" if rec["action"] in {"route", "experiment"} else "abstained", signals=answers,
                      recommended_action=rec["action"], recommended_configuration_id=rec["configuration_id"],
-                     nominated_configuration_ids=rec["nominees"], reason_codes=rec["reason_codes"])
+                     nominated_configuration_ids=rec["nominees"], alternative_configuration_ids=rec["alternatives"], reason_codes=rec["reason_codes"])
             for field in ("demand_profile", "required_demands", "review_requirements", "candidate_assessments", "diagnostics"):
                 d[field] = rec[field]
             if p["mode"] == "active":
@@ -221,24 +225,48 @@ def security_assessment(packet, p, enabled, *, live=False, call=None, key=None):
     return record
 
 
-def observe(root, raw, *, security_input=None, security_check=False, live=False, call=None, key=None):
+def observe(root, raw, *, security_input=None, security_check=False, judge_input=None, live=False, call=None, key=None):
     p = load_policy(root)
     decision = get_decision(root, raw.get("decision_id"))
     outcome = core.assess_outcome(raw, decision, p)
+    if raw.get("request_id"):
+        import pilot_workflow
+        pilot_workflow.validate_observation(root, raw)
     destination = Path(root) / "outcomes" / (outcome["id"] + ".json")
-    # Reserve destination before any optional paid security call and avoid duplicate spend.
-    fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    try:
+    # An OS-owned lock recovers after process death. A surviving pending marker
+    # means paid evaluator completion is unknown, so resume without paying again.
+    import pilot_workflow
+    reservation = destination.with_suffix('.pending')
+    with pilot_workflow._lock(destination.with_suffix('.lock')):
+        if destination.exists():
+            raise FileExistsError('outcome-already-recorded')
+        interrupted = reservation.exists()
+        core.require(not reservation.is_symlink(), 'invalid-outcome-reservation')
+        fd = os.open(reservation, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, 'O_NOFOLLOW', 0), 0o600)
         # Security is advisory and never changes accepted, gate results, or worker confidence.
-        outcome["security"] = security_assessment(security_input, p, security_check or p["security_check"], live=live, call=call, key=key)
-        with os.fdopen(fd, "w", encoding="utf-8") as stream:
-            json.dump(outcome, stream, sort_keys=True, indent=2, allow_nan=False)
-            stream.write("\n")
-    except BaseException:
-        try: os.close(fd)
-        except OSError: pass
-        destination.unlink(missing_ok=True)
-        raise
+        try:
+            if interrupted:
+                outcome['security'] = {'mode': 'advisory', 'status': 'unavailable',
+                    'reason_codes': ['interrupted-evaluation-not-repeated'], 'cost_usd': None, 'cost_kind': 'unknown',
+                    'input_tokens': None, 'output_tokens': None, 'latency_ms': None, 'attempts': 0}
+                if judge_input is not None:
+                    outcome['judge'] = copy.deepcopy(outcome['security'])
+            else:
+                outcome["security"] = security_assessment(security_input, p, security_check or p["security_check"], live=live, call=call, key=key)
+                if judge_input is not None:
+                    import pilot_judge
+                    outcome["judge"] = pilot_judge.assess(judge_input, p, live=live, call=call, key=key)
+            with os.fdopen(fd, "w", encoding="utf-8") as stream:
+                json.dump(outcome, stream, sort_keys=True, indent=2, allow_nan=False)
+                stream.write("\n")
+                stream.flush(); os.fsync(stream.fileno())
+            os.replace(reservation, destination)
+        except BaseException:
+            try: os.close(fd)
+            except OSError: pass
+            # Preserve reservation: a retry cannot know whether an external call
+            # completed before interruption, even if its response was lost.
+            raise
     return outcome
 
 
@@ -259,10 +287,14 @@ def recheck(root, identifier, packet):
             "recheck": "passed", "execution": "coordinator-native-host", "expires_after_seconds": max(0, p["capability_age_seconds"]-age)}
 
 
-def report(root, prefix=None):
+def report(root, prefix=None, task_descriptions=None):
     import pilot_report
     prefix = Path(prefix) if prefix else Path(root) / "reports" / ("pilot-" + dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S%f"))
-    value = pilot_report.build_report(load_records(root, "decisions"), load_records(root, "outcomes"))
+    import pilot_workflow
+    requests = [pilot_workflow.get(root, path.stem) for path in sorted((Path(root)/"workflows").glob("req_*.json"))]
+    value = pilot_report.build_report(load_records(root, "decisions"), load_records(root, "outcomes"), requests=requests)
+    if task_descriptions is not None:
+        value = pilot_report.with_task_descriptions(value, task_descriptions)
     html = pilot_report.render_html(value)
     json_path, html_path = Path(str(prefix)+".json"), Path(str(prefix)+".html")
     # Render and validate before writes. Exclusive outputs never overwrite user artifacts.
@@ -316,7 +348,7 @@ def synthetic_response(payload, key):
 
 def outcome_fixture(d, cid, accepted=True):
     return {"decision_id": d["id"], "configuration_id": cid, "artifact_hash": core.digest({"demo": d["id"], "candidate": cid}),
-            "reviewer_id": "synthetic-reviewer", "reviewer_kind": "synthetic", "review_accepted": accepted,
+            "reviewer_id": "synthetic-reviewer", "reviewer_kind": "synthetic", "worker_id": "synthetic-worker", "review_accepted": accepted,
             "gates": [{"id": k, "mandatory": True, "passed": accepted} for k in d["acceptance_gates"]],
             "scores": {k: 90 if accepted else 40 for k in core.DIMENSIONS},
             "costs": {k: {"usd": 0.02 if k == "worker" else 0.01 if k == "review" else 0, "kind": "estimated"} for k in core.COST_COMPONENTS},
@@ -328,13 +360,14 @@ def outcome_template(decision, candidate_id):
     core.require(row is not None and row["eligible"], "unknown-outcome-candidate")
     core.observation_role(decision, row["configuration_id"])
     raw = outcome_fixture(decision, row["configuration_id"])
-    raw.update(artifact_hash=None, reviewer_id=None, reviewer_kind="frontier", review_accepted=None,
+    raw.update(artifact_hash=None, reviewer_id=None, worker_id=None, reviewer_kind="frontier", review_accepted=None,
                scores={k: None for k in core.DIMENSIONS}, latency_ms=None)
     raw["gates"] = [{"id": k, "mandatory": True, "passed": None} for k in decision["acceptance_gates"]]
     raw["costs"] = {k: {"usd": None, "kind": "unknown"} for k in core.COST_COMPONENTS}
     # The reviewer explicitly confirms exercised demands. Never copy predictions
     # into learning evidence, including in an otherwise passing active trial.
     raw["reviewed_demands"] = []
+    raw["critical_defects"] = []
     return raw
 
 
@@ -368,7 +401,7 @@ def main(argv=None):
     parser.add_argument("--root", type=Path, default=Path(".ultra-delegation/pilot"))
     sub = parser.add_subparsers(dest="command", required=True, parser_class=SafeParser)
     init = sub.add_parser("init")
-    init.add_argument("--mode", choices=("off", "shadow", "active"), default="off")
+    init.add_argument("--mode", choices=("off", "active"), default="active")
     init.add_argument("--baseline-id")
     for key in ("share-summaries", "share-artifacts", "security-check"):
         init.add_argument("--"+key, action="store_true")
@@ -383,12 +416,14 @@ def main(argv=None):
     record.add_argument("--input", required=True)
     record.add_argument("--security-check", action="store_true")
     record.add_argument("--security-input")
+    record.add_argument("--judge-input")
     record.add_argument("--live", action="store_true")
     check = sub.add_parser("recheck")
     check.add_argument("--decision", required=True)
     check.add_argument("--input", required=True)
     summary = sub.add_parser("report")
     summary.add_argument("--output-prefix", type=Path)
+    summary.add_argument("--task-descriptions", help="Explicit local-only JSON task-id to description mapping")
     sub.add_parser("demo")
     sub.add_parser("catalog")
     example = sub.add_parser("example")
@@ -397,6 +432,29 @@ def main(argv=None):
     template.add_argument("--decision", required=True)
     template.add_argument("--candidate", required=True)
     template.add_argument("--output", type=Path, required=True)
+    template.add_argument("--request")
+    template.add_argument("--attempt")
+    workflow_start = sub.add_parser("workflow-start")
+    workflow_start.add_argument("--decision", required=True)
+    workflow_start.add_argument("--input", required=True)
+    workflow_start.add_argument("--bakeoff", choices=("auto", "on", "off"), default="auto")
+    workflow_next = sub.add_parser("workflow-next")
+    workflow_next.add_argument("--request", required=True)
+    workflow_next.add_argument("--input", required=True)
+    workflow_replan = sub.add_parser("workflow-replan")
+    workflow_replan.add_argument("--request", required=True)
+    workflow_replan.add_argument("--decision", required=True)
+    workflow_replan.add_argument("--input", required=True)
+    workflow_event = sub.add_parser("workflow-event")
+    workflow_event.add_argument("--request", required=True)
+    workflow_event.add_argument("--input", required=True)
+    workflow_event.add_argument("--packet")
+    learning = sub.add_parser("learning")
+    learning.add_argument("operation", choices=("audit", "export", "import", "retract"))
+    learning.add_argument("--input")
+    learning.add_argument("--output", type=Path)
+    learning.add_argument("--outcome")
+    learning.add_argument("--reason")
     args = parser.parse_args(argv)
     try:
         if args.command == "init":
@@ -410,12 +468,44 @@ def main(argv=None):
             result = read_json(Path(__file__).resolve().parent.parent / "assets/pilot-catalog.json")
         elif args.command == "outcome-template":
             raw = outcome_template(get_decision(args.root, args.decision), args.candidate)
+            if args.request or args.attempt:
+                import pilot_workflow
+                request = pilot_workflow.get(args.root, args.request)
+                attempt = pilot_workflow._attempt(request, args.attempt)
+                core.require(request['decision_id'] == args.decision and attempt['configuration_id'] == raw['configuration_id'], 'outcome-attempt-mismatch')
+                core.require(attempt['state'] == 'completed', 'attempt-not-completed')
+                raw.update(request_id=args.request, attempt_id=args.attempt, attempt_kind=attempt['kind'],
+                           worker_id=attempt['run_id'], artifact_hash=attempt['artifact_hash'])
             write_new(args.output, raw)
             result = {"template": str(args.output), "independent_assessment_required": True}
+        elif args.command == "learning":
+            import pilot_learning
+            if args.operation == 'audit':
+                result = {'outcomes': load_records(args.root, 'outcomes', include_retracted=True), 'retractions': pilot_learning.retractions(args.root)}
+            elif args.operation == 'retract': result = pilot_learning.retract(args.root, args.outcome, args.reason)
+            elif args.operation == 'import': result = pilot_learning.import_bundle(args.root, read_json(args.input))
+            else:
+                core.require(args.output is not None, 'output-required')
+                write_new(args.output, pilot_learning.export(args.root)); result = {'export': str(args.output)}
+        elif args.command.startswith("workflow-"):
+            import pilot_workflow
+            if args.command == "workflow-start":
+                result = pilot_workflow.start(args.root, get_decision(args.root, args.decision), read_json(args.input), load_policy(args.root), args.bakeoff)
+            elif args.command == "workflow-replan":
+                result = pilot_workflow.replan(args.root, args.request, get_decision(args.root, args.decision), read_json(args.input), load_policy(args.root))
+            elif args.command == "workflow-next":
+                request = pilot_workflow.get(args.root, args.request)
+                result = {"request_id": args.request, "state": request['state'], "actions": pilot_workflow.next_actions(request)}
+                for action in result['actions']:
+                    if action['action'] == 'dispatch':
+                        action['check'] = pilot_workflow.recheck(args.root, args.request, action['attempt_id'], read_json(args.input))
+            else:
+                packet = read_json(args.packet) if args.packet else None
+                result = pilot_workflow.event(args.root, args.request, read_json(args.input), packet=packet)
         elif args.command == "demo":
             result = demo(args.root)
         elif args.command == "report":
-            result = report(args.root, args.output_prefix)
+            result = report(args.root, args.output_prefix, read_json(args.task_descriptions) if args.task_descriptions else None)
         elif args.command == "recheck":
             result = recheck(args.root, args.decision, read_json(args.input))
         elif args.command == "route":
@@ -435,7 +525,8 @@ def main(argv=None):
             if args.security_input:
                 try: security = read_json(args.security_input)
                 except (OSError, ValueError): security = None
-            result = observe(args.root, raw, security_input=security, security_check=args.security_check, live=args.live)
+            judge = read_json(args.judge_input) if args.judge_input else None
+            result = observe(args.root, raw, security_input=security, security_check=args.security_check, judge_input=judge, live=args.live)
         print(json.dumps(result, indent=2, sort_keys=True, allow_nan=False))
         return 0
     except (core.PilotError, transport.ServiceError) as error:

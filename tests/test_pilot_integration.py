@@ -20,7 +20,7 @@ class PilotCLIIntegrationTests(unittest.TestCase):
         self.env.pop('TYPESAFE_API_KEY', None)
         self.env.pop('PYTHONPATH', None)
         self.env['PYTHON_KEYRING_BACKEND'] = 'keyring.backends.null.Keyring'
-        self.cli('init', '--mode', 'shadow', '--share-summaries', '--share-artifacts', '--baseline-id', 'candidate-2')
+        self.cli('init', '--mode', 'active', '--share-summaries', '--share-artifacts', '--baseline-id', 'candidate-2')
         self.packet_path = self.directory / 'packet.json'
         self.cli('example', '--output', str(self.packet_path))
 
@@ -47,7 +47,7 @@ class PilotCLIIntegrationTests(unittest.TestCase):
         self.cli('observe', '--input', str(outcome_path), ok=False)
         self.assertEqual(list((self.root/'outcomes').iterdir()), [])
         raw = json.loads(outcome_path.read_text())
-        raw.update(artifact_hash='a'*64, reviewer_id='synthetic-reviewer', reviewer_kind='synthetic', review_accepted=True,
+        raw.update(artifact_hash='a'*64, worker_id='native-worker-run', reviewer_id='independent-reviewer', reviewer_kind='frontier', review_accepted=True,
                    scores={key:90 for key in raw['scores']})
         for gate in raw['gates']: gate['passed'] = True
         raw['gates'][0]['passed'] = False  # A mandatory failure cannot be offset by favorable scores.
@@ -56,7 +56,8 @@ class PilotCLIIntegrationTests(unittest.TestCase):
         self.assertFalse(outcome['accepted'])
         self.assertEqual(outcome['security']['reason_codes'], ['live-not-requested'])
         self.cli('observe', '--input', str(outcome_path), ok=False)
-        self.assertEqual(len(list((self.root/'outcomes').iterdir())), 1)
+        # The OS-owned lock persists; only completed outcome records are JSON.
+        self.assertEqual(len(list((self.root/'outcomes').glob('*.json'))), 1)
         paths = self.cli('report')
         report = json.loads(Path(paths['json']).read_text())
         self.assertEqual(report['summary']['acceptance'], {'passed':0, 'total':1})

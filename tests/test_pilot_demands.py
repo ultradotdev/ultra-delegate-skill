@@ -29,7 +29,7 @@ def reviewed_outcome(candidate_value, demand, *, accepted=True, group="group-old
 
 class PilotDemandProfileTests(unittest.TestCase):
     def policy(self):
-        return core.policy({"minimum_groups": 1, "minimum_success_lower_bound": 0})
+        return core.policy({})
 
     def test_demand_profile_has_thresholded_tags_and_noncoding_code_is_not_applicable(self):
         coding = packet()
@@ -67,16 +67,16 @@ class PilotDemandProfileTests(unittest.TestCase):
         without_history = core.prepare(base, self.policy(), (), NOW)
         self.assertEqual(without_history["cards"][0]["evidence_cohorts"], [])
 
-    def test_routine_interaction_demand_nominates_instead_of_stopping_for_complex_scope(self):
+    def test_routine_interaction_demand_routes_instead_of_stopping_for_complex_scope(self):
         base = packet()
         prepared = core.prepare(base, self.policy(), clock=NOW)
         decision = core.recommendation(base, prepared, demand_answers(reasoning=1), self.policy())
-        self.assertEqual(decision["action"], "experiment")
+        self.assertEqual(decision["action"], "route")
         self.assertIn("reasoning", decision["required_demands"])
         self.assertIn("review-reasoning", decision["review_requirements"])
         self.assertEqual(len(decision["candidate_assessments"]), 1)
 
-    def test_qualified_demand_evidence_beats_cheaper_generic_evidence(self):
+    def test_missing_demand_history_does_not_disqualify_semantically_suitable_worker(self):
         cheap = candidate("cheap", estimate_usd=.01, roles=["economical"])
         strong = candidate("strong", model="model-b", model_revision="model-b-v1", estimate_usd=.10,
                            roles=["specialist"])
@@ -86,17 +86,17 @@ class PilotDemandProfileTests(unittest.TestCase):
         prepared = core.prepare(base, self.policy(), evidence, NOW)
         decision = core.recommendation(base, prepared, demand_answers(2, reasoning=1), self.policy())
         self.assertEqual(decision["action"], "route")
-        self.assertEqual(decision["configuration_id"], core.configuration_id(strong))
+        self.assertEqual(decision["configuration_id"], core.configuration_id(cheap))
 
     def test_matching_negative_outcomes_are_retained_for_demand_evidence(self):
         c = candidate()
         base = packet()
         evidence = [reviewed_outcome(c, "reasoning", group="passed"),
                     outcome(c, accepted=False, group="failed-without-demand-tag")]
-        prepared = core.prepare(base, core.policy({"minimum_groups": 1, "minimum_success_lower_bound": .7}), evidence, NOW)
+        prepared = core.prepare(base, core.policy({}), evidence, NOW)
         decision = core.recommendation(base, prepared, demand_answers(reasoning=1),
-                                       core.policy({"minimum_groups": 1, "minimum_success_lower_bound": .7}))
-        self.assertEqual(decision["action"], "experiment")
+                                       core.policy({}))
+        self.assertEqual(decision["action"], "route")
 
     def test_failed_mandatory_demand_review_gate_vetoes_an_otherwise_accepted_outcome(self):
         c = candidate()
@@ -107,7 +107,7 @@ class PilotDemandProfileTests(unittest.TestCase):
         demand_evidence = prepared["rows"][0]["demand_evidence"]["reasoning"]
         self.assertEqual((demand_evidence["groups"], demand_evidence["passed_groups"]), (1, 0))
         decision = core.recommendation(base, prepared, demand_answers(reasoning=1), self.policy())
-        self.assertEqual(decision["action"], "experiment")
+        self.assertEqual(decision["action"], "route")
 
     def test_uncertain_demands_need_reviewed_coverage_and_kind_conflict_is_diagnostic(self):
         c = candidate()
@@ -115,7 +115,7 @@ class PilotDemandProfileTests(unittest.TestCase):
         prepared = core.prepare(base, self.policy(), [outcome(c)], NOW)
         uncertain = core.recommendation(base, prepared, demand_answers(code=.5), self.policy())
         self.assertEqual(uncertain["demand_profile"]["code_interaction"], "uncertain")
-        self.assertEqual(uncertain["action"], "experiment")
+        self.assertEqual(uncertain["action"], "route")
 
         no_demand = core.recommendation(base, prepared, demand_answers(kind="writing"), self.policy())
         self.assertEqual(no_demand["action"], "route")
@@ -146,7 +146,7 @@ class PilotDemandProfileTests(unittest.TestCase):
 
 class PilotOutcomeAdmissionTests(unittest.TestCase):
     def policy(self):
-        return core.policy({"minimum_groups": 1, "minimum_success_lower_bound": 0})
+        return core.policy({})
 
     def decision(self, first, second, *, mode, action, selected=None, nominees=()):
         return {"id": "decision-a", "task_id": "task-a", "group_id": "history-group",

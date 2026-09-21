@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Package the Yarn handoff around the fixed, validated rc.3 pilot archives.
-
-Run from any directory. Rebuild the pilot archives with build_release.py first.
-This wrapper intentionally pins the pilot baseline; changing it needs review.
-"""
+"""Package the exact current allowlisted skill/source snapshot and Yarn runbook."""
 from __future__ import annotations
 
 import argparse
@@ -17,12 +13,7 @@ import zipfile
 import build_release as release
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1.3.0-rc.3"
-BASELINE = "eff47efbc55bdf02b6d722cf9628d1858eef2d7a"
-ARCHIVES = {
-    "ultra-delegation-1.3.0-rc.3.zip": "91b855db3aa6673007337f0f91f65620bdabdc51015748a9d69c55dce94f7bd9",
-    "ultra-delegate-skill-1.3.0-rc.3-source.zip": "60c45de514808faae18674f169cce309e552842c8af388cd206161cd5d100116",
-}
+VERSION = release.VERSION
 DOCS = ("START-HERE.md", "PLAN.md", "RUNBOOK.md", "templates/task-cards.json", "templates/acceptance-checklist.md")
 
 
@@ -31,44 +22,40 @@ def encoded(value):
 
 
 def build(output_dir):
-    archives = {}
-    for name, expected in ARCHIVES.items():
-        data = (ROOT / "dist" / name).read_bytes()
-        if hashlib.sha256(data).hexdigest() != expected:
-            raise ValueError("Pilot archive differs from the reviewed baseline: " + name)
-        archives[name] = data
-    if hashlib.sha256(release.zip_bytes(release.release_entries(ROOT))).hexdigest() != ARCHIVES["ultra-delegation-1.3.0-rc.3.zip"]:
-        raise ValueError("Current skill source differs from the pinned pilot archive")
+    # Freeze the exact allowlisted source bytes in this bundle, not a stale RC hash.
+    skill_name = f"ultra-delegation-{VERSION}.zip"
+    source_name = f"ultra-delegate-skill-{VERSION}-source.zip"
+    archives = {skill_name: release.zip_bytes(release.release_entries(ROOT)),
+                source_name: release.zip_bytes(release.source_entries(ROOT))}
+    hashes = {name: hashlib.sha256(data).hexdigest() for name, data in archives.items()}
     entries = {name: release.read_checked(ROOT, Path("handoffs/yarn") / name) for name in DOCS}
-    with zipfile.ZipFile(io.BytesIO(archives["ultra-delegation-1.3.0-rc.3.zip"])) as z:
+    with zipfile.ZipFile(io.BytesIO(archives[skill_name])) as z:
         for name in z.namelist():
             path = Path(name)
             if not name.startswith("ultra-delegation/") or ".." in path.parts or path.is_absolute():
                 raise ValueError("Unexpected archive path")
             entries["runtime/" + name] = z.read(name)
-    source_name = "ultra-delegate-skill-1.3.0-rc.3-source.zip"
     entries["validation/" + source_name] = archives[source_name]
     with zipfile.ZipFile(io.BytesIO(archives[source_name])) as z:
-        for name in ("qualification.md", "compatibility.md"):
-            entries["validation/" + name] = z.read("ultra-delegate-skill-1.3.0-rc.3/docs/" + name)
+        for name in ("active-recovery-validation.md", "compatibility.md"):
+            entries["validation/" + name] = z.read(release.SOURCE_PREFIX+"/docs/" + name)
     sys.path.insert(0, str(ROOT / ".agents/skills/ultra-delegation/scripts"))
     import pilot
     packet = pilot.fixture()
     packet["context"]["observed_at"] = "1970-01-01T00:00:00+00:00"
     entries["templates/task-packet.synthetic.json"] = encoded(packet)
     entries["templates/policy.off.json"] = encoded(pilot.core.policy())
-    # Bundle only the explicitly selected synthetic, metadata-only preview.
-    preview = ROOT / ".ultra-delegation/yarn-pilot-preview/reports"
-    for suffix in ("html", "json"):
-        entries["examples/synthetic-report." + suffix] = (preview / ("yarn-pilot-report." + suffix)).read_bytes()
-    example = json.loads(entries["examples/synthetic-report.json"])
-    if not example["decisions"] or not all(d["synthetic"] for d in example["decisions"]) or not all(o["synthetic"] for o in example["outcomes"]):
-        raise ValueError("Example report must contain synthetic observations only")
+    import pilot_report
+    demo = pilot_report.build_report([], [])
+    demo["example_note"] = "Synthetic empty-ledger report. Follow RUNBOOK to produce actual native results."
+    entries["examples/synthetic-report.json"] = encoded(demo)
+    entries["examples/synthetic-report.html"] = pilot_report.render_html(demo).encode()
     entries["MANIFEST.json"] = encoded({
         "schema": "yarn-agent-handoff-v1", "pilot_version": VERSION,
-        "pilot_baseline_revision": BASELINE, "pilot_archives_sha256": ARCHIVES,
+        "source_snapshot_sha256": hashes[source_name], "pilot_archives_sha256": hashes,
         "purpose": "Consolidate the GPT-6 and Fable 5.1 Yarn app versions and integrate the optional Jev project pilot.",
-        "qualification": "196 local and extracted-source tests passed; live Jev, real Yarn quality and remote candidate CI pending.",
+        "validation_status_file": "validation/active-recovery-validation.md",
+        "routing": "active after explicit project setup; no statistical admission gate",
         "runtime_entrypoint": "runtime/ultra-delegation/scripts/pilot.py",
         "agent_entrypoint": "START-HERE.md", "synthetic_example_only": True,
         "credential_material_included": False,

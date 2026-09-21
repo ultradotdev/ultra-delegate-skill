@@ -91,42 +91,64 @@ class PilotCoreTests(unittest.TestCase):
         outcomes = [outcome(c, accepted=True, group="group-1"), outcome(c, accepted=False, group="group-1"),
                     outcome(c, accepted=True, group="group-2", synthetic=True),
                     outcome(c, accepted=True, group="group-3", complexity="complex")]
-        row = core.prepare(base, core.policy({"minimum_groups": 1, "minimum_success_lower_bound": 0}), outcomes, NOW)["rows"][0]
-        self.assertEqual(row["evidence"]["groups"], 1)  # duplicate group cannot inflate evidence
-        self.assertEqual(row["evidence"]["passed_groups"], 0)
+        row = core.prepare(base, core.policy({}), outcomes, NOW)["rows"][0]
+        self.assertEqual(row["evidence"]["groups"], 2)  # duplicate group cannot inflate evidence
+        self.assertEqual(row["evidence"]["passed_groups"], 1)
         changed_contract = candidate(contract="contract-v2")
         other = packet(candidates=[changed_contract])
-        self.assertEqual(core.prepare(other, core.policy({"minimum_groups": 1}), outcomes, NOW)["rows"][0]["evidence"]["groups"], 0)
+        self.assertEqual(core.prepare(other, core.policy({}), outcomes, NOW)["rows"][0]["evidence"]["groups"], 0)
         changed_version = candidate(version="prompt-v2")
         same_contract = packet(candidates=[changed_version])
-        self.assertEqual(core.prepare(same_contract, core.policy({"minimum_groups": 1, "minimum_success_lower_bound": 0}), outcomes, NOW)["rows"][0]["evidence"]["groups"], 1)
+        self.assertEqual(core.prepare(same_contract, core.policy({}), outcomes, NOW)["rows"][0]["evidence"]["groups"], 2)
 
     def test_failed_group_has_no_success_confidence(self):
-        c = candidate(); row = core.prepare(packet(), core.policy({"minimum_groups": 1, "minimum_success_lower_bound": 0.70}), [outcome(c, accepted=False)], NOW)["rows"][0]
+        c = candidate(); row = core.prepare(packet(), core.policy({}), [outcome(c, accepted=False)], NOW)["rows"][0]
         self.assertEqual(row["evidence"]["lower_bound"], 0)
-        self.assertFalse(row["evidence"]["qualified"])
+        self.assertTrue(row["evidence"]["recent_failure"])
 
     def test_lax_historical_quality_cannot_qualify_a_stricter_policy(self):
         c = candidate()
         historical = outcome(c, accepted=True, score=75)
-        strict = core.policy({"minimum_groups": 1, "minimum_success_lower_bound": 0,
-                              "quality_floor": 80, "dimension_floor": 80})
+        strict = core.policy({"quality_floor": 80, "dimension_floor": 80})
         row = core.prepare(packet(), strict, [historical], NOW)["rows"][0]
         self.assertEqual((row["evidence"]["groups"], row["evidence"]["passed_groups"]), (1, 0))
-        self.assertFalse(row["evidence"]["qualified"])
+        self.assertTrue(row["evidence"]["recent_failure"])
 
-    def test_reasoning_demand_requires_reviewed_trial_without_applicable_evidence(self):
+    def test_imported_unverified_history_cannot_change_evidence_cost_or_rank(self):
+        expensive = candidate("candidate-expensive", estimate_usd=.05)
+        economical = candidate("candidate-economical", model="model-b", model_revision="model-b-v1", estimate_usd=.04)
+        imported = outcome(expensive, accepted=True, group="imported-group")
+        imported["provenance"] = "imported-unverified"
+        for component in imported["costs"].values():
+            component["usd"] = .0001
+        prepared = core.prepare(packet(candidates=[expensive, economical]), core.policy({}), [imported], NOW)
+        expensive_row = next(row for row in prepared["rows"] if row["id"] == "candidate-expensive")
+        self.assertEqual(expensive_row["evidence"]["groups"], 0)
+        self.assertEqual(expensive_row["evidence"]["cost_observations"], 0)
+        self.assertEqual(expensive_row["estimate_usd"], .05)
+        self.assertEqual(prepared["baseline"]["id"], "candidate-economical")
+
+    def test_reasoning_demand_routes_without_history_and_requires_review(self):
         base = packet(); prepared = {"shortlist": [{"configuration_id": core.configuration_id(base["candidates"][0]), "evidence": {"qualified": False}}], "cards": [{"evidence_cohorts": []}]}
         rec = core.recommendation(base, prepared, answers(extended=True), core.policy())
-        self.assertEqual(rec["action"], "experiment")
+        self.assertEqual(rec["action"], "route")
         self.assertEqual(rec["required_demands"], ["reasoning"])
         self.assertEqual(rec["review_requirements"], ["review-reasoning"])
         self.assertEqual(base["task"]["complexity"], "routine")
 
     def test_assess_outcome_requires_independent_acceptance_gates(self):
-        c = candidate(); decision = {"id": "decision-a", "task_id": "task-a", "group_id": "group-current", "scope_id": "parser", "operation": "repair-parser", "risk": "low", "work_kind": "coding", "complexity": "routine", "synthetic": False, "acceptance_gates": ["tests-pass"], "candidates": [{"configuration_id": core.configuration_id(c), "eligible": True}]}
-        raw = {"decision_id": "decision-a", "configuration_id": core.configuration_id(c), "artifact_hash": "a" * 64, "reviewer_id": "reviewer-a", "reviewer_kind": "human", "review_accepted": True, "gates": [{"id": "tests-pass", "mandatory": True, "passed": True}], "scores": {key: 90 for key in ("coverage", "correctness", "maintainability", "clarity")}, "costs": {key: {"usd": 0.01, "kind": "measured"} for key in ("preparation", "worker", "review", "retry", "fallback")}, "latency_ms": 10}
+        c = candidate(); decision = {"id": "decision-a", "task_id": "task-a", "group_id": "group-current", "scope_id": "parser", "operation": "repair-parser", "risk": "low", "work_kind": "coding", "complexity": "routine", "synthetic": False, "decision_policy_version": core.DECISION_POLICY_VERSION, "acceptance_gates": ["tests-pass"], "candidates": [{"configuration_id": core.configuration_id(c), "eligible": True}]}
+        raw = {"decision_id": "decision-a", "configuration_id": core.configuration_id(c), "artifact_hash": "a" * 64, "worker_id": "native-worker-a", "reviewer_id": "reviewer-a", "reviewer_kind": "human", "review_accepted": True, "gates": [{"id": "tests-pass", "mandatory": True, "passed": True}], "scores": {key: 90 for key in ("coverage", "correctness", "maintainability", "clarity")}, "costs": {key: {"usd": 0.01, "kind": "measured"} for key in ("preparation", "worker", "review", "retry", "fallback")}, "latency_ms": 10}
         self.assertTrue(core.assess_outcome(raw, decision, core.policy())["accepted"])
+        synthetic = copy.deepcopy(raw); synthetic["reviewer_kind"] = "synthetic"
+        with self.assertRaisesRegex(core.PilotError, "synthetic-review-for-real-task"):
+            core.assess_outcome(synthetic, decision, core.policy())
+        missing_worker = copy.deepcopy(raw); missing_worker.pop("worker_id")
+        with self.assertRaisesRegex(core.PilotError, "missing-worker-id"):
+            core.assess_outcome(missing_worker, decision, core.policy())
+        self_review = copy.deepcopy(raw); self_review["worker_id"] = self_review["reviewer_id"]
+        with self.assertRaisesRegex(core.PilotError, "worker-cannot-review-self"):
+            core.assess_outcome(self_review, decision, core.policy())
         raw["gates"] = [{"id": "other-gate", "mandatory": True, "passed": True}]
         with self.assertRaises(core.PilotError): core.assess_outcome(raw, decision, core.policy())
         raw["gates"] = [{"id": "tests-pass", "mandatory": True, "passed": True}]

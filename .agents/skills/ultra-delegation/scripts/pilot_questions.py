@@ -11,7 +11,7 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
-ROUTING_VERSION = "pilot-routing-v3"
+ROUTING_VERSION = "pilot-routing-v5"
 SECURITY_VERSION = "pilot-security-v1"
 MAX_CANDIDATES = 12
 MAX_COHORTS = 2
@@ -57,7 +57,7 @@ ROUTING_REGISTRY = (
     _entry("work_kind", "choice", "What kind of work produces the deliverable requested in `task`?",
            criteria=WORK_KINDS, consumer="diagnostic grouping and later evidence retrieval; never a routing veto or signature rewrite",
            applicability="always", polarity="descriptive", state_deps=("task",)),
-    _entry("missing_requirement", "noul", "Is a requirement needed to determine an acceptable deliverable missing from `task`? Ordinary worker discretion is not missing information.",
+    _entry("missing_requirement", "noul", "Does the worker need an unspecified acceptance requirement or user decision before it can begin the bounded deliverable? Evaluate the task contract, not whether you can perform the work from this routing summary. Source files and fixtures explicitly described as available through the worker's tools need not be included here. Discovering implementation details in those files, running tests, and ordinary worker discretion are not missing requirements. An unstated desired behavior, unresolved product choice, or absent authorization is missing when essential to the requested deliverable.",
            consumer="clarify or repackage", applicability="always", polarity="affirmative blocks routine routing", state_deps=("task.requirements", "task.intended_use")),
     _entry("coordinator_coupling", "noul", "Does completing the requested deliverable require a decision outside `task.worker_boundary` that the coordinator has not supplied? Topic labels alone do not establish coupling.",
            consumer="repackage or retain with coordinator", applicability="always", polarity="affirmative blocks delegation", state_deps=("task.worker_boundary", "task.operation", "task.requirements")),
@@ -69,14 +69,14 @@ ROUTING_REGISTRY = (
            consumer="candidate interaction evidence and mandatory review-code-interaction gate; unused for non-code tasks", applicability="when work kind includes coding", polarity="affirmative increases demand", state_deps=("task.operation", "task.requirements", "task.work_kind")),
     _entry("context_synthesis", "noul", "Does the deliverable require combining facts from separated portions of the supplied material? This measures semantic demand, not token capacity.",
            consumer="candidate synthesis evidence and mandatory review-context-synthesis gate; no global complexity veto", applicability="when supplied material has separated facts", polarity="affirmative increases demand", state_deps=("task.requirements", "task.input_tokens", "task.operation")),
-    _entry("external_information", "noul", "Does producing the deliverable require information absent from supplied material that must be obtained from an external source? This never grants network access.",
+    _entry("external_information", "noul", "Does producing the deliverable require information beyond the material explicitly available to the worker, including source files and fixtures accessible through its tools? Those local files need not be included in this routing summary. An external source means information outside that provided working context. This never grants network access.",
            consumer="recheck reachable authorized retrieval tools or repackage", applicability="when operation might require unsupplied facts", polarity="affirmative requires tool check", state_deps=("task.operation", "task.requirements", "task.required_tools", "task.required_modalities")),
     _entry("operation_match_{i}", "noul", "Does the operation requested in `task` fall within the operations described in `candidates[{i}].capability_description`? This is semantic match, not demonstrated success.",
            consumer="candidate semantic-match gate", applicability="per candidate", polarity="affirmative supports candidate", state_deps=("task.operation", "candidates[{i}].capability_description")),
     _entry("scope_exceeded_{i}", "noul", "Does the task require work beyond the boundaries described in `candidates[{i}].scope_envelope`? A missing envelope is unknown, not no exceedance.",
            consumer="candidate routine-dispatch scope gate", applicability="per candidate", polarity="affirmative excludes routine use", state_deps=("task", "candidates[{i}].scope_envelope")),
     _entry("evidence_comparable_{i}_{j}", "noul", "Is the operation described in `candidates[{i}].evidence_cohorts[{j}].task_description` comparable to the requested operation in `task`?",
-           consumer="candidate evidence compatibility gate", applicability="per supplied evidence cohort, at most two", polarity="affirmative permits deterministic evidence checks", state_deps=("task.operation", "candidates[{i}].evidence_cohorts[{j}].task_description")),
+           consumer="history relevance; never a dispatch qualification gate", applicability="per supplied evidence cohort, at most two", polarity="affirmative permits deterministic evidence checks", state_deps=("task.operation", "candidates[{i}].evidence_cohorts[{j}].task_description")),
 )
 
 SECURITY_REGISTRY = (
@@ -188,7 +188,7 @@ DEMAND_BANDS = {tag: {"absent": 0.30, "required": 0.70}
                 for tag in ("reasoning", "code_interaction", "context_synthesis")}
 
 PROPOSED_THRESHOLDS = {
-    "status": "experimental pilot defaults; unqualified pending calibration",
+    "status": "experimental operating thresholds; evaluation informs refinement without gating first use",
     "values": ROUTING_THRESHOLDS,
     "demand_bands": DEMAND_BANDS,
     "interpretation": "Demand signals use independently configurable absent/required boundaries: absent, uncertain, required. Required and uncertain demands select candidate evidence and review gates, not a global complexity stop. Other gates retain their stated cutoffs; no universal three-way calibration is claimed. Do not multiply Noul values or interpret them as worker success confidence.",
