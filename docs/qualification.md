@@ -1,4 +1,34 @@
-# Routing-design correction: 1.3.0-rc.5
+# Active routing status: 1.3.0-rc.6
+
+RC6 implements active Jev routing for an eligible worker on the first task after
+project setup. It does not require a qualification certificate, a minimum number
+of prior outcomes, a routing shadow phase, or a statistical release threshold.
+Historical qualification records below remain audit context only.
+
+The bounded live routing check used the same task data twice. Question wording v4
+returned `clarify` for all 12 of 12 requests. After the v5 two-question wording
+revision, 11 of 12 requests returned `route` and one returned
+`no-suitable-candidate`.
+
+The [active recovery validation](active-recovery-validation.md) and its
+[recorded results](active-recovery-results.json) contain 12 task cards and 11
+accepted native requests. Six primary attempts succeeded. Three primary failures
+were accepted through comparison, and two later recovery paths covered a preserved
+coordinator dispatch mismatch corrected to Luna and an A-to-B-to-A portability
+defect fixed by Luna fallback after both initial results missed it. Eight native
+invocations and 23 task attempts, including the mismatch, are recorded. The
+batches are correlated development work, not independent samples. Security and
+artifact judges were off; worker and review costs are unknown. There is no savings
+or calibration claim.
+
+Recovery, acceptance, report, learning, and malformed-input behavior have local
+test coverage. The current local suite has 304 passing tests; six
+optional-keyring archive checks pass. All 304 tests pass from the extracted archive
+with and without optional keyring. Consult the PR checks for current CI status. Simulated fixtures remain distinct from the recorded native trials.
+
+## Historical RC5 routing-design correction
+
+### Routing-design correction: 1.3.0-rc.5
 
 An implementation audit found that the pilot used reasoning, interaction and
 synthesis signals as a global complexity veto, whereas the design called for

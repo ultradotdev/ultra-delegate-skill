@@ -53,26 +53,26 @@ def answers(count, *, missing=0, coupling=0, external=0, severe=0):
 
 
 class PilotSpecTests(unittest.TestCase):
-    def test_default_evidence_requires_wilson_confidence_beyond_five_successes(self):
+    def test_evidence_bounds_are_diagnostic_not_dispatch_gates(self):
         packet = real_packet(); candidate = packet["candidates"][0]; p = core.policy()
         five = [historical(candidate, packet, "group-" + str(i)) for i in range(5)]
         row = core.prepare(packet, p, five)["rows"][0]
         self.assertEqual((row["evidence"]["groups"], row["evidence"]["passed_groups"]), (5, 5))
-        self.assertFalse(row["evidence"]["qualified"])
+        self.assertFalse(row["evidence"]["recent_failure"])
         self.assertLess(row["evidence"]["lower_bound"], 0.70)
         ten = [historical(candidate, packet, "group-" + str(i)) for i in range(10)]
         row = core.prepare(packet, p, ten)["rows"][0]
-        self.assertTrue(row["evidence"]["qualified"])
+        self.assertFalse(row["evidence"]["recent_failure"])
         self.assertGreaterEqual(row["evidence"]["lower_bound"], 0.70)
 
-    def test_evidence_cannot_bootstrap_current_group_or_cross_explicit_scope(self):
+    def test_broad_history_excludes_current_group_and_other_work_family(self):
         packet = real_packet(); candidate = packet["candidates"][0]
         records = [historical(candidate, packet, packet["group_id"]),
                    historical(candidate, packet, "wrong-risk", risk="high"),
                    historical(candidate, packet, "wrong-kind", work_kind="writing"),
                    historical(candidate, packet, "wrong-complexity", complexity="complex")]
-        row = core.prepare(packet, core.policy({"minimum_groups": 1}), records)["rows"][0]
-        self.assertEqual(row["evidence"]["groups"], 0)
+        row = core.prepare(packet, core.policy({}), records)["rows"][0]
+        self.assertEqual(row["evidence"]["groups"], 2)
 
     def test_explicit_choice_never_bypasses_hard_stops_or_invokes_inference(self):
         for name, change in (
@@ -96,16 +96,15 @@ class PilotSpecTests(unittest.TestCase):
         packet["candidates"][0]["tools"].append("external-retrieval")
         prepared = core.prepare(packet, core.policy())
         result = core.recommendation(packet, prepared, answers(1, external=.70), core.policy())
-        self.assertEqual(result["action"], "experiment")
+        self.assertEqual(result["action"], "route")
 
-    def test_semantic_stops_are_effective_in_active_and_advisory_in_shadow(self):
+    def test_semantic_stops_are_effective_and_shadow_mode_rejected(self):
         packet = real_packet()
         def semantic_response(payload, key):
             result, meta = pilot.synthetic_response(payload, key)
             result["answers"]["missing_requirement"]["noul"] = .21
             return result, meta
-        shadow = pilot.route_packet(packet, core.policy({"mode": "shadow", "share_summaries": True, "baseline_id": "candidate-2"}), live=True, call=semantic_response, key="fixture")
-        self.assertEqual((shadow["action"], shadow["recommended_action"]), ("route", "clarify"))
+        with self.assertRaises(core.PilotError): core.policy({"mode": "shadow"})
         active = pilot.route_packet(packet, core.policy({"mode": "active", "share_summaries": True, "baseline_id": "candidate-2"}), live=True, call=semantic_response, key="fixture")
         self.assertEqual((active["action"], active["selected_configuration_id"]), ("clarify", None))
         prepared = core.prepare(packet, core.policy())

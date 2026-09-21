@@ -1,0 +1,310 @@
+{
+  "schema": "ultra-active-recovery-validation-v1",
+  "release": "1.3.0-rc.6",
+  "question_version": "pilot-routing-v5",
+  "decision_policy_version": "pilot-selection-v4",
+  "real_task_cards": 12,
+  "native_requests": 11,
+  "initial_question_run": {
+    "question_version": "pilot-routing-v4",
+    "clarify": 12,
+    "route": 0
+  },
+  "revised_question_run": {
+    "route": 11,
+    "coordinator": 1,
+    "same_task_state": true,
+    "thresholds_changed": false
+  },
+  "live_negative_controls": {
+    "synthetic": true,
+    "missing_behavior_detected": true,
+    "missing_authorization_detected": true
+  },
+  "requests": [
+    {
+      "task_id": "tests-1",
+      "first_attempt_success": true,
+      "request_success": true,
+      "recovery_attempts": 0,
+      "state": "accepted",
+      "attempts": [
+        {
+          "kind": "initial",
+          "state": "accepted",
+          "reason_code": null
+        },
+        {
+          "kind": "comparison",
+          "state": "accepted",
+          "reason_code": null
+        }
+      ]
+    },
+    {
+      "task_id": "tests-2",
+      "first_attempt_success": true,
+      "request_success": true,
+      "recovery_attempts": 0,
+      "state": "accepted",
+      "attempts": [
+        {
+          "kind": "initial",
+          "state": "accepted",
+          "reason_code": null
+        },
+        {
+          "kind": "comparison",
+          "state": "accepted",
+          "reason_code": null
+        }
+      ]
+    },
+    {
+      "task_id": "tests-3",
+      "first_attempt_success": false,
+      "request_success": true,
+      "recovery_attempts": 1,
+      "state": "accepted",
+      "attempts": [
+        {
+          "kind": "initial",
+          "state": "failed",
+          "reason_code": "coordinator-dispatch-mismatch"
+        },
+        {
+          "kind": "repair",
+          "state": "accepted",
+          "reason_code": null
+        }
+      ]
+    },
+    {
+      "task_id": "tests-4",
+      "first_attempt_success": true,
+      "request_success": true,
+      "recovery_attempts": 0,
+      "state": "accepted",
+      "attempts": [
+        {
+          "kind": "initial",
+          "state": "accepted",
+          "reason_code": null
+        },
+        {
+          "kind": "comparison",
+          "state": "accepted",
+          "reason_code": null
+        }
+      ]
+    },
+    {
+      "task_id": "fix-1",
+      "first_attempt_success": false,
+      "request_success": true,
+      "recovery_attempts": 0,
+      "state": "accepted",
+      "attempts": [
+        {
+          "kind": "initial",
+          "state": "rejected",
+          "reason_code": null
+        },
+        {
+          "kind": "comparison",
+          "state": "accepted",
+          "reason_code": null
+        }
+      ]
+    },
+    {
+      "task_id": "fix-2",
+      "first_attempt_success": false,
+      "request_success": true,
+      "recovery_attempts": 0,
+      "state": "accepted",
+      "attempts": [
+        {
+          "kind": "initial",
+          "state": "rejected",
+          "reason_code": null
+        },
+        {
+          "kind": "comparison",
+          "state": "accepted",
+          "reason_code": null
+        }
+      ]
+    },
+    {
+      "task_id": "fix-3",
+      "first_attempt_success": false,
+      "request_success": true,
+      "recovery_attempts": 1,
+      "state": "accepted",
+      "attempts": [
+        {
+          "kind": "initial",
+          "state": "rejected",
+          "reason_code": null
+        },
+        {
+          "kind": "comparison",
+          "state": "rejected",
+          "reason_code": null
+        },
+        {
+          "kind": "fallback",
+          "state": "accepted",
+          "reason_code": null
+        }
+      ]
+    },
+    {
+      "task_id": "fix-4",
+      "first_attempt_success": false,
+      "request_success": true,
+      "recovery_attempts": 0,
+      "state": "accepted",
+      "attempts": [
+        {
+          "kind": "initial",
+          "state": "rejected",
+          "reason_code": null
+        },
+        {
+          "kind": "comparison",
+          "state": "accepted",
+          "reason_code": null
+        }
+      ]
+    },
+    {
+      "task_id": "review-1",
+      "first_attempt_success": true,
+      "request_success": true,
+      "recovery_attempts": 0,
+      "state": "accepted",
+      "attempts": [
+        {
+          "kind": "initial",
+          "state": "accepted",
+          "reason_code": null
+        },
+        {
+          "kind": "comparison",
+          "state": "accepted",
+          "reason_code": null
+        }
+      ]
+    },
+    {
+      "task_id": "review-2",
+      "first_attempt_success": true,
+      "request_success": true,
+      "recovery_attempts": 0,
+      "state": "accepted",
+      "attempts": [
+        {
+          "kind": "initial",
+          "state": "accepted",
+          "reason_code": null
+        },
+        {
+          "kind": "comparison",
+          "state": "accepted",
+          "reason_code": null
+        }
+      ]
+    },
+    {
+      "task_id": "review-3",
+      "first_attempt_success": true,
+      "request_success": true,
+      "recovery_attempts": 0,
+      "state": "accepted",
+      "attempts": [
+        {
+          "kind": "initial",
+          "state": "accepted",
+          "reason_code": null
+        },
+        {
+          "kind": "comparison",
+          "state": "accepted",
+          "reason_code": null
+        }
+      ]
+    }
+  ],
+  "first_attempt_accepted": 6,
+  "eventually_accepted": 11,
+  "request_metrics": {
+    "total": 11,
+    "first_attempt_success": {
+      "passed": 6,
+      "total": 11,
+      "pending": 0
+    },
+    "initial_bakeoff_success": {
+      "passed": 9,
+      "total": 10,
+      "pending": 0
+    },
+    "request_success": {
+      "passed": 11,
+      "total": 11
+    },
+    "states": {
+      "in-progress": 0,
+      "accepted": 11,
+      "success": 0,
+      "coordinator-required": 0,
+      "canceled": 0
+    },
+    "attempt_states": {
+      "planned": 0,
+      "launching": 0,
+      "running": 0,
+      "completed": 0,
+      "accepted": 17,
+      "rejected": 5,
+      "failed": 1,
+      "canceled": 0
+    },
+    "recovery_overhead": {
+      "attempts": 2,
+      "cost": {
+        "usd": 0,
+        "coverage": "4/14",
+        "complete": false,
+        "kind": "mixed"
+      }
+    },
+    "usage": {
+      "attempts": 23,
+      "cost": {
+        "usd": null,
+        "coverage": "0/23",
+        "complete": false,
+        "kind": "unknown"
+      },
+      "unknown_attempts": 23
+    }
+  },
+  "real_task_router_http_attempts": 36,
+  "router_known_cost_estimate_usd": 0.002969274,
+  "router_median_latency_ms": 218.80010410677642,
+  "total_worker_and_review_cost_usd": null,
+  "cost_per_accepted_task_usd": null,
+  "realized_savings_usd": null,
+  "limitations": [
+    "Small correlated batches; no population reliability claim.",
+    "Equal declared capability cards and unknown worker prices largely exercised baseline routing, not model capability discrimination.",
+    "One coordinator dispatch mismatch was preserved and recovered; it is not a model quality failure.",
+    "Code fixes mostly existed before worker snapshots; trial checks regressions and recovery, with one newly found portability bug.",
+    "Security and artifact judges stayed off; secure output quality and judge calibration are not established.",
+    "Reviewer was the frontier coordinator, not blinded to worker identity. Native token usage and full cost were unavailable.",
+    "Routing questions were refined on these tasks; this is development evidence, not held-out threshold calibration."
+  ]
+}

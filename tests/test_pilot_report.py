@@ -29,7 +29,7 @@ class PilotReportTests(unittest.TestCase):
         o = outcome(costs={k:{"usd":None,"kind":"unknown"} for k in ("preparation","worker","review","retry","fallback")})
         report = p.build_report([d], [o]); page = p.render_html(report)
         self.assertFalse(report["summary"]["cost"]["complete"])
-        self.assertIn("pending qualification", page)
+        self.assertIn("Synthetic telemetry", page)
         self.assertIn("advisory fail", page)
         self.assertIn("prep unknown; worker unknown", page)
         self.assertIn("$0.0020 (estimated)", page)
@@ -41,6 +41,23 @@ class PilotReportTests(unittest.TestCase):
         self.assertNotIn("SECRET", encoded); self.assertNotIn("untrusted", encoded); self.assertNotIn("private_prompt", encoded)
         self.assertNotIn("onerror=alert(1)>", page); self.assertIn("&lt;img", page)
         self.assertNotIn("reasoning", page); self.assertNotIn("bad", page)
+
+    def test_explicit_local_descriptions_are_copied_bounded_and_escaped(self):
+        request = {"schema":"ultra-pilot-request-v1", "id":"req_1", "task_id":"yarn-consolidation", "decision_id":"d1",
+                   "state":"in-progress", "attempts":[]}
+        report = p.build_report([decision()], [], [request])
+        self.assertNotIn("local_task_descriptions", report)
+        local = p.with_task_descriptions(report, {"yarn-consolidation": "Fix <script>alert(1)</script> & verify output."})
+        self.assertNotIn("local_task_descriptions", report)
+        self.assertEqual(local["local_task_descriptions"]["mode"], "explicit-local-only")
+        page = p.render_html(local)
+        self.assertEqual(page.count("Local-only description:"), 2)
+        self.assertIn("Fix &lt;script&gt;alert(1)&lt;/script&gt; &amp; verify output.", page)
+        self.assertNotIn("Fix <script>", page)
+        for invalid in ({"unknown-task": "description"}, {"yarn-consolidation": " "},
+                        {"yarn-consolidation": "x" * (p.LOCAL_DESCRIPTION_MAX_CHARS + 1)}, []):
+            with self.subTest(invalid=type(invalid).__name__), self.assertRaisesRegex(ValueError, "invalid-local-task-descriptions"):
+                p.with_task_descriptions(report, invalid)
 
     def test_projects_all_typed_question_uncertainty_without_legends(self):
         signals = {
@@ -164,6 +181,71 @@ class PilotReportTests(unittest.TestCase):
         self.assertIn("nominated-trial", p.render_html(report))
         invalid = p.build_report([decision()], [outcome(observation_role="arbitrary prose")])
         self.assertIsNone(invalid["outcomes"][0]["observation_role"])
+
+    def test_request_metrics_keep_first_failure_separate_from_repaired_success(self):
+        first = outcome(id="out-initial", accepted=False, request_id="req_1", attempt_id="attempt-1", attempt_kind="initial")
+        repaired = outcome(id="out-repair", accepted=True, request_id="req_1", attempt_id="attempt-2", attempt_kind="repair")
+        request = {"schema":"ultra-pilot-request-v1", "id":"req_1", "task_id":"safe-task", "decision_id":"d1",
+                   "state":"accepted", "accepted_attempt_id":"attempt-2", "raw_repository":"DO-NOT-SHARE",
+                   "attempts":[
+                       {"id":"attempt-1", "configuration_id":"small", "kind":"initial", "state":"rejected", "outcome_id":"out-initial", "artifact_hash":"a"*64},
+                       {"id":"attempt-2", "configuration_id":"small", "kind":"repair", "state":"accepted", "parent_attempt_id":"attempt-1", "outcome_id":"out-repair", "artifact_hash":"b"*64, "reason_code":"test-failure"},
+                   ]}
+        report = p.build_report([decision(decision_policy_version="pilot-selection-v4", alternative_configuration_ids=["frontier", "raw prose"])], [first, repaired], [request])
+        metrics = report["request_metrics"]
+        self.assertEqual(metrics["first_attempt_success"], {"passed": 0, "total": 1, "pending": 0})
+        self.assertEqual(metrics["request_success"], {"passed": 1, "total": 1})
+        self.assertEqual(report["summary"]["routing"]["recommended_outcomes_accepted"], 0)
+        self.assertEqual(metrics["recovery_overhead"]["attempts"], 1)
+        self.assertEqual(metrics["recovery_overhead"]["cost"]["coverage"], "7/7")
+        self.assertAlmostEqual(metrics["recovery_overhead"]["cost"]["usd"], .052)
+        self.assertEqual(report["decisions"][0]["alternative_configuration_ids"], ["frontier"])
+        self.assertNotIn("qualified", json.dumps(report["decisions"][0]))
+        page = p.render_html(report)
+        self.assertIn("First attempt accepted: False", page)
+        self.assertIn("final request accepted: True", page)
+        self.assertNotIn("DO-NOT-SHARE", json.dumps(report))
+
+    def test_unobserved_and_canceled_attempts_remain_unknown_not_failures(self):
+        request = {"schema":"ultra-pilot-request-v1", "id":"req_2", "task_id":"safe-task", "decision_id":"d1",
+                   "state":"canceled", "attempts":[
+                       {"id":"attempt-1", "configuration_id":"small", "kind":"initial", "state":"canceled", "reason_code":"accepted-result-available"},
+                       {"id":"attempt-2", "configuration_id":"frontier", "kind":"comparison", "state":"planned"},
+                   ]}
+        report = p.build_report([decision()], [], [request])
+        self.assertEqual(report["request_metrics"]["states"]["canceled"], 1)
+        self.assertEqual(report["request_metrics"]["attempt_states"]["failed"], 0)
+        self.assertEqual(report["request_metrics"]["usage"]["unknown_attempts"], 2)
+        self.assertFalse(report["summary"]["cost"]["complete"])
+
+    def test_bakeoff_success_can_deliver_after_primary_failure(self):
+        first = outcome(id="out-primary", accepted=False, request_id="req_3", attempt_id="attempt-1", attempt_kind="initial")
+        comparison = outcome(id="out-comparison", accepted=True, request_id="req_3", attempt_id="attempt-2", attempt_kind="comparison", configuration_id="frontier")
+        request = {"schema":"ultra-pilot-request-v1", "id":"req_3", "task_id":"safe-task", "decision_id":"d1", "state":"accepted",
+                   "attempts":[
+                       {"id":"attempt-1", "configuration_id":"small", "kind":"initial", "state":"rejected", "outcome_id":"out-primary"},
+                       {"id":"attempt-2", "configuration_id":"frontier", "kind":"comparison", "state":"accepted", "outcome_id":"out-comparison"},
+                   ]}
+        report = p.build_report([decision()], [first, comparison], [request])
+        self.assertEqual(report["request_metrics"]["first_attempt_success"]["passed"], 0)
+        self.assertEqual(report["request_metrics"]["initial_bakeoff_success"], {"passed": 1, "total": 1, "pending": 0})
+        self.assertEqual(report["request_metrics"]["request_success"]["passed"], 1)
+
+    def test_judge_and_defects_are_allowlisted_advisory_telemetry(self):
+        judged = outcome(accepted=True, critical_defects=["authorization-bypass", "raw prose leak"],
+                         judge={"mode":"advisory", "status":"scored", "rubric_version":"pilot-quality-judge-v1",
+                                "model":"jev-1", "scores":{"coverage":90, "scope":80, "evidence":70, "clarity":60, "hidden":100},
+                                "cost_usd":.004, "cost_kind":"estimated", "latency_ms":8, "attempts":1,
+                                "reason_codes":["advisory-only", "PRIVATE_EXCERPT"], "excerpts":["PRIVATE_EXCERPT"], "accepted":True})
+        report = p.build_report([decision()], [judged])
+        clean = report["outcomes"][0]
+        self.assertEqual(clean["critical_defects"], ["authorization-bypass"])
+        self.assertEqual(clean["judge"]["scores"], {"coverage":90, "scope":80, "evidence":70, "clarity":60})
+        self.assertNotIn("accepted", clean["judge"])
+        encoded = json.dumps(report)
+        self.assertNotIn("PRIVATE_EXCERPT", encoded)
+        self.assertNotIn("raw prose leak", encoded)
+        self.assertIn("quality advisory scored", p.render_html(report))
 
 
 if __name__ == '__main__': unittest.main()

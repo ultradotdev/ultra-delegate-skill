@@ -1,31 +1,57 @@
-# Yarn consolidation agent handoff
+# Yarn consolidation handoff
 
-You are working in the Yarn repository. Consolidate the versions described by the user as the **GPT-6 version** and the **Fable 5.1 version** into one app, with the Ultra Delegation pilot integrated. These names identify source app versions; they are not discovered worker model IDs. This bundle contains the router and its operating contract, not either Yarn codebase.
+Consolidate the user-described GPT-6 and Fable 5.1 Yarn app versions into one
+coherent app. Those labels identify source versions, not discoverable worker
+models. Locate the actual branches, directories, or history before choosing a
+consolidation path. Preserve unrelated edits and follow the repository's own
+instructions.
 
-Read this file, `PLAN.md`, and `RUNBOOK.md`. Then inspect the repository's own instructions, current changes, and both versions. Locate the versions from actual branches/directories/history; do not infer paths or reset existing work. If one cannot be located, ask for that specific missing location and continue investigating the available version.
+The bundled Ultra Delegation pilot prepares bounded native work through
+`runtime/ultra-delegation/scripts/pilot.py`. It does not execute a model, run
+tests, make a worktree, merge a patch, or accept the product. The coordinator owns
+architecture, integration, native tool calls, independent review, and release.
 
-## Intended result
+Read `PLAN.md`, then `RUNBOOK.md`. Begin with a concise inventory and behavior
+matrix, select one small end-to-end slice, declare its acceptance contract, and
+complete it when the repository inputs and authorization exist. Do not stop at a
+plan where implementation is in scope.
 
-Produce one coherent Yarn app that preserves the agreed useful behavior from both versions and supports delegation through an explicit application boundary. Use the bundled Python pilot first. Keep its versioned JSON boundary so the implementation can move to Rust later if that becomes worthwhile.
+## RC6 status
 
-The app's architecture, feature decisions, integration, independent review, and final acceptance remain yours as coordinator. Delegate bounded work through the current agent host's native worker tools. Jev provides routing judgments; it does not run workers. Never claim cross-provider execution, an implemented runtime dispatcher, security certification, or savings that the bundle does not provide.
+The bundled pilot routes an eligible worker immediately after project setup; it
+does not wait for local qualification counts or a shadow rollout. The scoped live
+routing check recorded 12/12 `clarify` responses with wording v4 and, on the
+same task data after a two-question v5 wording revision, 11/12 `route` responses
+plus one `no-suitable-candidate`. The bundled
+[validation](../../docs/active-recovery-validation.md) and
+[results](../../docs/active-recovery-results.json) record 11 accepted native
+requests across 12 task cards: six primary successes, three comparison recoveries,
+and two later recovery paths. They include eight native invocations and 23 task
+attempts, one preserved coordinator misdispatch, and correlated batches. Security
+and artifact judges were off and worker/review costs are unknown. These are not
+Yarn trial results, independent worker-quality evidence, savings, or a promise of
+delivery.
 
-Begin with a concise inventory and a consolidation plan grounded in the actual code. Choose the first end-to-end slice, specify acceptance checks before dispatch, and implement incrementally within the user's repo task. Do not stop after writing the plan when the necessary inputs and authorization are already present. Preserve unrelated changes and follow the repo's commit/PR practices. Deployment or publication is not implied by this handoff.
+## Operating contract
 
-## Decisions already made
+- Python 3.10+ is the pilot runtime. A Rust rewrite is out of scope.
+- Initialize a **fresh RC6 pilot ledger**. Do not copy or silently activate a
+  previous release policy. Historical records remain reportable as history.
+- `pilot init` defaults to active routing, but a live Jev request still requires
+  both `--live` and explicit summary sharing. Artifact sharing, advisory security,
+  and the optional judge are separate permissions.
+- Discover exact current Codex models, efforts, capacities, and declared
+  `read-files`/`edit-files`/`run-tests` tools. A tool declaration is not a sandbox.
+- After routing, use the persisted workflow: plan → per-attempt recheck → native
+  run record → artifact completion → independent outcome → reviewed event. One
+  repair may follow a concrete review finding, then an eligible fallback.
+- Preserve failed, rejected, incomplete, comparison, repair, and canceled
+  attempts. A passing alternative completes the request; never auto-merge it.
+- Credential lifecycle is user-controlled. Read an existing environment credential
+  or configured store locator only; never create, modify, expose, or place a key
+  in argv.
 
-- Python 3.10+ for the first iteration; no Rust rewrite now.
-- Use `runtime/ultra-delegation/scripts/pilot.py`, not the older `jev.py` router for this pilot. Runtime source and the matching test source ZIP are included.
-- Broader discovered candidates, deterministic capability checks, then one Jev batch of explicit task and candidate questions. Start with shadow recommendations against an explicitly chosen baseline.
-- Learn from independently reviewed, scoped outcomes. Compare real baseline/challenger results to test routing choices. Keep task variants in one independent group. Do not confuse Jev proposition probabilities with worker success rates.
-- Prompt wording versions are audit metadata. Material instruction-contract or tool-policy changes separate learned evidence.
-- Security evaluation is optional, off by default, and advisory. Its failure must not break normal outcome recording. Existing mandatory project/security tests still apply.
-- Credential lifecycle belongs to the user. Read `TYPESAFE_API_KEY` or the configured existing OS credential entry. Never set, delete, migrate, prompt for, print, or put a credential in argv. Configure only its non-secret locator. Keep keys out of browser/client bundles.
-- Routing summary sharing and artifact sharing are separate project permissions. Initialize offline, preview the payload, and make live calls only within the user's enabled project settings and authorized scope. A saved key alone does not enable sharing or live evaluation.
-- Produce standalone HTML and JSON telemetry from actual runs. Keep synthetic demonstrations separate from real evidence and clearly label unqualified thresholds and unknown costs.
-
-## Read progressively
-
-`PLAN.md` defines workstreams, evidence collection, app integration and completion. `RUNBOOK.md` supplies offline startup and links to exact command contracts. `templates/` has editable worksheets plus the exact runtime-generated packet and default policy. `examples/` contains a synthetic report for orientation only. `MANIFEST.json` and `SHA256SUMS` identify the bundled pilot and file contents.
-
-The pilot at source baseline `eff47efbc55bdf02b6d722cf9628d1858eef2d7a` passed 196 local tests and extracted-source validation. Remote candidate CI, live Jev qualification, Yarn-specific quality, security accuracy, and threshold calibration are pending. That is tooling validation, not proof of good routing on this repo.
+The local tests and simulated examples verify tooling behavior. They do not show a
+real Yarn trial, live Jev quality, native-worker quality, security certification,
+calibrated thresholds, or savings. Use the twelve prepared task cards as the first
+real trial plan and record only actual observed results.

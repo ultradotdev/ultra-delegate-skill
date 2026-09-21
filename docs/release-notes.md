@@ -1,4 +1,39 @@
-# Ultra Delegation 1.3.0-rc.5
+# Ultra Delegation 1.3.0-rc.6
+
+RC6 moves the pilot to immediate active routing after project setup. An eligible
+configuration may be selected with empty or sparse history; historical evidence
+informs ordering and review, but does not act as a qualification or rollout gate.
+The persisted workflow records initial work, comparisons, one targeted repair,
+eligible fallbacks, independent review, and coordinator handoff when recovery
+cannot continue.
+
+The scoped live routing check used the same task data. With question wording v4,
+12 of 12 requests returned `clarify`. With the v5 two-question wording revision,
+11 of 12 returned `route` and one returned `no-suitable-candidate`.
+
+The [active recovery validation](active-recovery-validation.md) and
+[recorded results](active-recovery-results.json) document 12 task cards and 11
+accepted native requests. Six primary attempts succeeded. Three primary failures
+were accepted through comparisons, while two later paths recovered a preserved
+coordinator misdispatch to Luna and an A-to-B-to-A portability defect with a Luna
+fallback after both initial results missed it. The record has eight native
+invocations and 23 task attempts, including the misdispatch. These are correlated
+development batches, not independent performance evidence. Security and artifact
+judges were off; worker and review costs are unknown. RC6 makes no savings or
+threshold-calibration claim.
+
+The current local suite has 304 passing tests and six optional-keyring archive
+checks pass. All 304 extracted tests pass with and without optional keyring; consult PR CI checks.
+
+Reports now separate first-attempt, initial bake-off, and eventual request
+success; preserve failures, repairs, fallbacks, cancellations, critical defects,
+unknown usage, and advisory judge/security telemetry. Imported learning stays
+explicitly unverified and round-trips without duplicating source observations or
+costs.
+
+## Historical release notes
+
+### Ultra Delegation 1.3.0-rc.5
 
 Corrects a mismatch between the routing design and pilot implementation. Reasoning,
 code-interaction and context-synthesis signals now select candidate-specific
