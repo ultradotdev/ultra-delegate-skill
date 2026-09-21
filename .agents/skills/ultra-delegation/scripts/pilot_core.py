@@ -15,6 +15,7 @@ SCHEMA = "ultra-pilot-policy-v1"
 DEFAULTS = {
     "schema": SCHEMA, "mode": "off", "share_summaries": False,
     "share_artifacts": False, "security_check": False,
+    "allow_host_managed_output": False,
     "model": "jev-1.13.0", "credential_service": transport.SERVICE,
     "credential_ref": "default", "baseline_id": None, "pin_id": None,
     "excluded_models": [], "quarantined_configurations": [], "shortlist_limit": 8, "allowed_risks": ["low"],
@@ -95,7 +96,7 @@ def policy(value=None):
     p.update(value)
     p["thresholds"] = {**DEFAULTS["thresholds"], **value.get("thresholds", {})}
     require(p["schema"] == SCHEMA and p["mode"] in {"off", "shadow", "active"}, "invalid-policy")
-    for key in ("share_summaries", "share_artifacts", "security_check"):
+    for key in ("share_summaries", "share_artifacts", "security_check", "allow_host_managed_output"):
         require(type(p[key]) is bool, "invalid-policy")
     require(isinstance(p["model"], str) and re.fullmatch(r"jev-\d+\.\d+\.\d+", p["model"]), "unpinned-model")
     for key in ("credential_service", "credential_ref"):
@@ -156,7 +157,8 @@ def validate_packet(packet):
     require(isinstance(packet["candidates"], list) and 0 < len(packet["candidates"]) <= 128, "invalid-candidates")
     seen, configs = set(), set()
     for c in packet["candidates"]:
-        fields(c, {"id", "provider", "model", "model_revision", "host", "adapter", "effort", "prompt_contract", "tool_policy", "capability_description", "scope_envelope", "available", "tools", "modalities", "context_window", "max_output_tokens", "execution_location", "estimate_usd"}, {"prompt_version", "roles"})
+        fields(c, {"id", "provider", "model", "model_revision", "host", "adapter", "effort", "prompt_contract", "tool_policy", "capability_description", "scope_envelope", "available", "tools", "modalities", "context_window", "max_output_tokens", "execution_location", "estimate_usd"}, {"prompt_version", "roles", "output_limit_source"})
+        require(c.get("output_limit_source", "explicit") in {"explicit", "native-host"}, "invalid-capacity-source")
         for key in ("id", "provider", "model", "model_revision", "host", "adapter", "effort", "prompt_contract", "tool_policy"):
             label(c[key])
         if "prompt_version" in c:
@@ -237,8 +239,17 @@ def prepare(packet, p, outcomes=(), clock=None):
         if configuration_id(c) in p["quarantined_configurations"]: reasons.append("quarantined-configuration")
         if not set(t["required_tools"]) <= set(c["tools"]): reasons.append("missing-tools")
         if not set(t["required_modalities"]) <= set(c["modalities"]): reasons.append("missing-modalities")
-        if c["context_window"] is None or c["max_output_tokens"] is None: reasons.append("unknown-capacity")
-        elif t["input_tokens"]+t["output_tokens"] > c["context_window"] or t["output_tokens"] > c["max_output_tokens"]: reasons.append("context-does-not-fit")
+        host_output = (p["allow_host_managed_output"] and c.get("output_limit_source") == "native-host"
+                       and c["host"] == "codex" and c["provider"] == "openai" and c["adapter"] == "codex-native"
+                       and c["execution_location"] == "remote")
+        if c["context_window"] is None or (c["max_output_tokens"] is None and not host_output):
+            reasons.append("unknown-capacity")
+        if c["context_window"] is not None and t["input_tokens"]+t["output_tokens"] > c["context_window"]:
+            reasons.append("context-does-not-fit")
+        if c["max_output_tokens"] is not None and t["output_tokens"] > c["max_output_tokens"]:
+            reasons.append("context-does-not-fit")
+        if host_output and c["max_output_tokens"] is None and "complete-output" not in t["acceptance_gates"]:
+            reasons.append("missing-completeness-gate")
         if not 0 <= age <= p["capability_age_seconds"]: reasons.append("stale-capabilities")
         if not ctx["delegation_allowed"]: reasons.append("context-stop")
         if t["risk"] not in p["allowed_risks"]: reasons.append("risk-outside-policy")
@@ -246,6 +257,9 @@ def prepare(packet, p, outcomes=(), clock=None):
         estimate = ev["observed_mean_cost_usd"] if ev["observed_mean_cost_usd"] is not None else c["estimate_usd"]
         rows.append({"id": c["id"], "configuration_id": configuration_id(c), "model": c["model"], "effort": c["effort"],
                      "eligible": not reasons, "reasons": reasons, "shortlisted": False,
+                     "output_limit_source": "native-host" if host_output and c["max_output_tokens"] is None else "explicit",
+                     "max_output_tokens": c["max_output_tokens"], "context_window": c["context_window"],
+                     "input_budget_tokens": t["input_tokens"], "output_budget_tokens": t["output_tokens"],
                      "estimate_usd": estimate, "evidence": ev})
     by_id = {c["id"]: c for c in packet["candidates"]}
     eligible = [r for r in rows if r["eligible"]]

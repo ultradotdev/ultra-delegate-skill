@@ -1,39 +1,64 @@
-# Post-merge repository test drive
+# Native repository readiness: 1.3.0-rc.4
 
 PR 3 merged at `5a7e79d584c9cea11aa6284cfa0b13960c0a7206` after its
 Python 3.10/3.12/3.14 and optional-keyring Linux/macOS/Windows CI passed.
-Current changes are an unreleased development snapshot in
-[PR 4](https://github.com/ultradotdev/ultra-delegate-skill/pull/4), which tracks
-remote results for each subsequent commit.
+This unreleased candidate is tracked in
+[PR 4](https://github.com/ultradotdev/ultra-delegate-skill/pull/4), including remote
+results for each subsequent commit. It has not been installed or published.
 
-The original follow-up added 14 tests and passed 210 locally and in CI. The
-credential-read follow-up adds eight more tests, with 218 passing locally on
-macOS Python 3.14. It covers bounded store reads, redaction, exact native Keychain
-lookup, environment precedence and optional-security failure isolation.
+Local validation passes 226 tests on macOS Python 3.14, also from the extracted
+source archive with site packages disabled. These cover the native
+output opt-in, strict defaults, unknown-context stop, required completeness gate,
+exact host/catalog effort intersection, read-only packet tool policy, CLI recheck,
+policy changes and null-capacity reporting, alongside all existing regressions.
+Extracted archives are checked with site packages disabled and with optional
+keyring installed. The packaged helper supports isolated Python execution.
+Python 3.10 grammar checks pass for 41 Python files, and the official skill validator
+passes. Generated question references and deterministic packaging checks pass. Historical
+CI results do not substitute for this candidate's current PR checks.
 
-Six live Jev requests completed using authored synthetic inputs. Requests 1–2
-found/diagnosed the rounded Score mismatch; their billing is unknown. Request 3
-verified the transport correction but returned `clarify` for the original test
-packet (missing-requirement probability 0.22 versus the unchanged 0.20 cutoff).
-That failed expectation is retained. The earlier stalled verification made no
-HTTP request and was terminated.
-
+Seven live Jev requests completed. Requests 1–2 found/diagnosed the rounded Score
+mismatch; their billing is unknown. Request 3 validated the transport correction
+but returned `clarify` for the original synthetic test packet (missing-requirement
+probability 0.22 versus the unchanged 0.20 cutoff). That failed expectation remains
+recorded. An earlier stalled credential read made no HTTP request and was stopped.
 The native macOS read resolved the Keychain blocker without changing an item or
-its permissions. It and the Windows/Linux keyring reader have separate bounded
-lookup paths. Requests 4–6 used fixture version `repo-smoke-2`: a test draft with
-explicit namespace/output requirements produced `experiment`; missing
-requirements produced `clarify`; missing document authorization produced an
-advisory security `fail`. All three expected actions passed. Version 2 was refined
-after observing version 1 and is not a held-out benchmark. No threshold changed.
+its permissions. Credential reads now have a separate five-second deadline.
 
-Actual native dispatch, worker/baseline comparisons, real downstream quality,
-security accuracy and threshold calibration remain unqualified. Codex discovery
-exposes context capacity but not an output ceiling; the current automatic gate
-still rejects that unknown rather than inventing a value. No total savings claim,
-credential mutation or live skill installation follows from these checks.
+Requests 4–6 used authored fixture version `repo-smoke-2`: explicit namespace and
+output requirements produced `experiment`; missing requirements produced
+`clarify`; missing document authorization produced advisory security `fail`.
+All three expected actions passed. These fixtures were refined after observing
+version 1, so they are not a held-out benchmark. No threshold changed.
 
-See [the reproducible test-drive guide](pilot-test-drive.md) for payload
-boundaries, executable contracts and response compatibility.
+Request 7 evaluated a prepared summary for an actual read-only Python CLI review.
+The candidate packet used currently discovered Terra/Luna medium configurations,
+known effective context of 258400 tokens and an unreported output ceiling. Explicit
+host-managed-output opt-in plus a mandatory completeness gate allowed the native
+Codex path without inventing a numeric output limit. Recheck passed immediately
+before native Terra medium execution. Jev recommended `repackage` for greater
+complexity; shadow mode preserved the configured Terra baseline. It did not select
+Terra on the strength of that recommendation.
+
+The coordinator independently checked all four source/test-cited findings, four
+passing smoke tests, output completeness and unchanged source hashes. The accepted
+outcome has coverage/correctness/maintainability/clarity scores 100/100/90/95. The
+next independent task group sees one scoped success with Wilson lower bound
+0.20655, still unqualified. This establishes one complete route/recheck/worker/
+review/observe/report cycle, not comparative model quality or calibrated routing.
+Security assessment was off for the real review; only the toy authorization case
+exercised the live advisory evaluator.
+
+Known token-price estimates for requests 3–7 total $0.000346836. Total workload
+cost remains unknown, including the first two requests and native worker/reviewer
+costs. No savings claim follows. Browser visual inspection remains pending;
+HTML generation, source structure and escaping are covered by tests.
+
+The next step is a few independent read-only repository trials in shadow mode,
+including paired worker results where useful. Active-route quality, threshold
+calibration, broader security accuracy and total cost comparisons remain pending.
+See the [reproducible test-drive guide](pilot-test-drive.md) and packaged
+[native Codex workflow](../.agents/skills/ultra-delegation/references/pilot-codex.md).
 
 # Jev project pilot qualification: 1.3.0-rc.3
 

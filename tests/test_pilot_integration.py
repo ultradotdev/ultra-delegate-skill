@@ -80,5 +80,27 @@ class PilotCLIIntegrationTests(unittest.TestCase):
             self.assertIn('unknown-capacity', c['reasons'])
             self.assertIn('context-stop', c['reasons'])
 
+    def test_native_output_opt_in_survives_cli_recheck_and_report(self):
+        self.root = self.directory / 'native-state'
+        self.cli('init', '--mode', 'off', '--baseline-id', 'candidate-2', '--allow-host-managed-output')
+        packet = json.loads(self.packet_path.read_text())
+        packet['synthetic'] = False  # A local subprocess contract fixture, never a worker-quality claim.
+        packet['task']['acceptance_gates'].append('complete-output')
+        for c in packet['candidates']:
+            c.update(max_output_tokens=None, output_limit_source='native-host')
+        self.packet_path.write_text(json.dumps(packet))
+        d = self.cli('route', '--input', str(self.packet_path))
+        self.assertEqual(d['action'], 'route')
+        self.assertEqual(self.cli('recheck','--decision',d['id'],'--input',str(self.packet_path))['recheck'], 'passed')
+        paths = self.cli('report')
+        report = json.loads(Path(paths['json']).read_text())
+        row = report['decisions'][0]['candidates'][0]
+        self.assertEqual(row['output_limit_source'], 'native-host')
+        self.assertIsNone(row['max_output_tokens'])
+        self.assertIn('limit unreported',Path(paths['html']).read_text())
+        p = json.loads((self.root/'policy.json').read_text()); p['allow_host_managed_output'] = False
+        (self.root/'policy.json').write_text(json.dumps(p))
+        self.assertEqual(self.cli('recheck','--decision',d['id'],'--input',str(self.packet_path),ok=False)['error'], 'decision-inputs-changed')
+
 
 if __name__ == '__main__': unittest.main()

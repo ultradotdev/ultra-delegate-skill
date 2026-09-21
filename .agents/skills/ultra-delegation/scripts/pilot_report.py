@@ -88,6 +88,9 @@ def _project_decision(raw: Any) -> dict[str, Any] | None:
             "model": _label(item.get("model")), "effort": _label(item.get("effort")),
             "eligible": item.get("eligible") is True, "reasons": _labels(item.get("reasons")),
             "shortlisted": item.get("shortlisted") is True, "estimate_usd": _number(item.get("estimate_usd")),
+            "output_limit_source": item.get("output_limit_source") if item.get("output_limit_source") in {"explicit", "native-host"} else "explicit",
+            "max_output_tokens": _number(item.get("max_output_tokens")), "context_window": _number(item.get("context_window")),
+            "input_budget_tokens": _number(item.get("input_budget_tokens")), "output_budget_tokens": _number(item.get("output_budget_tokens")),
             "evidence": {"groups": _number(evidence.get("groups"), 0), "passed_groups": _number(evidence.get("passed_groups"), 0),
                          "failed_groups": _number(evidence.get("failed_groups"), 0), "lower_bound": _number(evidence.get("lower_bound")),
                          "qualified": evidence.get("qualified") is True},
@@ -256,7 +259,7 @@ def render_html(report: dict[str, Any]) -> str:
         selected_pending = d["action"] == "route" and d["selected_configuration_id"] and not any(o["configuration_id"] == d["selected_configuration_id"] for o in rows)
         experiment_pending = d["action"] == "experiment" and not rows
         choices = f"selected {_e(d['selected_configuration_id'])} · baseline {_e(d['baseline_configuration_id'])} · recommended {_e(d['recommended_configuration_id'])}"
-        candidate_rows = "".join(f"<tr><td>{_e(c['configuration_id'])}</td><td>{_e(c['model'])} / {_e(c['effort'])}</td><td>{'eligible' if c['eligible'] else 'ineligible'}</td><td>{c['evidence']['passed_groups']}/{c['evidence']['groups']} groups; lower bound {_e(c['evidence']['lower_bound'])}; {'qualified' if c['evidence']['qualified'] else 'pending qualification'}</td></tr>" for c in d["candidates"])
+        candidate_rows = "".join(f"<tr><td>{_e(c['configuration_id'])}</td><td>{_e(c['model'])} / {_e(c['effort'])}</td><td>{'eligible' if c['eligible'] else 'ineligible'}; output {_e(c['output_limit_source'])}, limit {_e(c['max_output_tokens'] if c['max_output_tokens'] is not None else 'unreported')}</td><td>{c['evidence']['passed_groups']}/{c['evidence']['groups']} groups; lower bound {_e(c['evidence']['lower_bound'])}; {'qualified' if c['evidence']['qualified'] else 'pending qualification'}</td></tr>" for c in d["candidates"])
         outcome_rows = "".join(f"<tr><td>{_e(o['configuration_id'])}</td><td>{'accepted' if o['accepted'] else 'not accepted'}</td><td>{_e(o['scores'])}</td><td>prep {_money(o['costs']['preparation'])}; worker {_money(o['costs']['worker'])}; review {_money(o['costs']['review'])}; retry {_money(o['costs']['retry'])}; fallback {_money(o['costs']['fallback'])}</td><td>{'advisory ' + _e(o['security']['status']) + '; ' + _money({'usd': o['security']['cost_usd'], 'kind': o['security']['cost_kind']}) if o['security']['mode'] == 'advisory' else 'off'}</td></tr>" for o in rows) or "<tr><td colspan=5>Pending - no outcome recorded.</td></tr>"
         signals = " ".join(f"{_pill(k + ': ' + json.dumps(v, separators=(',', ':')))}" for k, v in d["signals"].items()) or "No validated question probabilities recorded."
         synthetic = '<p class="warning">Synthetic telemetry - pending qualification; it does not establish live routing evidence.</p>' if d["synthetic"] else ""

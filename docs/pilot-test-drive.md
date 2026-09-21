@@ -110,8 +110,11 @@ results, an actual native-worker/reviewer cycle and an attributable report. Broa
 quality/security accuracy and calibrated thresholds require subsequent independent
 repo tasks; they are not established by these synthetic checks.
 
-Native-host discovery remains a concrete integration gap: the observed Codex
-catalog exposes context size but no output-token ceiling. The current automatic
-dispatch gate requires both and correctly returns `unknown-capacity`. Do not fill
-this with an invented number. A separately supervised advisory workflow must be
-explicit about coordinator ownership and cannot claim the automatic gate passed.
+The Codex integration now has an explicit, default-off exception for the host’s
+unreported output ceiling. It keeps that value null, requires known context fit
+and a mandatory `complete-output` acceptance gate, and retains dispatch recheck.
+The [native Codex workflow](../.agents/skills/ultra-delegation/references/pilot-codex.md)
+provides the packet builder and handoff steps. One real read-only review completed
+route, recheck, native execution, independent acceptance and scoped learning.
+Jev recommended repackaging that task; shadow mode preserved the configured
+baseline. This validates the workflow, not Jev routing accuracy.

@@ -360,6 +360,7 @@ def main(argv=None):
     init.add_argument("--baseline-id")
     for key in ("share-summaries", "share-artifacts", "security-check"):
         init.add_argument("--"+key, action="store_true")
+    init.add_argument("--allow-host-managed-output", action="store_true")
     init.add_argument("--credential-service", default=transport.SERVICE)
     init.add_argument("--credential-ref", default="default")
     route = sub.add_parser("route")
@@ -387,7 +388,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         if args.command == "init":
-            p = {k: getattr(args, k) for k in ("mode", "baseline_id", "share_summaries", "share_artifacts", "security_check", "credential_service", "credential_ref")}
+            p = {k: getattr(args, k) for k in ("mode", "baseline_id", "share_summaries", "share_artifacts", "security_check", "credential_service", "credential_ref", "allow_host_managed_output")}
             init_project(args.root, p)
             result = {"initialized": True, "mode": args.mode, "security": "advisory" if args.security_check else "off"}
         elif args.command == "example":
