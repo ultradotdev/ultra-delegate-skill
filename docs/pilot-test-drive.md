@@ -18,7 +18,7 @@ python3 scripts/build_release.py --check
 python3 scripts/build_release.py --source --check
 ```
 
-The runner uses three authored examples: a fully specified Python test draft,
+Fixture version `repo-smoke-2` uses three authored examples: a fully specified Python test draft,
 input validation with missing requirements, and a toy document endpoint missing
 authorization. Expected results are respectively an experiment nomination,
 clarification, and an advisory security failure. Offline answers are mocked to
@@ -94,3 +94,24 @@ This is a bounded compatibility policy supported by one diagnostic, not a claim
 that the vendor guarantees rounding behavior. A materially inconsistent score or
 distribution still fails closed to the baseline. Regression tests retain both
 the observed success case and malformed-response counterexamples.
+
+## Readiness follow-up
+
+The bounded native macOS read resolved the Python Keychain wait. The third live
+request successfully validated the rounded Score response, but the original
+bounded-test packet returned `clarify`: missing-requirement probability `0.22`
+exceeded the unchanged `0.20` cutoff. That failed expectation remains part of the
+qualification record. Fixture version 2 explicitly supplies the test symbol's
+namespace and exact output shape; a new result cannot retroactively pass version 1
+or establish held-out accuracy.
+
+Repo readiness requires successful access/transport, observed semantic smoke
+results, an actual native-worker/reviewer cycle and an attributable report. Broad
+quality/security accuracy and calibrated thresholds require subsequent independent
+repo tasks; they are not established by these synthetic checks.
+
+Native-host discovery remains a concrete integration gap: the observed Codex
+catalog exposes context size but no output-token ceiling. The current automatic
+dispatch gate requires both and correctly returns `unknown-capacity`. Do not fill
+this with an invented number. A separately supervised advisory workflow must be
+explicit about coordinator ownership and cannot claim the automatic gate passed.

@@ -2,28 +2,38 @@
 
 PR 3 merged at `5a7e79d584c9cea11aa6284cfa0b13960c0a7206` after its
 Python 3.10/3.12/3.14 and optional-keyring Linux/macOS/Windows CI passed.
-The following changes are an unreleased development snapshot of that candidate.
+Current changes are an unreleased development snapshot in
+[PR 4](https://github.com/ultradotdev/ultra-delegate-skill/pull/4), which tracks
+remote results for each subsequent commit.
 
-The repository test drive adds 14 tests for executable behavior specifications,
-real CLI subprocess flows, a bounded synthetic smoke runner, transport attempt
-limits and a live-discovered Score rounding mismatch. All 210 tests pass locally
-on macOS Python 3.14. Generated question references and reproducible skill/source
-packaging checks pass. Archive tests pass both with site packages disabled and
-with optional keyring installed. Follow-up remote results are tracked in
-[PR 4](https://github.com/ultradotdev/ultra-delegate-skill/pull/4).
+The original follow-up added 14 tests and passed 210 locally and in CI. The
+credential-read follow-up adds eight more tests, with 218 passing locally on
+macOS Python 3.14. It covers bounded store reads, redaction, exact native Keychain
+lookup, environment precedence and optional-security failure isolation.
 
-Two authorized live Jev requests completed using authored synthetic inputs and a
-read-only existing OS-store credential. The first failed strict response
-validation; the second isolated a scalar Score discrepancy compatible with
-hundredths rounding. A bounded compatibility fix is regression-tested and
-independently reviewed. The third attempt stalled in Keychain lookup before HTTP
-and was terminated. Live verification of the fix, ambiguity/security live cases,
-worker bake-offs, real downstream quality and threshold calibration remain
-pending. Cost for the two diagnostic requests is unknown; no savings claim is
-made. No live-installed skill or credential was changed.
+Six live Jev requests completed using authored synthetic inputs. Requests 1–2
+found/diagnosed the rounded Score mismatch; their billing is unknown. Request 3
+verified the transport correction but returned `clarify` for the original test
+packet (missing-requirement probability 0.22 versus the unchanged 0.20 cutoff).
+That failed expectation is retained. The earlier stalled verification made no
+HTTP request and was terminated.
 
-See [the reproducible test-drive guide](pilot-test-drive.md) for examples,
-executable contracts, response-compatibility policy and payload boundaries.
+The native macOS read resolved the Keychain blocker without changing an item or
+its permissions. It and the Windows/Linux keyring reader have separate bounded
+lookup paths. Requests 4–6 used fixture version `repo-smoke-2`: a test draft with
+explicit namespace/output requirements produced `experiment`; missing
+requirements produced `clarify`; missing document authorization produced an
+advisory security `fail`. All three expected actions passed. Version 2 was refined
+after observing version 1 and is not a held-out benchmark. No threshold changed.
+
+Actual native dispatch, worker/baseline comparisons, real downstream quality,
+security accuracy and threshold calibration remain unqualified. Codex discovery
+exposes context capacity but not an output ceiling; the current automatic gate
+still rejects that unknown rather than inventing a value. No total savings claim,
+credential mutation or live skill installation follows from these checks.
+
+See [the reproducible test-drive guide](pilot-test-drive.md) for payload
+boundaries, executable contracts and response compatibility.
 
 # Jev project pilot qualification: 1.3.0-rc.3
 

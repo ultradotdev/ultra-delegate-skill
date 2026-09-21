@@ -19,8 +19,10 @@ def fixtures():
     clear['task_id'] = clear['group_id'] = 'repo-smoke-bounded-tests'
     clear['task'].update(scope_id='python.unit-test-draft', operation='unit-test-addition',
         summary='Write three pytest tests for increment(x), a pure function defined exactly as return x + 1 for Python integers. Return test functions as text only.',
-        requirements=['Test increment(0) == 1.', 'Test increment(4) == 5.', 'Test increment(-3) == -2.'],
-        worker_boundary='Return only three test functions. No repository changes, tool use, execution, architecture or product decisions.',
+        requirements=['Test increment(0) == 1.', 'Test increment(4) == 5.', 'Test increment(-3) == -2.',
+                      'increment is already available in the test module namespace; no import or module path is needed.',
+                      'Return exactly three standalone functions named test_zero, test_positive, and test_negative, each containing only its required assert. No fixtures, parameterization, wrappers, execution, or integration is required.'],
+        worker_boundary='Return only three test functions. No repository changes, tool use, execution, architecture or product decisions. The full deliverable is those three functions as text; all implementation and integration decisions are supplied.',
         intended_use='A synthetic draft discarded after review. It will not change a running system.',
         acceptance_gates=['exact-assertions', 'independent-review'], required_tools=[])
     for c in clear['candidates']:
@@ -45,7 +47,7 @@ def run(root, *, live=False, locator=None):
     pilot.init_project(ledger, p)
     clear, unclear, security = fixtures()
     cases = []
-    report = {'schema':'ultra-pilot-smoke-v1', 'synthetic_inputs':True, 'transport':'live' if live else 'mock',
+    report = {'schema':'ultra-pilot-smoke-v1', 'fixture_version':'repo-smoke-2', 'synthetic_inputs':True, 'transport':'live' if live else 'mock',
               'qualification':'unqualified', 'maximum_http_attempts':3, 'cases':cases}
     key = 'synthetic-offline-key'
     if live:

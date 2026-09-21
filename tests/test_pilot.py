@@ -118,6 +118,19 @@ class PilotWorkflowTests(unittest.TestCase):
         for value in ("SECRET-PROVIDER-ERROR", "PRIVATE-CODE", "SECRET-KEY"):
             self.assertNotIn(value, encoded)
 
+    def test_credential_timeout_preserves_route_and_optional_observation(self):
+        with patch.object(transport, 'credential', side_effect=transport.ServiceError('credential-store-timeout')), patch.object(transport, 'request', side_effect=AssertionError):
+            d = self.decision(live=True)
+            self.assertEqual(d['action'], 'route')
+            self.assertEqual(d['reason_codes'], ['credential-store-timeout'])
+            self.assertEqual(d['router']['attempts'], 0)
+            packet = {'requirements':['Authorization required'], 'excerpts':['selected-code'], 'validation_summary':'independent checks passed'}
+            o = pilot.observe(self.root, self.raw(d), security_input=packet, security_check=True, live=True)
+        self.assertTrue(o['accepted'])
+        self.assertEqual(o['security']['status'], 'unavailable')
+        self.assertEqual(o['security']['reason_codes'], ['credential-store-timeout'])
+        self.assertEqual(o['security']['attempts'], 0)
+
     def test_security_findings_do_not_override_independent_verdict(self):
         d = self.decision()
         def finding(payload, key):

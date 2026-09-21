@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import json
+import contextlib
 import math
 import multiprocessing
 import os
+import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -14,6 +17,7 @@ ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 REQUEST_LIMIT = 24 * 1024
 RESPONSE_LIMIT = 256 * 1024
 DEADLINE = 20.0
+CREDENTIAL_DEADLINE = 5.0
 SERVICE = "ultra-delegation.typesafe"
 SECURE_BACKENDS = {
     ("keyring.backends.macOS", "Keyring"),
@@ -45,11 +49,7 @@ def secure_backend():
         raise ServiceError("credential-store-unavailable") from None
 
 
-def credential(ref, environ=None, service=SERVICE):
-    env = os.environ if environ is None else environ
-    value = env.get("TYPESAFE_API_KEY")
-    if value:
-        return value, "environment"
+def _stored_credential(ref, service):
     try:
         value = secure_backend().get_password(service, ref)
     except ServiceError:
@@ -58,7 +58,100 @@ def credential(ref, environ=None, service=SERVICE):
         raise ServiceError("credential-store-unavailable") from None
     if not value:
         raise ServiceError("missing-credential")
-    return value, "os-store"
+    if not isinstance(value, str):
+        raise ServiceError("credential-store-unavailable")
+    return value
+
+
+def _credential_worker(connection, ref, service):
+    # Backend discovery and reads can both block in OS UI or service IPC. Keep
+    # them in an owned process; only a private pipe ever carries the value.
+    try:
+        with open(os.devnull, "w") as sink, contextlib.redirect_stdout(sink), contextlib.redirect_stderr(sink):
+            try:
+                connection.send((True, _stored_credential(ref, service)))
+            except ServiceError as error:
+                connection.send((False, error.code))
+            except Exception:
+                connection.send((False, "credential-store-unavailable"))
+    finally:
+        connection.close()
+
+
+def _read_keyring_credential(ref, service):
+    started = time.monotonic()
+    ctx = multiprocessing.get_context("spawn")
+    receiver, sender = ctx.Pipe(duplex=False)
+    process = ctx.Process(target=_credential_worker, args=(sender, ref, service), daemon=True)
+    try:
+        process.start()
+        sender.close()
+        remaining = CREDENTIAL_DEADLINE - .5 - (time.monotonic() - started)
+        if not receiver.poll(max(0, remaining)):
+            raise ServiceError("credential-store-timeout")
+        try:
+            ok, value = receiver.recv()
+        except (EOFError, ValueError, TypeError):
+            raise ServiceError("credential-store-unavailable") from None
+        if ok is not True:
+            allowed = {"missing-credential", "unsupported-credential-store", "credential-store-unavailable"}
+            raise ServiceError(value if isinstance(value, str) and value in allowed else "credential-store-unavailable")
+        if not isinstance(value, str) or not value:
+            raise ServiceError("credential-store-unavailable")
+        return value
+    except ServiceError:
+        raise
+    except Exception:
+        raise ServiceError("credential-store-unavailable") from None
+    finally:
+        receiver.close()
+        sender.close()
+        if process.pid:
+            if process.is_alive(): process.terminate()
+            process.join(timeout=max(0, min(.25, CREDENTIAL_DEADLINE - (time.monotonic() - started))))
+            if process.is_alive():
+                process.kill()
+                process.join(timeout=max(0, CREDENTIAL_DEADLINE - (time.monotonic() - started)))
+
+
+def _macos_credential(ref, service):
+    # Use the system-signed reader with its existing access permissions. Never
+    # change an item, ACL, lock state, or prompt for a credential. Only service
+    # and account names enter argv; the value stays in captured process memory.
+    try:
+        result = subprocess.run(["/usr/bin/security", "find-generic-password",
+                                 "-s", service, "-a", ref, "-w"],
+                                capture_output=True, timeout=CREDENTIAL_DEADLINE, check=False)
+        if result.returncode == 44:
+            raise ServiceError("missing-credential")
+        if result.returncode != 0:
+            raise ServiceError("credential-store-unavailable")
+        # security prints one framing LF; preserve every byte of the stored item.
+        framed = result.stdout
+        value = (framed[:-1] if framed.endswith(b"\n") else framed).decode("utf-8")
+        if not value:
+            raise ServiceError("missing-credential")
+        return value
+    except subprocess.TimeoutExpired:
+        raise ServiceError("credential-store-timeout") from None
+    except ServiceError:
+        raise
+    except Exception:
+        raise ServiceError("credential-store-unavailable") from None
+
+
+def _read_stored_credential(ref, service):
+    if sys.platform == "darwin":
+        return _macos_credential(ref, service)
+    return _read_keyring_credential(ref, service)
+
+
+def credential(ref, environ=None, service=SERVICE):
+    env = os.environ if environ is None else environ
+    value = env.get("TYPESAFE_API_KEY")
+    if value:
+        return value, "environment"
+    return _read_stored_credential(ref, service), "os-store"
 
 
 def auth(action, ref, model, service=SERVICE):

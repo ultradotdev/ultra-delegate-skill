@@ -51,7 +51,7 @@ python3 "$SKILL_PATH/scripts/pilot.py" --root .ultra-delegation/pilot report
 
 Commands must be run in the intended project's directory or with an explicit `--root`. Keep `.ultra-delegation/` ignored in that project before using version control. The CLI does not edit the project's ignore file, auto-install the skill, scan repository content, or send anything beyond the prepared packet.
 
-`init` is exclusive and never overwrites an existing policy. To change mode, baseline, sharing, thresholds, exclusions, quarantine or the non-secret credential locator, edit the project's `policy.json`; subsequent decisions include its hash. Old decisions must be reevaluated after changes. Saving credentials does not activate the pilot. Credentials resolve from `TYPESAFE_API_KEY`, then the selected existing OS-store service/account. There is no credential set/delete/prompt flow.
+`init` is exclusive and never overwrites an existing policy. To change mode, baseline, sharing, thresholds, exclusions, quarantine or the non-secret credential locator, edit the project's `policy.json`; subsequent decisions include its hash. Old decisions must be reevaluated after changes. Saving credentials does not activate the pilot. Credentials resolve from `TYPESAFE_API_KEY`, then the selected existing OS-store service/account. There is no credential set/delete/prompt flow. macOS uses its native read-only Keychain utility; Windows/Linux use optional keyring. Credential reads have a separate five-second timeout, and stalled reads return `credential-store-timeout` with zero HTTP attempts.
 
 ## Packet contract and boundaries
 

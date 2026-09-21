@@ -41,6 +41,20 @@ def fake_call(**kwargs):
     return call
 
 
+def stalled_credential_worker(connection, ref, service):
+    time.sleep(30)
+
+
+def successful_credential_worker(connection, ref, service):
+    connection.send((True, 'synthetic-process-credential'))
+    connection.close()
+
+
+def failed_credential_worker(connection, ref, service):
+    connection.send((False, 'private-error-sentinel'))
+    connection.close()
+
+
 class JevBehaviorTests(unittest.TestCase):
     def setUp(self):
         self.packet = q.route_fixture(); self.policy = q.policy()
@@ -402,7 +416,7 @@ class TransportTests(unittest.TestCase):
         backend.get_password.return_value = 'private-fixture'
         backend.set_password.side_effect = AssertionError('must never write')
         backend.delete_password.side_effect = AssertionError('must never delete')
-        with patch.object(t, 'secure_backend', return_value=backend), patch.dict(os.environ, {}, clear=True):
+        with patch.object(t, 'secure_backend', return_value=backend), patch.object(t, '_read_stored_credential', side_effect=t._stored_credential), patch.dict(os.environ, {}, clear=True):
             status = t.auth('status', 'existing@example.test', 'jev-1.13.0', service='Existing TypeSafe Entry')
         backend.get_password.assert_called_once_with('Existing TypeSafe Entry', 'existing@example.test')
         backend.set_password.assert_not_called(); backend.delete_password.assert_not_called()
@@ -412,7 +426,7 @@ class TransportTests(unittest.TestCase):
     def test_missing_existing_entry_has_no_write_fallback(self):
         from unittest.mock import Mock
         backend = Mock(); backend.get_password.return_value = None
-        with patch.object(t, 'secure_backend', return_value=backend), patch.dict(os.environ, {}, clear=True):
+        with patch.object(t, 'secure_backend', return_value=backend), patch.object(t, '_read_stored_credential', side_effect=t._stored_credential), patch.dict(os.environ, {}, clear=True):
             status = t.auth('status', 'existing', 'jev-1.13.0', service='Existing Entry')
         self.assertFalse(status['configured']); self.assertEqual(status['reason'], 'missing-credential')
         backend.set_password.assert_not_called(); backend.delete_password.assert_not_called()
@@ -424,7 +438,65 @@ class TransportTests(unittest.TestCase):
                 @staticmethod
                 def get_keyring(): return backend
             with self.subTest(module=module,name=name), patch.dict(sys.modules, {'keyring':FakeKeyring}):
-                self.assertEqual(t.credential('default', {}), ('synthetic-private-key','os-store'))
+                self.assertEqual(t._stored_credential('default', t.SERVICE), 'synthetic-private-key')
+
+    def test_owned_credential_process_times_out_and_is_reaped(self):
+        before = {p.pid for p in t.multiprocessing.active_children()}
+        started = time.monotonic()
+        with patch.object(t, '_credential_worker', stalled_credential_worker), patch.object(t, 'CREDENTIAL_DEADLINE', 1):
+            with self.assertRaises(t.ServiceError) as error:
+                t._read_keyring_credential('fixture-account', 'fixture-service')
+        self.assertEqual(error.exception.code, 'credential-store-timeout')
+        self.assertEqual(error.exception.attempts, 0)
+        self.assertLess(time.monotonic()-started, 2)
+        self.assertEqual({p.pid for p in t.multiprocessing.active_children()}, before)
+
+    def test_macos_native_read_uses_only_locator_in_argv(self):
+        from unittest.mock import Mock
+        result = Mock(returncode=0, stdout=b'private-key-sentinel\n', stderr=b'private-error-sentinel')
+        with patch.object(t.sys, 'platform', 'darwin'), patch.object(t.subprocess, 'run', return_value=result) as run, patch.object(t, '_read_keyring_credential', side_effect=AssertionError):
+            self.assertEqual(t.credential('fixture-account', {}, service='fixture-service'), ('private-key-sentinel','os-store'))
+        self.assertEqual(run.call_args.args[0], ['/usr/bin/security','find-generic-password','-s','fixture-service','-a','fixture-account','-w'])
+        self.assertEqual(run.call_args.kwargs['timeout'], 5)
+        self.assertTrue(run.call_args.kwargs['capture_output'])
+        self.assertFalse(run.call_args.kwargs['check'])
+        self.assertNotIn('private-key-sentinel', str(run.call_args))
+        for framed, expected in ((b'key\n\n','key\n'), (b'key\r\n','key\r'), (b'key','key')):
+            result.stdout = framed
+            with self.subTest(framed=framed), patch.object(t.subprocess,'run',return_value=result):
+                self.assertEqual(t._macos_credential('fixture','fixture'), expected)
+
+    def test_macos_native_errors_are_redacted_and_never_fall_back_to_writes(self):
+        from unittest.mock import Mock
+        cases = [(Mock(returncode=44, stdout=b'', stderr=b'private-error'), 'missing-credential'),
+                 (Mock(returncode=1, stdout=b'private-key', stderr=b'private-error'), 'credential-store-unavailable'),
+                 (Mock(returncode=0, stdout=b'\xff', stderr=b''), 'credential-store-unavailable')]
+        for result, code in cases:
+            with self.subTest(code=code), patch.object(t.subprocess, 'run', return_value=result) as run:
+                with self.assertRaises(t.ServiceError) as error: t._macos_credential('fixture','fixture')
+                self.assertEqual(str(error.exception), code)
+                self.assertEqual(run.call_count, 1)
+        with patch.object(t.subprocess, 'run', side_effect=subprocess.TimeoutExpired('private-command', 5, output=b'private-key')):
+            with self.assertRaisesRegex(t.ServiceError, '^credential-store-timeout$'): t._macos_credential('fixture','fixture')
+
+    def test_non_macos_uses_bounded_keyring_reader(self):
+        for platform in ('linux','win32'):
+            with self.subTest(platform=platform), patch.object(t.sys,'platform',platform), patch.object(t,'_read_keyring_credential',return_value='private-key') as read, patch.object(t,'_macos_credential',side_effect=AssertionError):
+                self.assertEqual(t.credential('fixture',{},service='existing'), ('private-key','os-store'))
+                read.assert_called_once_with('fixture','existing')
+
+    def test_owned_credential_process_returns_only_private_pipe_value(self):
+        with patch.object(t, '_credential_worker', successful_credential_worker):
+            self.assertEqual(t._read_keyring_credential('fixture-account', 'fixture-service'), 'synthetic-process-credential')
+
+    def test_owned_credential_process_redacts_unexpected_errors(self):
+        with patch.object(t, '_credential_worker', failed_credential_worker):
+            with self.assertRaises(t.ServiceError) as error: t._read_keyring_credential('fixture-account', 'fixture-service')
+        self.assertEqual(str(error.exception), 'credential-store-unavailable')
+
+    def test_credential_timeout_status_is_unverified_without_http(self):
+        with patch.object(t, '_read_stored_credential', side_effect=t.ServiceError('credential-store-timeout')), patch.dict(os.environ, {}, clear=True), patch.object(t, 'request', side_effect=AssertionError):
+            self.assertEqual(t.auth('status','fixture','jev-1.13.0'), {'configured':False,'verified':False,'reason':'credential-store-timeout'})
 
     def test_owned_transport_process_is_killed_on_deadline(self):
         import multiprocessing

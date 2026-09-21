@@ -12,7 +12,11 @@ For measured downstream outcomes and threshold sweeps, use the [benchmark workfl
 
 Resolve these scripts relative to the installed skill directory. Always place `--root` before the subcommand. In examples below, `<skill>` is that directory and `<state>` is the project's `.ultra-delegation` directory.
 
-For reading an existing desktop credential, install `keyring>=25,<26` in a dedicated Python virtual environment, and use that environment's Python for `jev.py`. No automatic installation or machine-wide changes occur. Native macOS Keychain, Windows Credential Locker, and Linux Secret Service/KWallet backends are accepted. Plaintext, third-party, null and chained backends are refused; configure a supported native backend or use an environment variable. Locked/unavailable stores produce a safe unavailable result.
+On macOS, existing credentials are read through the system `/usr/bin/security find-generic-password` utility. Only service/account names enter its arguments; the value stays in captured process memory. This uses the utility's existing permissions and never modifies the item, access controls or lock state. It avoids granting a changing Python executable access merely to read the entry.
+
+On Windows/Linux, install `keyring>=25,<26` in a dedicated Python virtual environment and use that environment's Python for `jev.py`. Windows Credential Locker and Linux Secret Service/KWallet backends are accepted; plaintext, third-party, null and chained backends are refused. Backend discovery and reading run in an owned subprocess with a private result pipe. No automatic installation or machine-wide changes occur.
+
+Both read paths have a separate five-second bound. A locked, denied or unavailable store returns an explicit unavailable result; a stalled read returns `credential-store-timeout`. The owned reader is terminated. OS permissions remain authoritative; the adapter never answers a permission dialog or prompts for a password. Use the existing environment variable option if the store cannot be accessed.
 
 ```sh
 python3 <skill>/scripts/jev.py --root <state> auth status
