@@ -4,17 +4,19 @@ from __future__ import annotations
 import copy
 import datetime as dt
 import hashlib
+import itertools
 import json
 import math
 import re
 
 import jev_transport as transport
-from pilot_questions import ROUTING_THRESHOLDS
+from pilot_questions import ROUTING_THRESHOLDS, DEMAND_BANDS
 
 SCHEMA = "ultra-pilot-policy-v1"
 DEFAULTS = {
     "schema": SCHEMA, "mode": "off", "share_summaries": False,
     "share_artifacts": False, "security_check": False,
+    "allow_host_managed_output": False,
     "model": "jev-1.13.0", "credential_service": transport.SERVICE,
     "credential_ref": "default", "baseline_id": None, "pin_id": None,
     "excluded_models": [], "quarantined_configurations": [], "shortlist_limit": 8, "allowed_risks": ["low"],
@@ -22,7 +24,12 @@ DEFAULTS = {
     "evidence_days": 90, "capability_age_seconds": 300,
     "quality_floor": 80, "dimension_floor": 70,
     "thresholds": copy.deepcopy(ROUTING_THRESHOLDS),
+    "demand_bands": copy.deepcopy(DEMAND_BANDS),
 }
+DECISION_POLICY_VERSION = "pilot-selection-v3"
+DEMAND_GATES = {"reasoning": "review-reasoning", "code_interaction": "review-code-interaction",
+                "context_synthesis": "review-context-synthesis"}
+
 KINDS = {"coding", "research", "writing", "data", "planning", "mixed", "other"}
 DIMENSIONS = ("coverage", "correctness", "maintainability", "clarity")
 COST_COMPONENTS = ("preparation", "worker", "review", "retry", "fallback")
@@ -95,7 +102,7 @@ def policy(value=None):
     p.update(value)
     p["thresholds"] = {**DEFAULTS["thresholds"], **value.get("thresholds", {})}
     require(p["schema"] == SCHEMA and p["mode"] in {"off", "shadow", "active"}, "invalid-policy")
-    for key in ("share_summaries", "share_artifacts", "security_check"):
+    for key in ("share_summaries", "share_artifacts", "security_check", "allow_host_managed_output"):
         require(type(p[key]) is bool, "invalid-policy")
     require(isinstance(p["model"], str) and re.fullmatch(r"jev-\d+\.\d+\.\d+", p["model"]), "unpinned-model")
     for key in ("credential_service", "credential_ref"):
@@ -115,6 +122,13 @@ def policy(value=None):
     require(transport.number(p["minimum_success_lower_bound"], 0, 1), "invalid-confidence-floor")
     require(set(p["thresholds"]) == set(DEFAULTS["thresholds"]), "invalid-thresholds")
     require(all(transport.number(v) for v in p["thresholds"].values()), "invalid-thresholds")
+    bands = value.get("demand_bands", {})
+    require(isinstance(bands, dict) and set(bands) <= set(DEMAND_GATES), "invalid-demand-band")
+    p["demand_bands"] = copy.deepcopy(DEMAND_BANDS)
+    for tag, band in bands.items():
+        fields(band, {"absent", "required"})
+        require(all(transport.number(v) for v in band.values()) and band["absent"] < band["required"], "invalid-demand-band")
+        p["demand_bands"][tag] = copy.deepcopy(band)
     return p
 
 
@@ -156,7 +170,8 @@ def validate_packet(packet):
     require(isinstance(packet["candidates"], list) and 0 < len(packet["candidates"]) <= 128, "invalid-candidates")
     seen, configs = set(), set()
     for c in packet["candidates"]:
-        fields(c, {"id", "provider", "model", "model_revision", "host", "adapter", "effort", "prompt_contract", "tool_policy", "capability_description", "scope_envelope", "available", "tools", "modalities", "context_window", "max_output_tokens", "execution_location", "estimate_usd"}, {"prompt_version", "roles"})
+        fields(c, {"id", "provider", "model", "model_revision", "host", "adapter", "effort", "prompt_contract", "tool_policy", "capability_description", "scope_envelope", "available", "tools", "modalities", "context_window", "max_output_tokens", "execution_location", "estimate_usd"}, {"prompt_version", "roles", "output_limit_source"})
+        require(c.get("output_limit_source", "explicit") in {"explicit", "native-host"}, "invalid-capacity-source")
         for key in ("id", "provider", "model", "model_revision", "host", "adapter", "effort", "prompt_contract", "tool_policy"):
             label(c[key])
         if "prompt_version" in c:
@@ -186,10 +201,28 @@ def wilson_lower(passed, n):
     return max(0.0, (phat + z*z/(2*n) - z*math.sqrt(phat*(1-phat)/n + z*z/(4*n*n))) / (1 + z*z/n))
 
 
-def evidence_for(candidate, packet, outcomes, p, clock):
+def demand_key(demands):
+    return "+".join(sorted(demands))
+
+
+def demand_profile(task, answers, p):
+    """Describe task demands without rewriting its authoritative kind or complexity."""
+    values = {"reasoning": sum(float(answers["reasoning_depth"]["probabilities"][k]) for k in ("2", "3")),
+              "code_interaction": answers["code_interaction"]["noul"],
+              "context_synthesis": answers["context_synthesis"]["noul"]}
+    profile = {}
+    for tag, value in values.items():
+        if tag == "code_interaction" and task["work_kind"] not in {"coding", "mixed"}:
+            profile[tag] = "not-applicable"
+        else:
+            profile[tag] = ("required" if value >= p["demand_bands"][tag]["required"] else
+                            "absent" if value <= p["demand_bands"][tag]["absent"] else "uncertain")
+    return profile
+
+
+def matching_outcomes(candidate, packet, outcomes, p, clock):
+    """Select only existing, compatible history before building any cohort cards."""
     cid, t = configuration_id(candidate), packet["task"]
-    groups = {}
-    costs = []
     for o in outcomes:
         if (o["configuration_id"] != cid or o["scope_id"] != t["scope_id"]
                 or o.get("operation") != t["operation"] or o.get("risk") != t["risk"]
@@ -202,10 +235,46 @@ def evidence_for(candidate, packet, outcomes, p, clock):
         if not 0 <= age <= p["evidence_days"] * 86400:
             continue
         mandatory = {g["id"] for g in o["gates"] if g["mandatory"]}
-        if not set(t["acceptance_gates"]) <= mandatory:
-            continue  # Changed acceptance contract requires new applicable evidence.
-        accepted = (o["accepted"] and min(o["scores"].values()) >= p["dimension_floor"]
+        if set(t["acceptance_gates"]) <= mandatory:
+            yield o
+
+
+def historical_cohort(records, evidence):
+    if not records:
+        return []
+    # These are retained outcome metadata, not a restatement of the new task.
+    origin = records[0]
+    coverage = {tag: len({o["group_id"] for o in records if tag in o.get("reviewed_demands", [])})
+                for tag in DEMAND_GATES}
+    description = (f"Recorded historical outcomes: scope {origin['scope_id']}; operation {origin['operation']}; "
+                   f"kind {origin['work_kind']}; risk {origin['risk']}; complexity {origin['complexity']}. "
+                   f"Independent groups {evidence['groups']}; passing {evidence['passed_groups']}; "
+                   f"failed {evidence['failed_groups']}. Reviewer-confirmed demand coverage counts: "
+                   + ", ".join(f"{tag}={n}" for tag, n in coverage.items())
+                   + ". Missing coverage earns no positive demand credit; failures are retained.")
+    return [{"task_description": description}]
+
+
+def evidence_for(candidate, packet, outcomes, p, clock, required_demands=()):
+    return summarize_evidence(list(matching_outcomes(candidate, packet, outcomes, p, clock)), p, required_demands)
+
+
+def summarize_evidence(records, p, required_demands=()):
+    groups = {}
+    costs = []
+    for o in records:
+        accepted = (o["accepted"] and all(g["passed"] for g in o["gates"] if g["mandatory"])
+                    and min(o["scores"].values()) >= p["dimension_floor"]
                     and sum(o["scores"].values())/len(DIMENSIONS) >= p["quality_floor"])
+        # Demand inference is not evidence that a worker exercised that capability.
+        # Only independently confirmed coverage with mandatory review gates earns
+        # positive credit. Keep matching failures conservatively, even untagged.
+        if accepted and required_demands:
+            reviewed = o.get("reviewed_demands", [])
+            passed_gates = {g["id"] for g in o["gates"] if g["mandatory"] and g["passed"]}
+            if not (set(required_demands) <= set(reviewed)
+                    and {DEMAND_GATES[x] for x in required_demands} <= passed_gates):
+                continue
         groups.setdefault(o["group_id"], []).append(accepted)
         components = [o["costs"][k]["usd"] for k in ("worker", "review", "retry", "fallback")]
         if all(v is not None for v in components):
@@ -224,7 +293,7 @@ def prepare(packet, p, outcomes=(), clock=None):
     clock = clock or dt.datetime.now(dt.timezone.utc)
     t, ctx = packet["task"], packet["context"]
     age = (clock-timestamp(ctx["observed_at"])).total_seconds()
-    rows = []
+    rows, compatible_records = [], {}
     for c in packet["candidates"]:
         reasons = []
         if not c["available"]: reasons.append("unavailable")
@@ -237,16 +306,33 @@ def prepare(packet, p, outcomes=(), clock=None):
         if configuration_id(c) in p["quarantined_configurations"]: reasons.append("quarantined-configuration")
         if not set(t["required_tools"]) <= set(c["tools"]): reasons.append("missing-tools")
         if not set(t["required_modalities"]) <= set(c["modalities"]): reasons.append("missing-modalities")
-        if c["context_window"] is None or c["max_output_tokens"] is None: reasons.append("unknown-capacity")
-        elif t["input_tokens"]+t["output_tokens"] > c["context_window"] or t["output_tokens"] > c["max_output_tokens"]: reasons.append("context-does-not-fit")
+        host_output = (p["allow_host_managed_output"] and c.get("output_limit_source") == "native-host"
+                       and c["host"] == "codex" and c["provider"] == "openai" and c["adapter"] == "codex-native"
+                       and c["execution_location"] == "remote")
+        if c["context_window"] is None or (c["max_output_tokens"] is None and not host_output):
+            reasons.append("unknown-capacity")
+        if c["context_window"] is not None and t["input_tokens"]+t["output_tokens"] > c["context_window"]:
+            reasons.append("context-does-not-fit")
+        if c["max_output_tokens"] is not None and t["output_tokens"] > c["max_output_tokens"]:
+            reasons.append("context-does-not-fit")
+        if host_output and c["max_output_tokens"] is None and "complete-output" not in t["acceptance_gates"]:
+            reasons.append("missing-completeness-gate")
         if not 0 <= age <= p["capability_age_seconds"]: reasons.append("stale-capabilities")
         if not ctx["delegation_allowed"]: reasons.append("context-stop")
         if t["risk"] not in p["allowed_risks"]: reasons.append("risk-outside-policy")
-        ev = evidence_for(c, packet, outcomes, p, clock)
+        records = list(matching_outcomes(c, packet, outcomes, p, clock))
+        compatible_records[configuration_id(c)] = records
+        ev = summarize_evidence(records, p)
         estimate = ev["observed_mean_cost_usd"] if ev["observed_mean_cost_usd"] is not None else c["estimate_usd"]
+        demand_evidence = {demand_key(tags): summarize_evidence(records, p, tags)
+                           for count in range(1, len(DEMAND_GATES)+1)
+                           for tags in itertools.combinations(DEMAND_GATES, count)}
         rows.append({"id": c["id"], "configuration_id": configuration_id(c), "model": c["model"], "effort": c["effort"],
                      "eligible": not reasons, "reasons": reasons, "shortlisted": False,
-                     "estimate_usd": estimate, "evidence": ev})
+                     "output_limit_source": "native-host" if host_output and c["max_output_tokens"] is None else "explicit",
+                     "max_output_tokens": c["max_output_tokens"], "context_window": c["context_window"],
+                     "input_budget_tokens": t["input_tokens"], "output_budget_tokens": t["output_tokens"],
+                     "estimate_usd": estimate, "evidence": ev, "demand_evidence": demand_evidence})
     by_id = {c["id"]: c for c in packet["candidates"]}
     eligible = [r for r in rows if r["eligible"]]
     def cost_key(r):
@@ -270,9 +356,8 @@ def prepare(packet, p, outcomes=(), clock=None):
     for row in chosen:
         row["shortlisted"] = True
         c = by_id[row["id"]]
-        cohorts = []
-        if row["evidence"]["groups"]:
-            cohorts.append({"task_description": f"Independently reviewed {t['operation']} tasks in scope {t['scope_id']}; task kind {t['work_kind']}, risk {t['risk']}. Both accepted and failed groups are retained."})
+        records = compatible_records[row["configuration_id"]]
+        cohorts = historical_cohort(records, row["evidence"])
         cards.append({"id": row["configuration_id"], "capability_description": c["capability_description"], "scope_envelope": c["scope_envelope"], "evidence_cohorts": cohorts})
     return {"rows": rows, "shortlist": chosen, "cards": cards, "baseline": baseline,
             "override": override, "override_missing": override_id is not None and override is None}
@@ -280,9 +365,19 @@ def prepare(packet, p, outcomes=(), clock=None):
 
 def recommendation(packet, prepared, answers, p):
     t, th = packet["task"], p["thresholds"]
+    profile = demand_profile(t, answers, p)
+    demands = sorted(k for k, v in profile.items() if v in {"required", "uncertain"})
+    assessments = []
+    kind = answers["work_kind"]
+    diagnostics = (["work-kind-disagreement"] if kind["confidence"] >= th["demand"]
+                   and kind["choice"] not in {t["work_kind"], "mixed", "other"}
+                   and t["work_kind"] not in {"mixed", "other"} else [])
     def result(action, reason, row=None, nominees=()):
         return {"action": action, "configuration_id": row["configuration_id"] if row else None,
-                "reason_codes": [reason], "nominees": list(nominees)}
+                "reason_codes": [reason], "nominees": list(nominees),
+                "demand_profile": profile, "required_demands": demands,
+                "review_requirements": [DEMAND_GATES[k] for k in demands],
+                "candidate_assessments": assessments, "diagnostics": diagnostics}
     if answers["missing_requirement"]["noul"] > th["missing_requirement"]:
         return result("clarify", "missing-or-uncertain-requirement")
     if answers["coordinator_coupling"]["noul"] > th["coordinator_coupling"]:
@@ -292,34 +387,44 @@ def recommendation(packet, prepared, answers, p):
         return result("coordinator", "impact-metadata-conflict")
     if sum(float(impact[k]) for k in ("2", "3")) > th["demand"] and t["risk"] == "low":
         return result("coordinator", "impact-metadata-conflict")
-    # These semantic demands cannot manufacture missing discovered tools or scope evidence.
-    kind = answers["work_kind"]["choice"]
-    if answers["work_kind"]["confidence"] >= th["demand"] and kind not in {t["work_kind"], "mixed", "other"} and t["work_kind"] not in {"mixed", "other"}:
-        return result("repackage", "task-kind-conflict")
-    extended = (sum(float(answers["reasoning_depth"]["probabilities"][k]) for k in ("2", "3")) >= th["demand"]
-                or answers["context_synthesis"]["noul"] >= th["demand"]
-                or (t["work_kind"] in {"coding", "mixed"} and answers["code_interaction"]["noul"] >= th["demand"]))
-    # Pilot evidence is scoped by explicit contract. Complex work needs a scope marked for it.
-    if extended and t["complexity"] != "complex":
-        return result("repackage", "complex-scope-required")
+    # Work-kind classification is diagnostic. Reasoning, interaction and synthesis
+    # choose applicable evidence and review, never a blanket complexity stop.
     by_cfg = {configuration_id(c): c for c in packet["candidates"]}
     qualified, nominees = [], []
     for i, row in enumerate(prepared["shortlist"]):
         c = by_cfg[row["configuration_id"]]
+        evidence = (row.get("demand_evidence", {}).get(demand_key(demands)) if demands else row["evidence"])
+        if evidence is None:
+            evidence = {"groups": 0, "passed_groups": 0, "failed_groups": 0, "lower_bound": 0.0,
+                        "qualified": False, "observed_mean_cost_usd": None, "cost_observations": 0}
+        assessment = {"configuration_id": row["configuration_id"], "status": "excluded",
+                      "reason_codes": [], "evidence": evidence}
+        assessments.append(assessment)
         if answers["external_information"]["noul"] >= th["demand"] and "external-retrieval" not in c["tools"]:
+            assessment["reason_codes"] = ["missing-retrieval-tool"]
             continue
-        if answers[f"operation_match_{i}"]["noul"] < th["operation_match"] or answers[f"scope_exceeded_{i}"]["noul"] > th["scope_exceeded"]:
+        if answers[f"operation_match_{i}"]["noul"] < th["operation_match"]:
+            assessment["reason_codes"] = ["operation-match-insufficient"]
+            continue
+        if answers[f"scope_exceeded_{i}"]["noul"] > th["scope_exceeded"]:
+            assessment["reason_codes"] = ["candidate-scope-exceeded-or-uncertain"]
             continue
         comparable = all(answers[f"evidence_comparable_{i}_{j}"]["noul"] >= th["evidence_comparable"] for j in range(len(prepared["cards"][i]["evidence_cohorts"])))
-        if row["evidence"]["qualified"] and comparable:
-            qualified.append(row)
+        if evidence["qualified"] and comparable:
+            assessment.update(status="qualified", reason_codes=["applicable-evidence-qualified"])
+            # Use costs from the applicable cohort, not unrelated generic successes.
+            cost = evidence.get("observed_mean_cost_usd")
+            qualified.append({**row, "evidence": evidence, "estimate_usd": cost if cost is not None else c["estimate_usd"]})
         else:
+            assessment.update(status="trial-required", reason_codes=["demand-evidence-unqualified" if demands else "scoped-evidence-unqualified"] if comparable else ["evidence-not-comparable"])
             nominees.append(row["configuration_id"])
     if qualified:
         chosen = min(qualified, key=lambda r: (r["estimate_usd"] is None, r["estimate_usd"] or 0, -r["evidence"]["lower_bound"], r["configuration_id"]))
         return result("route", "scoped-evidence-and-semantic-match", chosen)
     if nominees:
         return result("experiment", "reviewed-trial-required", nominees=nominees)
+    if assessments and all(a["reason_codes"] == ["missing-retrieval-tool"] for a in assessments):
+        return result("repackage", "external-information-unavailable")
     return result("coordinator", "no-suitable-candidate")
 
 
@@ -331,10 +436,19 @@ def validate_cost(value):
     return value
 
 
+def observation_role(decision, configuration_id_value):
+    selected = decision.get("action") == "route" and configuration_id_value == decision.get("selected_configuration_id")
+    nominated = decision.get("action") == "experiment" and configuration_id_value in decision.get("nominated_configuration_ids", [])
+    if decision.get("mode") == "active":
+        require(selected or nominated, "outcome-outside-decision")
+    return "selected-route" if selected else "nominated-trial" if nominated else "coordinator-reviewed-comparison"
+
+
 def assess_outcome(raw, decision, p):
-    fields(raw, {"decision_id", "configuration_id", "artifact_hash", "reviewer_id", "reviewer_kind", "review_accepted", "gates", "scores", "costs", "latency_ms"}, {"prompt_version"})
+    fields(raw, {"decision_id", "configuration_id", "artifact_hash", "reviewer_id", "reviewer_kind", "review_accepted", "gates", "scores", "costs", "latency_ms"}, {"prompt_version", "reviewed_demands"})
     require(raw["decision_id"] == decision["id"], "decision-mismatch")
     require(raw["configuration_id"] in {c["configuration_id"] for c in decision["candidates"] if c["eligible"]}, "unknown-outcome-candidate")
+    role = observation_role(decision, raw["configuration_id"])
     require(isinstance(raw["artifact_hash"], str) and re.fullmatch(r"[a-f0-9]{64}", raw["artifact_hash"]), "invalid-artifact-hash")
     label(raw["reviewer_id"])
     require(raw["reviewer_kind"] in {"human", "frontier", "synthetic"}, "invalid-reviewer")
@@ -350,6 +464,11 @@ def assess_outcome(raw, decision, p):
         require(g["id"] not in seen, "duplicate-gate"); seen.add(g["id"])
     require(any(g["mandatory"] for g in gates), "mandatory-gate-required")
     require(set(decision["acceptance_gates"]) <= {g["id"] for g in gates if g["mandatory"]}, "missing-required-gates")
+    reviewed_demands = raw.get("reviewed_demands", [])
+    labels(reviewed_demands)
+    require(set(reviewed_demands) <= set(DEMAND_GATES), "invalid-reviewed-demands")
+    require({DEMAND_GATES[k] for k in reviewed_demands} <= {g["id"] for g in gates if g["mandatory"]},
+            "missing-demand-review-gates")
     fields(raw["costs"], set(COST_COMPONENTS))
     for c in raw["costs"].values(): validate_cost(c)
     amount(raw["latency_ms"])
@@ -360,7 +479,8 @@ def assess_outcome(raw, decision, p):
     o = {**copy.deepcopy(raw), "schema": "ultra-pilot-outcome-v1", "created_at": now(), "accepted": accepted,
          "task_id": decision["task_id"], "group_id": decision["group_id"], "scope_id": decision["scope_id"],
          "operation": decision["operation"], "risk": decision["risk"], "work_kind": decision["work_kind"],
-         "complexity": decision["complexity"],
+         "complexity": decision["complexity"], "reviewed_demands": sorted(reviewed_demands),
+         "observation_role": role,
          "synthetic": decision["synthetic"] or raw["reviewer_kind"] == "synthetic", "policy_hash": digest(p)}
     o["id"] = "out_" + digest({"decision": decision["id"], "configuration": raw["configuration_id"]})[:24]
     return o

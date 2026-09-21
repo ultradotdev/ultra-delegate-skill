@@ -1,3 +1,101 @@
+# Routing-design correction: 1.3.0-rc.5
+
+An implementation audit found that the pilot used reasoning, interaction and
+synthesis signals as a global complexity veto, whereas the design called for
+candidate-specific evidence and review requirements. RC5 corrects that rule,
+keeps task-kind classification diagnostic, derives cohort descriptions from
+recorded outcome metadata, and rejects active observations outside selected or
+nominated configurations. Old decisions require reevaluation; old outcomes are
+not silently given new demand qualifications.
+
+An offline replay verified the exact original payload hash and reused its
+recorded Jev answers. The recommendation changed from `repackage` to reviewed
+experiment proposals for Terra and Luna with interaction/synthesis review gates.
+There were zero new HTTP calls, worker executions or accepted outcomes. This
+isolates the deterministic rule correction, not improved live model selection.
+The original trial and its failed routing expectation remain historical records.
+
+All 246 tests pass locally and from the extracted source archive with site
+packages disabled. Six archive tests pass with optional keyring installed. Python
+3.10 grammar checks pass for 42 files; generated references, skill validation and
+deterministic archive checks pass.
+
+Validation covers routine interaction, uncertain demands, relevant proof versus
+generic successes, retained failures, independent band overrides, actual cohort
+counts, active/shadow acceptance separation, blocked active outcomes, current
+policy rechecks and report privacy/clarity. The generated atomic question wording
+is unchanged; its consumption metadata and version now reflect the new rule.
+Current automated and packaging results are tracked on
+[PR 4](https://github.com/ultradotdev/ultra-delegate-skill/pull/4).
+
+The [demand contract](../.agents/skills/ultra-delegation/references/pilot-demands.md)
+documents both corrected behavior and remaining design gaps: full-path cost and
+latency optimization, calibrated thresholds, broader semantic evidence retrieval,
+and automatic trial scheduling. The pilot is not the full proposed design.
+No live installation or publication was performed.
+
+# Native repository readiness: 1.3.0-rc.4
+
+PR 3 merged at `5a7e79d584c9cea11aa6284cfa0b13960c0a7206` after its
+Python 3.10/3.12/3.14 and optional-keyring Linux/macOS/Windows CI passed.
+This unreleased candidate is tracked in
+[PR 4](https://github.com/ultradotdev/ultra-delegate-skill/pull/4), including remote
+results for each subsequent commit. It has not been installed or published.
+
+Local validation passes 226 tests on macOS Python 3.14, also from the extracted
+source archive with site packages disabled. These cover the native
+output opt-in, strict defaults, unknown-context stop, required completeness gate,
+exact host/catalog effort intersection, read-only packet tool policy, CLI recheck,
+policy changes and null-capacity reporting, alongside all existing regressions.
+Extracted archives are checked with site packages disabled and with optional
+keyring installed. The packaged helper supports isolated Python execution.
+Python 3.10 grammar checks pass for 41 Python files, and the official skill validator
+passes. Generated question references and deterministic packaging checks pass. Historical
+CI results do not substitute for this candidate's current PR checks.
+
+Seven live Jev requests completed. Requests 1–2 found/diagnosed the rounded Score
+mismatch; their billing is unknown. Request 3 validated the transport correction
+but returned `clarify` for the original synthetic test packet (missing-requirement
+probability 0.22 versus the unchanged 0.20 cutoff). That failed expectation remains
+recorded. An earlier stalled credential read made no HTTP request and was stopped.
+The native macOS read resolved the Keychain blocker without changing an item or
+its permissions. Credential reads now have a separate five-second deadline.
+
+Requests 4–6 used authored fixture version `repo-smoke-2`: explicit namespace and
+output requirements produced `experiment`; missing requirements produced
+`clarify`; missing document authorization produced advisory security `fail`.
+All three expected actions passed. These fixtures were refined after observing
+version 1, so they are not a held-out benchmark. No threshold changed.
+
+Request 7 evaluated a prepared summary for an actual read-only Python CLI review.
+The candidate packet used currently discovered Terra/Luna medium configurations,
+known effective context of 258400 tokens and an unreported output ceiling. Explicit
+host-managed-output opt-in plus a mandatory completeness gate allowed the native
+Codex path without inventing a numeric output limit. Recheck passed immediately
+before native Terra medium execution. Jev recommended `repackage` for greater
+complexity; shadow mode preserved the configured Terra baseline. It did not select
+Terra on the strength of that recommendation.
+
+The coordinator independently checked all four source/test-cited findings, four
+passing smoke tests, output completeness and unchanged source hashes. The accepted
+outcome has coverage/correctness/maintainability/clarity scores 100/100/90/95. The
+next independent task group sees one scoped success with Wilson lower bound
+0.20655, still unqualified. This establishes one complete route/recheck/worker/
+review/observe/report cycle, not comparative model quality or calibrated routing.
+Security assessment was off for the real review; only the toy authorization case
+exercised the live advisory evaluator.
+
+Known token-price estimates for requests 3–7 total $0.000346836. Total workload
+cost remains unknown, including the first two requests and native worker/reviewer
+costs. No savings claim follows. Browser visual inspection remains pending;
+HTML generation, source structure and escaping are covered by tests.
+
+The next step is a few independent read-only repository trials in shadow mode,
+including paired worker results where useful. Active-route quality, threshold
+calibration, broader security accuracy and total cost comparisons remain pending.
+See the [reproducible test-drive guide](pilot-test-drive.md) and packaged
+[native Codex workflow](../.agents/skills/ultra-delegation/references/pilot-codex.md).
+
 # Jev project pilot qualification: 1.3.0-rc.3
 
 The first iteration is Python 3.10+ with local metadata ledgers and HTML/JSON telemetry. New tests exercise batched question contracts, scoped group evidence, independent acceptance gates, shadow versus active behavior, unavailable service, dispatch rechecks, redacted responses, optional nonblocking security evaluation, output escaping, and archive portability. The synthetic Yarn demo covers proposals, accepted/failed observations, confidence accumulation, security unavailability and pending results.

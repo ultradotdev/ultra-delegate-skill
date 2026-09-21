@@ -1,3 +1,42 @@
+# Ultra Delegation 1.3.0-rc.5
+
+Corrects a mismatch between the routing design and pilot implementation. Reasoning,
+code-interaction and context-synthesis signals now select candidate-specific
+historical evidence and independent review requirements instead of causing a
+blanket complexity stop. Work-kind disagreement is diagnostic. Required/uncertain
+demands have independent experimental bands; generic successes receive no
+unearned demand credit and compatible failures remain recorded.
+
+Active outcomes must belong to the selected route or nominated experiment.
+Shadow mode preserves baseline dispatch and acceptance. Decisions carry an
+explicit selection-policy version, so older decisions require reevaluation.
+Reports name workers, show applicable evidence/review requirements and distinguish
+action disagreements from alternative-model recommendations.
+
+An exact-payload offline replay changes the original trial recommendation from
+repackage to reviewed experiment proposals. It is counterfactual, with no new
+paid request, worker run, outcome or downstream quality claim. The packaged
+pilot-demands reference maps the fix to the design and identifies remaining gaps.
+
+# Ultra Delegation 1.3.0-rc.4
+
+Adds explicit native Codex packet preparation and opt-in host-managed output limits.
+The reported context window and declared input/output reservation must still fit;
+unknown context is blocked. Unreported output ceilings remain null and require a
+mandatory completeness gate. Existing policies retain strict explicit-limit checks.
+
+Read-only credential lookup is bounded. macOS uses its native Keychain reader;
+Windows/Linux use supported optional keyring backends in an owned process. Live
+Jev responses tolerate only feasible hundredths Score rounding. Six synthetic
+calls retained the original failure and then passed three clarified smoke cases.
+A seventh live call and one actual Terra medium worker exercised shadow routing,
+dispatch recheck, independent acceptance, scoped learning and HTML/JSON reporting.
+
+The worker passed its four requested review checks. Jev requested more complex
+packaging; shadow mode retained the baseline and records that disagreement. One
+accepted group does not qualify a model. Thresholds, comparative quality, security
+accuracy and savings remain unqualified. No live installation or publication occurs.
+
 # Ultra Delegation 1.3.0-rc.3
 
 Adds an opt-in Jev v2 project pilot with one batched routing request, broader candidate discovery seeds, scope-based outcome confidence, prompt wording versions as audit metadata, mandatory acceptance-gate validation, and standalone HTML/JSON reports. The security evaluator is off by default and advisory: unavailable service or malformed security input never prevents ordinary outcome recording. Existing credential entries are read only.

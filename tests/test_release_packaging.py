@@ -92,6 +92,7 @@ class ReleasePackagingTests(unittest.TestCase):
                                      (adapter.with_name("jev_docs.py"), ["--check"]),
                                      (adapter.with_name("pilot_questions.py"), ["--check"]),
                                      (adapter.with_name("pilot.py"), ["catalog"]),
+                                     (adapter.with_name("pilot_codex.py"), ["--help"]),
                                      (adapter.with_name("pilot.py"), ["--root", str(root / ("pilot-" + str(len(flags)))), "demo"]),
                                      (adapter.with_name("shortlist.py"), ["--help"]),
                                      (adapter.with_name("jev_benchmark_capture.py"), ["--help"]),

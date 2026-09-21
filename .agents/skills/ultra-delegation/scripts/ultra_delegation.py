@@ -27,7 +27,7 @@ from jev_contract import DEFAULT_JEV_POLICY, validate_policy as validate_jev_pol
 from evidence import normalize_outcome, validate_outcome, validate_public_value, sanitize_learning
 
 SCHEMA = "ultra-delegation-learning-v1"
-RELEASE = "1.3.0-rc.3"
+RELEASE = "1.3.0-rc.5"
 LEVELS = {"off", "low", "medium", "high", "xhigh", "max", "custom"}
 TASK_SIGNATURE_KEYS = ("task_family", "operation", "language", "language_version", "framework", "framework_major", "framework_version", "risk", "coupling", "validation", "tools")
 DEFAULT_CONTEXT_GUARD = {

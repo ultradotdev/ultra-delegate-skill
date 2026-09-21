@@ -144,7 +144,9 @@ def route_packet(packet, p, outcomes=(), *, live=False, dry_run=False, call=None
          "action": "route" if baseline else "coordinator", "selected_configuration_id": baseline_id,
          "baseline_configuration_id": baseline_id, "recommended_action": "coordinator",
          "recommended_configuration_id": None, "nominated_configuration_ids": [],
-         "reason_codes": [], "question_version": questions.ROUTING_VERSION, "model": p["model"],
+         "reason_codes": [], "decision_policy_version": core.DECISION_POLICY_VERSION,
+         "demand_profile": {}, "required_demands": [], "review_requirements": [], "candidate_assessments": [], "diagnostics": [],
+         "question_version": questions.ROUTING_VERSION, "model": p["model"],
          "policy_hash": core.digest(p), "input_hash": core.digest(packet),
          "question_hash": core.digest(payload["questions"]), "payload_hash": core.digest(payload),
          "evidence_hash": core.digest(outcomes), "candidates": prepared["rows"], "signals": {}, "router": empty_usage(),
@@ -172,8 +174,11 @@ def route_packet(packet, p, outcomes=(), *, live=False, dry_run=False, call=None
             d.update(status="ok" if rec["action"] in {"route", "experiment"} else "abstained", signals=answers,
                      recommended_action=rec["action"], recommended_configuration_id=rec["configuration_id"],
                      nominated_configuration_ids=rec["nominees"], reason_codes=rec["reason_codes"])
+            for field in ("demand_profile", "required_demands", "review_requirements", "candidate_assessments", "diagnostics"):
+                d[field] = rec[field]
             if p["mode"] == "active":
                 d.update(action=rec["action"], selected_configuration_id=rec["configuration_id"])
+                d["acceptance_gates"] = sorted(set(task["acceptance_gates"]) | set(rec["review_requirements"]))
     d["id"] = "dec_" + core.digest(d)[:24]
     return d
 
@@ -242,6 +247,7 @@ def recheck(root, identifier, packet):
     p = load_policy(root)
     outcomes = load_records(root, "outcomes")
     core.require(not d["synthetic"], "synthetic-decision-not-executable")
+    core.require(d.get("decision_policy_version") == core.DECISION_POLICY_VERSION, "decision-policy-changed")
     core.require(d["action"] == "route" and d["selected_configuration_id"] is not None, "decision-not-a-route")
     core.require(core.digest(packet) == d["input_hash"] and core.digest(p) == d["policy_hash"], "decision-inputs-changed")
     core.require(core.digest(outcomes) == d["evidence_hash"], "decision-evidence-changed")
@@ -320,11 +326,15 @@ def outcome_fixture(d, cid, accepted=True):
 def outcome_template(decision, candidate_id):
     row = next((c for c in decision["candidates"] if c["id"] == candidate_id), None)
     core.require(row is not None and row["eligible"], "unknown-outcome-candidate")
+    core.observation_role(decision, row["configuration_id"])
     raw = outcome_fixture(decision, row["configuration_id"])
     raw.update(artifact_hash=None, reviewer_id=None, reviewer_kind="frontier", review_accepted=None,
                scores={k: None for k in core.DIMENSIONS}, latency_ms=None)
     raw["gates"] = [{"id": k, "mandatory": True, "passed": None} for k in decision["acceptance_gates"]]
     raw["costs"] = {k: {"usd": None, "kind": "unknown"} for k in core.COST_COMPONENTS}
+    # The reviewer explicitly confirms exercised demands. Never copy predictions
+    # into learning evidence, including in an otherwise passing active trial.
+    raw["reviewed_demands"] = []
     return raw
 
 
@@ -337,6 +347,8 @@ def demo(root):
         d = route_packet(packet, p, outcomes, live=True, call=synthetic_response, key="synthetic")
         write_new(Path(root)/"decisions"/(d["id"]+".json"), d)
         for c in (packet["candidates"][0], packet["candidates"][2]):
+            if (d["action"] == "route" and core.configuration_id(c) != d["selected_configuration_id"]):
+                continue  # Comparisons belong to nominated trials, not an unrelated active route.
             raw = outcome_fixture(d, core.configuration_id(c), accepted=not (i == 1 and c["id"] == "candidate-2"))
             raw["costs"]["worker"]["usd"] = c["estimate_usd"]
             observe(root, raw, security_check=(i == 2))  # demonstrates unavailable advisory without blocking recording
@@ -360,6 +372,7 @@ def main(argv=None):
     init.add_argument("--baseline-id")
     for key in ("share-summaries", "share-artifacts", "security-check"):
         init.add_argument("--"+key, action="store_true")
+    init.add_argument("--allow-host-managed-output", action="store_true")
     init.add_argument("--credential-service", default=transport.SERVICE)
     init.add_argument("--credential-ref", default="default")
     route = sub.add_parser("route")
@@ -387,7 +400,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         if args.command == "init":
-            p = {k: getattr(args, k) for k in ("mode", "baseline_id", "share_summaries", "share_artifacts", "security_check", "credential_service", "credential_ref")}
+            p = {k: getattr(args, k) for k in ("mode", "baseline_id", "share_summaries", "share_artifacts", "security_check", "credential_service", "credential_ref", "allow_host_managed_output")}
             init_project(args.root, p)
             result = {"initialized": True, "mode": args.mode, "security": "advisory" if args.security_check else "off"}
         elif args.command == "example":

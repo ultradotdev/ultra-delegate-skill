@@ -2,17 +2,22 @@
 from __future__ import annotations
 
 import json
+import contextlib
 import math
 import multiprocessing
 import os
+import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
+from decimal import Decimal
 
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 REQUEST_LIMIT = 24 * 1024
 RESPONSE_LIMIT = 256 * 1024
 DEADLINE = 20.0
+CREDENTIAL_DEADLINE = 5.0
 SERVICE = "ultra-delegation.typesafe"
 SECURE_BACKENDS = {
     ("keyring.backends.macOS", "Keyring"),
@@ -44,11 +49,7 @@ def secure_backend():
         raise ServiceError("credential-store-unavailable") from None
 
 
-def credential(ref, environ=None, service=SERVICE):
-    env = os.environ if environ is None else environ
-    value = env.get("TYPESAFE_API_KEY")
-    if value:
-        return value, "environment"
+def _stored_credential(ref, service):
     try:
         value = secure_backend().get_password(service, ref)
     except ServiceError:
@@ -57,7 +58,100 @@ def credential(ref, environ=None, service=SERVICE):
         raise ServiceError("credential-store-unavailable") from None
     if not value:
         raise ServiceError("missing-credential")
-    return value, "os-store"
+    if not isinstance(value, str):
+        raise ServiceError("credential-store-unavailable")
+    return value
+
+
+def _credential_worker(connection, ref, service):
+    # Backend discovery and reads can both block in OS UI or service IPC. Keep
+    # them in an owned process; only a private pipe ever carries the value.
+    try:
+        with open(os.devnull, "w") as sink, contextlib.redirect_stdout(sink), contextlib.redirect_stderr(sink):
+            try:
+                connection.send((True, _stored_credential(ref, service)))
+            except ServiceError as error:
+                connection.send((False, error.code))
+            except Exception:
+                connection.send((False, "credential-store-unavailable"))
+    finally:
+        connection.close()
+
+
+def _read_keyring_credential(ref, service):
+    started = time.monotonic()
+    ctx = multiprocessing.get_context("spawn")
+    receiver, sender = ctx.Pipe(duplex=False)
+    process = ctx.Process(target=_credential_worker, args=(sender, ref, service), daemon=True)
+    try:
+        process.start()
+        sender.close()
+        remaining = CREDENTIAL_DEADLINE - .5 - (time.monotonic() - started)
+        if not receiver.poll(max(0, remaining)):
+            raise ServiceError("credential-store-timeout")
+        try:
+            ok, value = receiver.recv()
+        except (EOFError, ValueError, TypeError):
+            raise ServiceError("credential-store-unavailable") from None
+        if ok is not True:
+            allowed = {"missing-credential", "unsupported-credential-store", "credential-store-unavailable"}
+            raise ServiceError(value if isinstance(value, str) and value in allowed else "credential-store-unavailable")
+        if not isinstance(value, str) or not value:
+            raise ServiceError("credential-store-unavailable")
+        return value
+    except ServiceError:
+        raise
+    except Exception:
+        raise ServiceError("credential-store-unavailable") from None
+    finally:
+        receiver.close()
+        sender.close()
+        if process.pid:
+            if process.is_alive(): process.terminate()
+            process.join(timeout=max(0, min(.25, CREDENTIAL_DEADLINE - (time.monotonic() - started))))
+            if process.is_alive():
+                process.kill()
+                process.join(timeout=max(0, CREDENTIAL_DEADLINE - (time.monotonic() - started)))
+
+
+def _macos_credential(ref, service):
+    # Use the system-signed reader with its existing access permissions. Never
+    # change an item, ACL, lock state, or prompt for a credential. Only service
+    # and account names enter argv; the value stays in captured process memory.
+    try:
+        result = subprocess.run(["/usr/bin/security", "find-generic-password",
+                                 "-s", service, "-a", ref, "-w"],
+                                capture_output=True, timeout=CREDENTIAL_DEADLINE, check=False)
+        if result.returncode == 44:
+            raise ServiceError("missing-credential")
+        if result.returncode != 0:
+            raise ServiceError("credential-store-unavailable")
+        # security prints one framing LF; preserve every byte of the stored item.
+        framed = result.stdout
+        value = (framed[:-1] if framed.endswith(b"\n") else framed).decode("utf-8")
+        if not value:
+            raise ServiceError("missing-credential")
+        return value
+    except subprocess.TimeoutExpired:
+        raise ServiceError("credential-store-timeout") from None
+    except ServiceError:
+        raise
+    except Exception:
+        raise ServiceError("credential-store-unavailable") from None
+
+
+def _read_stored_credential(ref, service):
+    if sys.platform == "darwin":
+        return _macos_credential(ref, service)
+    return _read_keyring_credential(ref, service)
+
+
+def credential(ref, environ=None, service=SERVICE):
+    env = os.environ if environ is None else environ
+    value = env.get("TYPESAFE_API_KEY")
+    if value:
+        return value, "environment"
+    return _read_stored_credential(ref, service), "os-store"
 
 
 def auth(action, ref, model, service=SERVICE):
@@ -89,9 +183,11 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         raise ServiceError("redirect-refused")
 
 
-def _request_loop(data, key, deadline, opener=None, clock=time.monotonic, sleep=time.sleep, on_attempt=None):
+def _request_loop(data, key, deadline, opener=None, clock=time.monotonic, sleep=time.sleep, on_attempt=None, max_attempts=2):
+    if type(max_attempts) is not int or max_attempts not in (1, 2):
+        raise ServiceError("invalid-attempt-limit")
     opener = opener or urllib.request.build_opener(NoRedirect())
-    for attempt in (1, 2):
+    for attempt in range(1, max_attempts + 1):
         remaining = deadline - clock()
         if remaining <= 0: raise ServiceError("deadline-exceeded", attempt - 1)
         if on_attempt: on_attempt(attempt)
@@ -112,7 +208,7 @@ def _request_loop(data, key, deadline, opener=None, clock=time.monotonic, sleep=
             if status in (401, 403): raise ServiceError("authentication-failed", attempt) from None
             if status == 422: raise ServiceError("request-rejected", attempt) from None
             if 300 <= status < 400: raise ServiceError("redirect-refused", attempt) from None
-            if status not in (429, 500, 502, 503, 504, 529) or attempt == 2:
+            if status not in (429, 500, 502, 503, 504, 529) or attempt == max_attempts:
                 raise ServiceError("service-unavailable", attempt) from None
             try: delay = max(0.25, float(retry_after))
             except ValueError: delay = 0.25
@@ -122,15 +218,15 @@ def _request_loop(data, key, deadline, opener=None, clock=time.monotonic, sleep=
         except ServiceError as error:
             raise ServiceError(error.code, attempt) from None
         except (OSError, ValueError):
-            if attempt == 2: raise ServiceError("connection-failed", attempt) from None
+            if attempt == max_attempts: raise ServiceError("connection-failed", attempt) from None
             if deadline - clock() <= 0.25: raise ServiceError("deadline-exceeded", attempt) from None
             sleep(0.25)
     raise ServiceError("service-unavailable", 2)
 
 
-def _worker(connection, data, key, deadline):
+def _worker(connection, data, key, deadline, max_attempts=2):
     try:
-        result, attempts = _request_loop(data, key, deadline, on_attempt=lambda n: connection.send(("attempt", n)))
+        result, attempts = _request_loop(data, key, deadline, on_attempt=lambda n: connection.send(("attempt", n)), max_attempts=max_attempts)
         connection.send(("result", True, result, attempts))
     except ServiceError as e:
         connection.send(("result", False, e.code, e.attempts))
@@ -140,14 +236,16 @@ def _worker(connection, data, key, deadline):
         connection.close()
 
 
-def request(payload, key):
+def request(payload, key, *, max_attempts=2):
+    if type(max_attempts) is not int or max_attempts not in (1, 2):
+        raise ServiceError("invalid-attempt-limit")
     data = encoded_payload(payload)
     started = time.monotonic()
     # A child process bounds DNS, TLS, retries and slow streaming together. No key
     # is passed through argv, a file, or the child's environment.
     ctx = multiprocessing.get_context("spawn")
     receiver, sender = ctx.Pipe(duplex=False)
-    process = ctx.Process(target=_worker, args=(sender, data, key, started + DEADLINE), daemon=True)
+    process = ctx.Process(target=_worker, args=(sender, data, key, started + DEADLINE, max_attempts), daemon=True)
     try:
         process.start()
         sender.close()
@@ -183,6 +281,34 @@ def number(value, low=0, high=1):
     return not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(value) and low <= value <= high
 
 
+def consistent_score(score, probs):
+    """Allow the observed two-decimal wire rounding, without changing probabilities.
+
+    Find the extreme means of distributions inside each rounded bin with unit
+    total mass. The separately rounded score must overlap that feasible range.
+    Higher precision responses retain the original strict consistency check.
+    """
+    values = [probs[str(i)] for i in range(len(probs))]
+    expected = sum(i * p for i, p in enumerate(values))
+    if abs(score - expected) <= 1e-5:
+        return True
+    if any(Decimal(str(v)).as_tuple().exponent < -2 for v in [score, *values]):
+        return False
+    low = [max(0, p - .005) for p in values]
+    high = [min(1, p + .005) for p in values]
+    def extreme(order):
+        mass = 1 - sum(low)
+        mean = sum(i * p for i, p in enumerate(low))
+        for i in order:
+            added = min(mass, high[i] - low[i])
+            mean += i * added
+            mass -= added
+        return mean
+    minimum = extreme(range(len(values)))
+    maximum = extreme(reversed(range(len(values))))
+    return minimum - .005 - 1e-10 <= score <= maximum + .005 + 1e-10
+
+
 def validate_response(payload, result):
     def bad(): raise ServiceError("invalid-response")
     if not isinstance(result, dict) or result.get("model") != payload["model"]: bad()
@@ -207,7 +333,6 @@ def validate_response(payload, result):
             if a.get("choice") not in options or probs[a["choice"]] < max(probs.values()): bad()
         else:
             if a.get("legend") != {str(i): s for i, s in enumerate(q["criteria"])}: bad()
-            expected = sum(int(k) * v for k, v in probs.items())
-            if not number(a.get("score"), 0, len(options) - 1) or abs(a["score"] - expected) > 1e-5: bad()
+            if not number(a.get("score"), 0, len(options) - 1) or not consistent_score(a["score"], probs): bad()
         clean[key] = probs
     return clean, {k: usage[k] for k in ("input_tokens", "output_tokens")}

@@ -55,6 +55,46 @@ class PilotWorkflowTests(unittest.TestCase):
         self.assertEqual(4, len(active["nominated_configuration_ids"]))
         self.assertNotIn("SECRET-SENTINEL", json.dumps(d))
 
+    def test_active_demand_review_is_mandatory_but_shadow_does_not_change_acceptance(self):
+        def interacting(payload, key):
+            result, meta = pilot.synthetic_response(payload, key)
+            result["answers"]["code_interaction"]["noul"] = .81
+            result["answers"]["context_synthesis"]["noul"] = .76
+            return result, meta
+        shadow = pilot.route_packet(self.packet, self.p, live=True, call=interacting, key="fixture")
+        active = pilot.route_packet(self.packet, {**self.p, "mode": "active"}, live=True, call=interacting, key="fixture")
+        self.assertEqual((shadow["action"], shadow["recommended_action"]), ("route", "experiment"))
+        self.assertEqual(shadow["acceptance_gates"], self.packet["task"]["acceptance_gates"])
+        self.assertEqual(shadow["selected_configuration_id"], shadow["baseline_configuration_id"])
+        self.assertEqual(active["action"], "experiment")
+        self.assertIsNone(active["selected_configuration_id"])
+        self.assertEqual(active["review_requirements"], ["review-code-interaction", "review-context-synthesis"])
+        self.assertTrue(set(active["review_requirements"]) <= set(active["acceptance_gates"]))
+        raw = pilot.outcome_fixture(active, active["candidates"][0]["configuration_id"])
+        raw["gates"] = [g for g in raw["gates"] if g["id"] != "review-code-interaction"]
+        with self.assertRaisesRegex(core.PilotError, "missing-required-gates"):
+            core.assess_outcome(raw, active, self.p)
+        template = pilot.outcome_template(active, active["candidates"][0]["id"])
+        self.assertEqual(template["reviewed_demands"], [])
+        self.assertIn("review-context-synthesis", {g["id"] for g in template["gates"]})
+
+    def test_recheck_rejects_old_decision_policy_even_when_packet_hash_matches(self):
+        d = pilot.route_packet(self.packet, self.p)
+        d["decision_policy_version"] = "pilot-selection-old"
+        d.pop("id")
+        d["id"] = "dec_" + core.digest(d)[:24]
+        self.save(d)
+        with self.assertRaisesRegex(core.PilotError, "decision-policy-changed"):
+            pilot.recheck(self.root, d["id"], self.packet)
+
+    def test_template_uses_same_active_outcome_admission_as_observe(self):
+        packet = copy.deepcopy(self.packet)
+        packet["user_choice_id"] = "candidate-0"
+        d = pilot.route_packet(packet, {**self.p, "mode": "active"})
+        self.assertEqual(pilot.outcome_template(d, "candidate-0")["configuration_id"], d["selected_configuration_id"])
+        with self.assertRaisesRegex(core.PilotError, "outcome-outside-decision"):
+            pilot.outcome_template(d, "candidate-1")
+
     def test_unavailable_service_retains_baseline_and_preserves_attempt_cost_unknown(self):
         def failed(payload, key):
             raise transport.ServiceError("deadline-exceeded", 2)
@@ -117,6 +157,19 @@ class PilotWorkflowTests(unittest.TestCase):
         encoded = json.dumps(o)
         for value in ("SECRET-PROVIDER-ERROR", "PRIVATE-CODE", "SECRET-KEY"):
             self.assertNotIn(value, encoded)
+
+    def test_credential_timeout_preserves_route_and_optional_observation(self):
+        with patch.object(transport, 'credential', side_effect=transport.ServiceError('credential-store-timeout')), patch.object(transport, 'request', side_effect=AssertionError):
+            d = self.decision(live=True)
+            self.assertEqual(d['action'], 'route')
+            self.assertEqual(d['reason_codes'], ['credential-store-timeout'])
+            self.assertEqual(d['router']['attempts'], 0)
+            packet = {'requirements':['Authorization required'], 'excerpts':['selected-code'], 'validation_summary':'independent checks passed'}
+            o = pilot.observe(self.root, self.raw(d), security_input=packet, security_check=True, live=True)
+        self.assertTrue(o['accepted'])
+        self.assertEqual(o['security']['status'], 'unavailable')
+        self.assertEqual(o['security']['reason_codes'], ['credential-store-timeout'])
+        self.assertEqual(o['security']['attempts'], 0)
 
     def test_security_findings_do_not_override_independent_verdict(self):
         d = self.decision()
