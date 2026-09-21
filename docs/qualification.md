@@ -9,7 +9,8 @@ real CLI subprocess flows, a bounded synthetic smoke runner, transport attempt
 limits and a live-discovered Score rounding mismatch. All 210 tests pass locally
 on macOS Python 3.14. Generated question references and reproducible skill/source
 packaging checks pass. Archive tests pass both with site packages disabled and
-with optional keyring installed. New-branch remote CI remains pending.
+with optional keyring installed. Follow-up remote results are tracked in
+[PR 4](https://github.com/ultradotdev/ultra-delegate-skill/pull/4).
 
 Two authorized live Jev requests completed using authored synthetic inputs and a
 read-only existing OS-store credential. The first failed strict response
