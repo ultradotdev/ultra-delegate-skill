@@ -4,6 +4,10 @@ Jev evaluates bounded task packets at delegation boundaries. The native host sti
 
 The ordinary `ultra_delegation.py` helper remains offline and dependency-free. `jev.py` uses the standard-library HTTP client for TypeSafe calls. Keyring is optional and only used for read-only OS credential lookup. Provider-crossing worker adapters and local execution remain unsupported.
 
+Read the generated [question contract](jev-questions.md) for the exact questions, outbound fields, answer consumption, and current atomicity limitations. The adjacent [JSON contract](jev-questions.json) is generated from the same production payload builders. Refresh with `python3 <skill>/scripts/jev_docs.py --write`; CI runs `--check` and fails on drift. Generation is offline and never reads credentials.
+
+For measured downstream outcomes and threshold sweeps, use the [benchmark workflow](jev-benchmark.md). For shipped candidates that adapt to local outcomes, use the [shortlist workflow](shortlist.md). Neither changes policy or promotes Jev judgments into worker evidence.
+
 ## Setup and credentials
 
 Resolve these scripts relative to the installed skill directory. Always place `--root` before the subcommand. In examples below, `<skill>` is that directory and `<state>` is the project's `.ultra-delegation` directory.

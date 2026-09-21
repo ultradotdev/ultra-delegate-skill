@@ -1,4 +1,4 @@
-# Compatibility: 1.3.0-rc.1
+# Compatibility: 1.3.0-rc.3
 
 Existing host smoke reports and Linux CI results below describe the previous public beta; new candidate checks are recorded in [qualification](qualification.md). Status does not generalize to every future host/model revision. A successful helper test is not a successful host execution test.
 

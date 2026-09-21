@@ -12,7 +12,7 @@ import re
 import tempfile
 import zipfile
 
-VERSION = "1.3.0-rc.1"
+VERSION = "1.3.0-rc.3"
 REPOSITORY = Path(__file__).resolve().parents[1]
 SKILL = Path(".agents/skills/ultra-delegation")
 SKILL_FILES = (
@@ -23,8 +23,26 @@ SKILL_FILES = (
     "scripts/jev_contract.py",
     "scripts/jev_transport.py",
     "scripts/jev.py",
+    "scripts/jev_questions.py",
+    "scripts/jev_docs.py",
+    "scripts/jev_benchmark.py",
+    "scripts/jev_benchmark_capture.py",
+    "scripts/shortlist.py",
+    "scripts/pilot.py",
+    "scripts/pilot_core.py",
+    "scripts/pilot_questions.py",
+    "scripts/pilot_report.py",
+    "references/pilot.md",
+    "references/pilot-questions.md",
+    "references/pilot-questions.json",
+    "assets/pilot-catalog.json",
     "scripts/jev_qualification.py",
     "references/jev.md",
+    "references/jev-questions.md",
+    "references/jev-questions.json",
+    "references/jev-benchmark.md",
+    "references/shortlist.md",
+    "assets/standing-shortlist.json",
     "scripts/local_resources.py",
     "references/cli.md",
     "references/host-native.md",
@@ -39,10 +57,13 @@ SOURCE_FILES = (
     "README.md", "LICENSE", "CONTRIBUTING.md", ".github/workflows/tests.yml",
     "docs/compatibility.md", "docs/demo.md", "docs/ultra-dev-handoff.md", "docs/qualification.md",
     "docs/release-audit.md", "docs/release-notes.md",
+    "docs/jev-routing-v2-design.md",
     "scripts/build_release.py", "scripts/demo_learning.py", "tests/test_demo.py",
     "tests/test_beta_safety.py", "tests/test_ultra_delegation.py",
     "tests/test_local_resources.py", "tests/test_release_packaging.py",
     "tests/test_evidence.py", "tests/test_guard_freshness.py", "tests/test_jev.py",
+    "tests/test_jev_docs.py", "tests/test_jev_benchmark.py", "tests/test_jev_benchmark_capture.py", "tests/test_shortlist.py",
+    "tests/test_pilot.py", "tests/test_pilot_core.py", "tests/test_pilot_questions.py", "tests/test_pilot_report.py",
 )
 SOURCE_PREFIX = f"ultra-delegate-skill-{VERSION}"
 SOURCE_GITIGNORE = b"__pycache__/\n*.py[cod]\n/dist/\n/.ultra-delegation/\n.env\n"

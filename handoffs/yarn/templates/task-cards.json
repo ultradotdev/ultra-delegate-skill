@@ -1,0 +1,11 @@
+{
+  "schema": "yarn-handoff-planning-worksheet-v1",
+  "note": "Planning worksheet, not pilot CLI input. Fill from repository discovery, then construct real ultra-pilot-task-v1 packets using the exact bundled contract. Suggested gates must be replaced with observed project checks.",
+  "source_versions": {"gpt6": {"path_or_ref": null}, "fable51": {"path_or_ref": null}},
+  "cards": [
+    {"scope_id": "yarn.component-comparison", "operation": "behavior-comparison", "goal": "Compare one corresponding component across the two app versions and identify behavior to retain.", "paths": [], "suggested_gates": ["behavior-evidence", "independent-review"], "boundary": "Comparison and proposal only; coordinator decides reconciliation."},
+    {"scope_id": "yarn.component-patch", "operation": "patch-proposal", "goal": "Propose a localized consolidation patch against the chosen interface contract.", "paths": [], "suggested_gates": ["component-tests", "independent-review"], "boundary": "One component or agreed seam in isolation; coordinator integrates."},
+    {"scope_id": "yarn.regression-tests", "operation": "regression-test-addition", "goal": "Add checks for the retained behavior and relevant incompatibilities of one consolidated flow.", "paths": [], "suggested_gates": ["test-quality-review", "regression-run"], "boundary": "Tests and small fixtures; no redesign of application behavior."},
+    {"scope_id": "yarn.patch-review", "operation": "independent-patch-review", "goal": "Review one completed consolidation slice against its declared requirements and gates.", "paths": [], "suggested_gates": ["requirement-traceability", "independent-review"], "boundary": "Independent findings; coordinator owns final acceptance."}
+  ]
+}

@@ -8,6 +8,7 @@ Run:
 
 ```sh
 python3 -m unittest discover -s tests -v
+python3 .agents/skills/ultra-delegation/scripts/jev_docs.py --check
 python3 scripts/build_release.py --check
 python3 scripts/build_release.py --source --check
 python3 scripts/build_release.py --output-dir dist
@@ -15,6 +16,8 @@ python3 scripts/build_release.py --source --output-dir dist
 ```
 
 When available, also run the official skill creator's `quick_validate.py` against `.agents/skills/ultra-delegation`. That validator checks packaging conventions, not delegation quality.
+
+Jev question text lives in `scripts/jev_questions.py` inside the skill. Change its version when changing question semantics, regenerate the exact reference with `jev_docs.py --write`, and commit the generated Markdown and JSON. CI rejects documentation drift. A matching generated reference does not establish atomicity or calibration; changed questions need fresh captures and downstream evaluation. The benchmark demo is synthetic and must never be presented as measured model quality or savings.
 
 Each behavioral qualification should name the release hash, host version, exact model revision and native thinking setting, task gates, result, and telemetry availability. Mark supplied snapshots as simulations. Promote compatibility only after a clean-context run exercises the advertised path; documentation and installed binaries alone are insufficient.
 

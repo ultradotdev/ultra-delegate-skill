@@ -1,3 +1,19 @@
+# Jev project pilot review: 1.3.0-rc.3
+
+Reviewed the pilot independently for metadata leakage, effective versus shadow recommendation behavior, credential access, security failure isolation and local report generation. An initial question/task schema mismatch was corrected before validation. Follow-up review fixed workload accounting to include comparison/experiment spend and retain unknown totals for unresolved tasks, and retained inference-only recommendation feedback. Security remains an advisory record; passing or failing that evaluator never changes independent acceptance or worker capability evidence. No source excerpts enter decision/outcome telemetry.
+
+Candidate policy deliberately permits effective offline baseline routes in off/shadow modes while keeping Jev's recommendation separate. The saved route must pass current packet/policy/evidence/time/eligibility rechecks before the coordinator dispatches it. This is a cooperative host contract, not execution authorization or a security boundary against falsified host data.
+
+# Jev evaluation candidate review: 1.3.0-rc.2
+
+Date: 2026-09-20. New modules and references are included through the explicit skill/source release allowlists. Generated documentation carries question text, public defaults and state-field names only. Benchmark inputs contain explicit task packets and belong in ignored local state; report output uses allowlisted metadata, probabilities, scores, gate verdicts and provenance identifiers.
+
+The benchmark does not accept outputs or promote routes. Its separate live collector requires project summary sharing, uses existing read-only credentials, and excludes downstream observations from API payloads. Independent code review corrected output preflight so invalid output destinations do not trigger paid requests. Local tests and extracted-archive checks pass; actual API, native store, live quality, representative task sampling and deployment thresholds remain unqualified.
+
+No changes were made to the live installed skill or unrelated working-tree configuration. This feature branch is based on the clean public main history and uses the previously approved public author attribution.
+
+---
+
 # Jev candidate review: 1.3.0-rc.1
 
 The candidate adds allowlisted Jev modules, documentation and tests to both release archives. Archive checks reject symlinks, oversized files, recognizable secrets and personal paths, and verify reproducibility. The source archive continues to omit Git history and unrelated private configuration. No new history-wide Gitleaks audit is claimed.

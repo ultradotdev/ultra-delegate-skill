@@ -1,0 +1,29 @@
+{
+  "schema": "ultra-delegation-standing-shortlist-v1",
+  "version": "1",
+  "evidence_claim": "Discovery seeds only. No demonstrated quality, price, or availability is implied.",
+  "seeds": [
+    {
+      "id": "codex-luna-medium",
+      "host": "codex",
+      "provider": "openai",
+      "model": "gpt-5.6-luna",
+      "thinking": {"normalized": "medium", "native": "medium"},
+      "execution_location": "remote",
+      "description": "Shipped native Codex discovery seed. Task suitability and downstream quality are unproven."
+    },
+    {
+      "id": "codex-terra-medium",
+      "host": "codex",
+      "provider": "openai",
+      "model": "gpt-5.6-terra",
+      "thinking": {"normalized": "medium", "native": "medium"},
+      "execution_location": "remote",
+      "description": "Shipped native Codex discovery seed. Task suitability and downstream quality are unproven."
+    }
+  ],
+  "other_hosts": [
+    {"host": "claude-code", "status": "Discover exact native model and effort; supply project candidates."},
+    {"host": "opencode", "status": "Discover exact current-provider model and effort; supply project candidates."}
+  ]
+}
