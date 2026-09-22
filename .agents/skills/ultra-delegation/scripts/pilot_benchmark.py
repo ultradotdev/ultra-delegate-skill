@@ -17,6 +17,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pilot
+import pilot_boundaries
 import pilot_core as core
 import pilot_report
 
@@ -140,6 +141,26 @@ def _validate_manifest(manifest, *, live, simulate):
 
 def example():
     """Twelve non-qualifying templates: four per broad evaluation family."""
+    contracts = {
+        "review": {
+            "allowed_changes": {"items": [], "not_applicable": "The review produces findings and does not change files."},
+            "allowed_actions": {"items": ["Read the supplied component and report evidence-backed findings."], "not_applicable": None},
+            "protected_behavior": {"items": ["Treat supplied public behavior as the review baseline."], "not_applicable": None},
+            "coordinator_decisions": {"items": ["The coordinator decides whether and how to change the reviewed component."], "not_applicable": None},
+        },
+        "tests": {
+            "allowed_changes": {"items": ["Add focused tests and minimal test fixtures for the supplied component contract."], "not_applicable": None},
+            "allowed_actions": {"items": ["Read the supplied component and run its focused test command locally."], "not_applicable": None},
+            "protected_behavior": {"items": ["Do not change production behavior while authoring the test artifact."], "not_applicable": None},
+            "coordinator_decisions": {"items": ["The coordinator decides whether the test artifact is integrated."], "not_applicable": None},
+        },
+        "implementation": {
+            "allowed_changes": {"items": ["Patch the supplied component and its focused tests for the confirmed defect."], "not_applicable": None},
+            "allowed_actions": {"items": ["Read the supplied component and run its focused tests locally."], "not_applicable": None},
+            "protected_behavior": {"items": ["Preserve documented public behavior outside the confirmed defect."], "not_applicable": None},
+            "coordinator_decisions": {"items": ["The coordinator owns integration, release, and broader architecture decisions."], "not_applicable": None},
+        },
+    }
     cases = []
     for family, operation in (("review", "code-review"), ("tests", "test-draft"), ("implementation", "bug-fix")):
         for index in range(4):
@@ -148,6 +169,14 @@ def example():
             packet["task"].update(operation=operation, scope_id=family,
                 summary=f"Synthetic {family} fixture: inspect the supplied bounded component contract.",
                 requirements=["Preserve the supplied public behavior and report missing information."])
+            packet["task"]["boundaries"] = pilot_boundaries.validate({
+                **copy.deepcopy(contracts[family]),
+                "protected_data": {"items": [], "not_applicable": "The synthetic benchmark contains no user, production, or credential data."},
+                "security_requirements": {"items": [{"id": "no-external-effects",
+                    "requirement": "Do not use networks, external services, credentials, or external writes.",
+                    "mandatory": True}], "not_applicable": None},
+                "authorization": "granted", "security_sensitive": False,
+            })
             cases.append({"id": packet["task_id"], "group_id": packet["group_id"], "family": family,
                           "split": "development" if index < 2 else "test", "prepared_packet": packet,
                           "evidence": [], "reference": None, "outcomes": []})

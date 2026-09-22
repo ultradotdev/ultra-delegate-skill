@@ -57,6 +57,11 @@ def init_project(root, p=None):
     else:
         p = core.policy(p)
         write_new(root / "policy.json", p)
+    ignore = root / '.gitignore'
+    if not ignore.exists():
+        fd = os.open(ignore, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+            stream.write('*\n')
     for directory in ("decisions", "outcomes", "reports"):
         (root / directory).mkdir(exist_ok=True)
     return p
@@ -187,49 +192,23 @@ def route_packet(packet, p, outcomes=(), *, live=False, dry_run=False, call=None
             if p["mode"] == "active":
                 d.update(action=rec["action"], selected_configuration_id=rec["configuration_id"])
                 d["acceptance_gates"] = sorted(set(task["acceptance_gates"]) | set(rec["review_requirements"]))
+    boundaries = task['boundaries']
+    d.update(boundary_hash=core.digest(boundaries), security_sensitive=boundaries['security_sensitive'],
+             security_requirements=[{'id':r['id'], 'requirement_hash':core.digest(r['requirement']), 'mandatory':r['mandatory']}
+                                    for r in boundaries['security_requirements']['items']])
+    boundary_gates = {'task-boundaries'} | {'security-req-'+core.digest(r['id'])[:12]
+                      for r in d['security_requirements'] if r['mandatory']}
+    d['acceptance_gates'] = sorted(set(d['acceptance_gates']) | boundary_gates)
     d["id"] = "dec_" + core.digest(d)[:24]
     return d
 
 
 def security_assessment(packet, p, enabled, *, live=False, call=None, key=None):
-    record = {"mode": "advisory" if enabled else "off", "status": "not_checked", "reason_codes": [],
-              **empty_usage(), "question_version": questions.SECURITY_VERSION, "model": p["model"]}
-    if not enabled:
-        return record
-    record["status"] = "unavailable"
-    if not p["share_artifacts"]:
-        record["reason_codes"] = ["artifact-sharing-disabled"]
-        return record
-    if not live:
-        record["reason_codes"] = ["live-not-requested"]
-        return record
-    if packet is None:
-        record["reason_codes"] = ["security-input-missing"]
-        return record
-    try:
-        core.require(bool(packet.get("requirements")) and bool(packet.get("excerpts")), "security-input-missing")
-        payload = questions.security_payload(packet, p["model"])
-        record.update(input_hash=core.digest(packet), question_hash=core.digest(payload["questions"]))
-        answers, usage, error = ask(payload, p, call=call, key=key)
-        record.update(usage)
-        if error:
-            record["reason_codes"] = [error]
-            return record
-        record["signals"] = answers
-        findings = [a["noul"] for k, a in answers.items() if k != "enough"]
-        # Initial advisory operating points; entirely separate from routing or acceptance.
-        if max(findings) >= 0.80:
-            record.update(status="fail", reason_codes=["possible-material-security-issue"])
-        elif answers["enough"]["noul"] < 0.90 or max(findings) > 0.20:
-            record.update(status="indeterminate", reason_codes=["insufficient-or-ambiguous-security-evidence"])
-        else:
-            record.update(status="pass", reason_codes=["no-issue-detected-in-selected-evidence"])
-    except Exception:
-        record.update(status="unavailable", reason_codes=["security-evaluation-failed"])
-    return record
+    import pilot_security
+    return pilot_security.evaluate(packet, p, enabled, live=live, call=call, key=key)
 
 
-def observe(root, raw, *, security_input=None, security_check=False, judge_input=None, live=False, call=None, key=None):
+def observe(root, raw, *, security_input=None, security_check=False, security_findings=None, judge_input=None, live=False, call=None, key=None):
     p = load_policy(root)
     decision = get_decision(root, raw.get("decision_id"))
     outcome = core.assess_outcome(raw, decision, p)
@@ -246,19 +225,24 @@ def observe(root, raw, *, security_input=None, security_check=False, judge_input
             raise FileExistsError('outcome-already-recorded')
         if raw.get("request_id"):
             pilot_workflow.validate_observation(root, raw)
+        import pilot_security
+        security, metadata = pilot_security.complete(root, raw, decision, p, security_input, security_findings,
+            enabled=security_check or p['security_check'], live=live and not reservation.exists(), call=call, key=key)
+        if metadata is not None:
+            raw = {**raw, 'security_review':metadata}
+            outcome = core.assess_outcome(raw, decision, p)
         interrupted = reservation.exists()
+        if interrupted and security.get('status') == 'unavailable':
+            security.update(reason_codes=['interrupted-evaluation-not-repeated'], cost_usd=None, cost_kind='unknown')
+        outcome['security'] = security
         core.require(not reservation.is_symlink(), 'invalid-outcome-reservation')
         fd = os.open(reservation, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, 'O_NOFOLLOW', 0), 0o600)
-        # Security is advisory and never changes accepted, gate results, or worker confidence.
+        # Only independent findings change acceptance; Jev probabilities remain advisory.
         try:
             if interrupted:
-                outcome['security'] = {'mode': 'advisory', 'status': 'unavailable',
-                    'reason_codes': ['interrupted-evaluation-not-repeated'], 'cost_usd': None, 'cost_kind': 'unknown',
-                    'input_tokens': None, 'output_tokens': None, 'latency_ms': None, 'attempts': 0}
                 if judge_input is not None:
-                    outcome['judge'] = copy.deepcopy(outcome['security'])
+                    outcome['judge'] = {**empty_usage(), 'status':'unavailable', 'reason_codes':['interrupted-evaluation-not-repeated'], 'cost_usd':None, 'cost_kind':'unknown'}
             else:
-                outcome["security"] = security_assessment(security_input, p, security_check or p["security_check"], live=live, call=call, key=key)
                 if judge_input is not None:
                     import pilot_judge
                     outcome["judge"] = pilot_judge.assess(judge_input, p, live=live, call=call, key=key)
@@ -298,7 +282,9 @@ def report(root, prefix=None, task_descriptions=None):
     prefix = Path(prefix) if prefix else Path(root) / "reports" / ("pilot-" + dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S%f"))
     import pilot_workflow
     requests = [pilot_workflow.get(root, path.stem) for path in sorted((Path(root)/"workflows").glob("req_*.json"))]
-    value = pilot_report.build_report(load_records(root, "decisions"), load_records(root, "outcomes"), requests=requests)
+    import pilot_security
+    assessments = [pilot_security._read(path) for path in sorted((Path(root)/'security-assessments').glob('sec_*.json'))]
+    value = pilot_report.build_report(load_records(root, "decisions"), load_records(root, "outcomes"), requests=requests, assessments=assessments)
     if task_descriptions is not None:
         value = pilot_report.with_task_descriptions(value, task_descriptions)
     html = pilot_report.render_html(value)
@@ -317,14 +303,18 @@ def report(root, prefix=None, task_descriptions=None):
 
 
 def fixture():
+    import pilot_boundaries
     """Illustrative Yarn packet. Model availability/capacity must be replaced by discovery."""
     task = {"scope_id": "yarn.component-review", "summary": "Compare the GPT-6 and Fable 5.1 Yarn implementations of one component and propose a consolidation patch.",
             "requirements": ["Preserve the documented component behavior.", "Explain any incompatible interface and leave the final architecture decision to the coordinator."],
-            "acceptance_gates": ["component-tests", "independent-review"],
+            "acceptance_gates": ["component-tests", "independent-review"], "boundaries": pilot_boundaries.example(),
             "worker_boundary": "One component comparison and patch proposal; no final architecture decision, repository mutation, or deployment.",
             "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
             "risk": "low", "work_kind": "coding", "operation": "patch-proposal", "complexity": "routine",
             "required_tools": ["read-files"], "required_modalities": ["text"], "input_tokens": 8000, "output_tokens": 4000}
+    task['boundaries']['allowed_changes'] = {'items':['Produce a consolidation patch proposal for the assigned component; do not mutate the repository.'], 'not_applicable':None}
+    task['boundaries']['allowed_actions'] = {'items':['Read the supplied component implementations and interfaces.'], 'not_applicable':None}
+    task['boundaries']['protected_behavior'] = {'items':['Preserve documented component behavior and unrelated interfaces.'], 'not_applicable':None}
     candidates = []
     for i, role in enumerate(("economical", "specialist", "fallback", "challenger")):
         candidates.append({"id": "candidate-"+str(i), "provider": "openai", "model": "example-worker-"+str(i),
@@ -342,7 +332,7 @@ def synthetic_response(payload, key):
     answers = {}
     for name, q in payload["questions"].items():
         if q["type"] == "noul":
-            yes = 0.98 if name.startswith(("operation_match", "evidence_comparable", "reasoning_fit", "code_interaction_fit", "context_synthesis_fit")) or name == "enough" else 0.02
+            yes = 0.98 if name.startswith(("operation_match", "evidence_comparable", "reasoning_fit", "code_interaction_fit", "context_synthesis_fit", "sufficient_")) or name == "enough" else 0.02
             answers[name] = {"type": "noul", "noul": yes}
         elif q["type"] == "choice":
             answers[name] = {"type": "choice", "choice": "coding", "confidence": 1.0, "probabilities": {k: float(k == "coding") for k in q["criteria"]}}
@@ -354,7 +344,7 @@ def synthetic_response(payload, key):
 
 
 def outcome_fixture(d, cid, accepted=True):
-    return {"decision_id": d["id"], "configuration_id": cid, "artifact_hash": core.digest({"demo": d["id"], "candidate": cid}),
+    return {"decision_id": d["id"], "boundary_hash":d.get("boundary_hash"), "configuration_id": cid, "artifact_hash": core.digest({"demo": d["id"], "candidate": cid}),
             "reviewer_id": "synthetic-reviewer", "reviewer_kind": "synthetic", "worker_id": "synthetic-worker", "review_accepted": accepted,
             "gates": [{"id": k, "mandatory": True, "passed": accepted} for k in d["acceptance_gates"]],
             "scores": {k: 90 if accepted else 40 for k in core.DIMENSIONS},
@@ -420,6 +410,8 @@ def main(argv=None):
         configure.add_argument("--"+name, action=argparse.BooleanOptionalAction, default=None)
     configure.add_argument("--credential-service")
     configure.add_argument("--credential-ref")
+    for band in ("investigate", "strong", "sufficient"):
+        configure.add_argument("--security-"+band, type=float)
     for key in ("share-summaries", "share-artifacts", "security-check"):
         init.add_argument("--"+key, action="store_true")
     init.add_argument("--allow-host-managed-output", action="store_true")
@@ -435,6 +427,7 @@ def main(argv=None):
     record.add_argument("--input", required=True)
     record.add_argument("--security-check", action="store_true")
     record.add_argument("--security-input")
+    record.add_argument("--security-findings")
     record.add_argument("--judge-input")
     record.add_argument("--live", action="store_true")
     check = sub.add_parser("recheck")
@@ -480,12 +473,19 @@ def main(argv=None):
     form.add_argument("--request", required=True)
     form.add_argument("--attempt", required=True)
     form.add_argument("--output", type=Path, required=True)
+    security = sub.add_parser("workflow-security")
+    security.add_argument("--request", required=True)
+    security.add_argument("--attempt", required=True)
+    security.add_argument("--input")
+    security.add_argument("--live", action="store_true")
+    security.add_argument("--dry-run", action="store_true")
     review = sub.add_parser("workflow-review")
     review.add_argument("--request", required=True)
     review.add_argument("--attempt", required=True)
     review.add_argument("--input", required=True)
     review.add_argument("--security-check", action="store_true")
     review.add_argument("--security-input")
+    review.add_argument("--security-findings")
     review.add_argument("--judge-input")
     review.add_argument("--live", action="store_true")
     review.add_argument("--repairable", action="store_true", default=None)
@@ -510,6 +510,8 @@ def main(argv=None):
             with pilot_workflow._lock(args.root / ".policy.lock"):
                 p = load_policy(args.root)
                 updates = {k: v for k, v in vars(args).items() if k not in {"root", "command"} and v is not None}
+                band_updates = {band: updates.pop('security_'+band) for band in ('investigate','strong','sufficient') if 'security_'+band in updates}
+                if band_updates: updates['security_thresholds'] = {**p['security_thresholds'], **band_updates}
                 p = core.policy({**p, **updates})
                 fd, temp = tempfile.mkstemp(prefix=".policy-", dir=args.root)
                 try:
@@ -557,9 +559,14 @@ def main(argv=None):
             elif args.command == "workflow-review-template":
                 write_new(args.output, pilot_convenience.review_template(args.root, args.request, args.attempt))
                 result = {"template": str(args.output), "independent_assessment_required": True}
+            elif args.command == "workflow-security":
+                import pilot_security
+                result = pilot_security.workflow_security(args.root, args.request, args.attempt,
+                    read_json(args.input) if args.input else None, live=args.live, dry_run=args.dry_run)
             elif args.command == "workflow-review":
                 result = pilot_convenience.review(args.root, args.request, args.attempt, read_json(args.input),
                     security_input=read_json(args.security_input) if args.security_input else None,
+                    security_findings=read_json(args.security_findings) if args.security_findings else None,
                     security_check=args.security_check, judge_input=read_json(args.judge_input) if args.judge_input else None, live=args.live,
                     repairable=args.repairable, findings_hash=args.findings_hash)
             elif args.command == "workflow-start":
@@ -608,7 +615,7 @@ def main(argv=None):
                 try: security = read_json(args.security_input)
                 except (OSError, ValueError): security = None
             judge = read_json(args.judge_input) if args.judge_input else None
-            result = observe(args.root, raw, security_input=security, security_check=args.security_check, judge_input=judge, live=args.live)
+            result = observe(args.root, raw, security_input=security, security_check=args.security_check, security_findings=read_json(args.security_findings) if args.security_findings else None, judge_input=judge, live=args.live)
         print(json.dumps(result, indent=2, sort_keys=True, allow_nan=False))
         return 0
     except (core.PilotError, transport.ServiceError) as error:

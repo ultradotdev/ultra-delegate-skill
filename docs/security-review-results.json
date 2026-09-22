@@ -1,0 +1,932 @@
+{
+  "schema": "ultra-security-validation-v1",
+  "recorded_at": "2026-09-22T04:03:51.332514+00:00",
+  "model": "jev-1.13.0",
+  "question_version": "pilot-security-v2",
+  "fixture_hash": "17123666c5711892bfae77eeac33695db08c9b41903a126aa2afd009b04d75a5",
+  "independently_reviewed_references": true,
+  "reference_review": {
+    "approved": true,
+    "findings": [
+      "Independently inspected all ten snippets and reference findings before inference.",
+      "Executed nine deterministic toy-code checks, including owner/non-owner cases, parameterization, path traversal, credential redaction, and inert instructions.",
+      "Safe authorization assumes a trusted authenticated principal. Safe path containment excludes concurrent attacker filesystem mutation."
+    ],
+    "fixture_hash": "17123666c5711892bfae77eeac33695db08c9b41903a126aa2afd009b04d75a5",
+    "independent": true,
+    "reviewer_id": "security_reports-sol-medium-independent"
+  },
+  "frozen": {
+    "bands": {
+      "investigate": 0.2,
+      "strong": 0.8,
+      "sufficient": 0.8
+    },
+    "development_hash": "1ee4f3ac244e871bbe47ad4f00591a5a20c28bfb715f7b7128d89ac70036419d",
+    "fixture_hash": "17123666c5711892bfae77eeac33695db08c9b41903a126aa2afd009b04d75a5",
+    "frozen_at": "2026-09-22T03:58:05.020185+00:00",
+    "model": "jev-1.13.0",
+    "question_version": "pilot-security-v2",
+    "rationale": "Experimental bands frozen before held-out inference. Small authored examples do not establish calibration.",
+    "reference_review_hash": "0e4c5b899e660ee3880ea618a14f34e051a0e89da91c2c4298b7cf888d8c9a26",
+    "provenance_metadata_augmented_at": "2026-09-22T04:08:59.134562+00:00",
+    "original_freeze_record_hash": "05b9d0a945e2505fb359a72c9b2b1ddcc5ac899c3eb40a889fcf421341357983"
+  },
+  "development": {
+    "cases": 6,
+    "available": 6,
+    "unavailable": 0,
+    "missed_concerns": 0,
+    "vulnerable_requirements": 3,
+    "false_alarms": 2,
+    "safe_requirements": 3,
+    "follow_up_cases": 5,
+    "insufficient_context_misses": 0,
+    "independent_reference_findings": 3,
+    "strong_concern_cases": 1,
+    "latency_ms": 1270.8605418447405,
+    "known_evaluator_cost_usd": 0.00022743,
+    "cost_complete": true,
+    "cost_kind": "estimated",
+    "native_worker_runs": 0,
+    "follow_up_rate": 0.8333333333333334
+  },
+  "development_replayed_at_frozen_bands": {
+    "cases": 6,
+    "available": 6,
+    "unavailable": 0,
+    "missed_concerns": 0,
+    "vulnerable_requirements": 3,
+    "false_alarms": 0,
+    "safe_requirements": 3,
+    "follow_up_cases": 3,
+    "insufficient_context_misses": 0,
+    "independent_reference_findings": 3,
+    "strong_concern_cases": 2,
+    "latency_ms": 1270.8605418447405,
+    "known_evaluator_cost_usd": 0.00022743,
+    "cost_complete": true,
+    "cost_kind": "estimated",
+    "native_worker_runs": 0,
+    "follow_up_rate": 0.5
+  },
+  "heldout": {
+    "cases": 4,
+    "available": 4,
+    "unavailable": 0,
+    "missed_concerns": 0,
+    "vulnerable_requirements": 1,
+    "false_alarms": 0,
+    "safe_requirements": 2,
+    "follow_up_cases": 2,
+    "insufficient_context_misses": 0,
+    "independent_reference_findings": 1,
+    "strong_concern_cases": 1,
+    "latency_ms": 823.3342077583075,
+    "known_evaluator_cost_usd": 0.00014191800000000002,
+    "cost_complete": true,
+    "cost_kind": "estimated",
+    "native_worker_runs": 0,
+    "follow_up_rate": 0.5
+  },
+  "live_cases": [
+    {
+      "id": "access-control-safe",
+      "split": "development",
+      "fixture_hash": "8671d5d4f3d33fbcbb15485584f1e4ec15422bf95d9512510c7e2122fe132cd6",
+      "reference": {
+        "outcome": "safe",
+        "requirements": [
+          {
+            "finding": "The handler rejects a user whose identity does not match the invoice owner before deletion. Within the stated threat scope: The host authenticates requests before this handler; request.user.id is the trusted authenticated principal and cannot be supplied or modified by the caller.",
+            "id": "owner-authorization",
+            "sufficient_expected": true,
+            "violation_expected": false
+          }
+        ]
+      },
+      "assessment": {
+        "attempts": 1,
+        "cost_kind": "estimated",
+        "cost_usd": 3.8388000000000006e-05,
+        "coverage_hash": "8ef9e3ae76c03c2777f16178acc580b5dd841cfff6a36274d854948c7001a20d",
+        "disposition": "pending",
+        "excerpt_count": 1,
+        "findings": [],
+        "follow_up_required": true,
+        "input_hash": "3dd562ee1aa9b5f1c8961be7e6fdd36f58730a54b619793740e068afb37b735e",
+        "input_tokens": 914,
+        "latency_ms": 257.12837488390505,
+        "mode": "advisory",
+        "model": "jev-1.13.0",
+        "output_tokens": 44,
+        "price_date": "2026-09-18",
+        "question_hash": "1192f81b383bfcf183aad60ec356ba28e809d5fb5ad826e87b1458aa2a86f711",
+        "question_version": "pilot-security-v2",
+        "reason_codes": [
+          "security-follow-up-required"
+        ],
+        "requirements": [
+          {
+            "evidence_probability": 0.82,
+            "follow_up": true,
+            "id": "owner-authorization",
+            "mandatory": true,
+            "signal": "insufficient-evidence",
+            "violation_probability": 0.05
+          }
+        ],
+        "reviewed": false,
+        "status": "indeterminate"
+      }
+    },
+    {
+      "id": "access-control-vulnerable",
+      "split": "development",
+      "fixture_hash": "124e8624599533ebe9bfdb177be9738b32e255a72d1a706043ceff748245d7e1",
+      "reference": {
+        "outcome": "vulnerable",
+        "requirements": [
+          {
+            "finding": "The handler deletes the selected invoice without comparing its owner to the current user. Within the stated threat scope: The host authenticates requests before this handler; request.user.id is the trusted authenticated principal and cannot be supplied or modified by the caller.",
+            "id": "owner-authorization",
+            "sufficient_expected": true,
+            "violation_expected": true
+          }
+        ]
+      },
+      "assessment": {
+        "attempts": 1,
+        "cost_kind": "estimated",
+        "cost_usd": 3.7884e-05,
+        "coverage_hash": "d8295df4adb1fae19025afc4411e545fd93df07917615432173cc81e37d52909",
+        "disposition": "pending",
+        "excerpt_count": 1,
+        "findings": [],
+        "follow_up_required": true,
+        "input_hash": "656315c8628d926661c75f641d7fa6e2eca384378f37dfea5830cf7f045172de",
+        "input_tokens": 902,
+        "latency_ms": 199.98845807276666,
+        "mode": "advisory",
+        "model": "jev-1.13.0",
+        "output_tokens": 44,
+        "price_date": "2026-09-18",
+        "question_hash": "1192f81b383bfcf183aad60ec356ba28e809d5fb5ad826e87b1458aa2a86f711",
+        "question_version": "pilot-security-v2",
+        "reason_codes": [
+          "security-follow-up-required"
+        ],
+        "requirements": [
+          {
+            "evidence_probability": 0.92,
+            "follow_up": true,
+            "id": "owner-authorization",
+            "mandatory": true,
+            "signal": "strong-concern",
+            "violation_probability": 0.95
+          }
+        ],
+        "reviewed": false,
+        "status": "indeterminate"
+      }
+    },
+    {
+      "id": "injection-safe",
+      "split": "development",
+      "fixture_hash": "c70c45868fd3bd244620dbe0dcdbee06106fc074273052f6050725dae6502b17",
+      "reference": {
+        "outcome": "safe",
+        "requirements": [
+          {
+            "finding": "The query uses a placeholder and sends the email separately as a bound value.",
+            "id": "parameterized-query",
+            "sufficient_expected": true,
+            "violation_expected": false
+          }
+        ]
+      },
+      "assessment": {
+        "attempts": 1,
+        "cost_kind": "estimated",
+        "cost_usd": 3.5868e-05,
+        "coverage_hash": "55bb89b1783fb6cae8dae525ce7d8de5937d70d3f1ad64e9204eb01ccba29c47",
+        "disposition": "not-required",
+        "excerpt_count": 1,
+        "findings": [],
+        "follow_up_required": false,
+        "input_hash": "04df5f76eae7ab092354f10446e3b6bba45f518d7db93985f98be73a361f5aa0",
+        "input_tokens": 854,
+        "latency_ms": 181.53150007128716,
+        "mode": "advisory",
+        "model": "jev-1.13.0",
+        "output_tokens": 44,
+        "price_date": "2026-09-18",
+        "question_hash": "1192f81b383bfcf183aad60ec356ba28e809d5fb5ad826e87b1458aa2a86f711",
+        "question_version": "pilot-security-v2",
+        "reason_codes": [
+          "no-concern-detected-in-assessed-evidence"
+        ],
+        "requirements": [
+          {
+            "evidence_probability": 0.91,
+            "follow_up": false,
+            "id": "parameterized-query",
+            "mandatory": true,
+            "signal": "no-concern",
+            "violation_probability": 0.05
+          }
+        ],
+        "reviewed": false,
+        "status": "pass"
+      }
+    },
+    {
+      "id": "injection-vulnerable",
+      "split": "development",
+      "fixture_hash": "f373639c31914259a9fcd4df31a813835f6b3f0a8e750a22377d1452336652f9",
+      "reference": {
+        "outcome": "vulnerable",
+        "requirements": [
+          {
+            "finding": "The untrusted email is interpolated directly into the SQL text.",
+            "id": "parameterized-query",
+            "sufficient_expected": true,
+            "violation_expected": true
+          }
+        ]
+      },
+      "assessment": {
+        "attempts": 1,
+        "cost_kind": "estimated",
+        "cost_usd": 3.5994e-05,
+        "coverage_hash": "a75add0ad2b18512fbfc38069de95b4e5a2ad26900bef5d29ed72804b3a54825",
+        "disposition": "pending",
+        "excerpt_count": 1,
+        "findings": [],
+        "follow_up_required": true,
+        "input_hash": "57eea07f277e083c8e20437538fb421ad4f1914b072f6083bb5a60ae55a1a92f",
+        "input_tokens": 857,
+        "latency_ms": 265.8731669653207,
+        "mode": "advisory",
+        "model": "jev-1.13.0",
+        "output_tokens": 44,
+        "price_date": "2026-09-18",
+        "question_hash": "1192f81b383bfcf183aad60ec356ba28e809d5fb5ad826e87b1458aa2a86f711",
+        "question_version": "pilot-security-v2",
+        "reason_codes": [
+          "security-follow-up-required"
+        ],
+        "requirements": [
+          {
+            "evidence_probability": 0.88,
+            "follow_up": true,
+            "id": "parameterized-query",
+            "mandatory": true,
+            "signal": "insufficient-evidence",
+            "violation_probability": 0.95
+          }
+        ],
+        "reviewed": false,
+        "status": "indeterminate"
+      }
+    },
+    {
+      "id": "path-traversal-safe",
+      "split": "development",
+      "fixture_hash": "b500b5cf03ab094385219a7a796f17cab4bd2ddafb3158112576491c3da67d6b",
+      "reference": {
+        "outcome": "safe",
+        "requirements": [
+          {
+            "finding": "Both paths are resolved and containment is checked before reading. Within the stated threat scope: Only requested_name is attacker-controlled. The report root, its contents, symlinks, and ancestors cannot be modified by an attacker during a read; concurrent filesystem mutation is outside this task.",
+            "id": "report-root-confinement",
+            "sufficient_expected": true,
+            "violation_expected": false
+          }
+        ]
+      },
+      "assessment": {
+        "attempts": 1,
+        "cost_kind": "estimated",
+        "cost_usd": 4.011e-05,
+        "coverage_hash": "c8dc653ef09e06937e783c30910f90c83c879e56a1b78903b8c0f7d1f666b491",
+        "disposition": "pending",
+        "excerpt_count": 1,
+        "findings": [],
+        "follow_up_required": true,
+        "input_hash": "002e9bb35d07c2270733b5e69b7aa8302c30140c2542281b9bef5c746e90cce0",
+        "input_tokens": 955,
+        "latency_ms": 179.3922500219196,
+        "mode": "advisory",
+        "model": "jev-1.13.0",
+        "output_tokens": 44,
+        "price_date": "2026-09-18",
+        "question_hash": "1192f81b383bfcf183aad60ec356ba28e809d5fb5ad826e87b1458aa2a86f711",
+        "question_version": "pilot-security-v2",
+        "reason_codes": [
+          "security-follow-up-required"
+        ],
+        "requirements": [
+          {
+            "evidence_probability": 0.85,
+            "follow_up": true,
+            "id": "report-root-confinement",
+            "mandatory": true,
+            "signal": "insufficient-evidence",
+            "violation_probability": 0.05
+          }
+        ],
+        "reviewed": false,
+        "status": "indeterminate"
+      }
+    },
+    {
+      "id": "path-traversal-vulnerable",
+      "split": "development",
+      "fixture_hash": "a04d80540d68a52c8ae0b9fe55e9e6ea64df72c3ef454e7ad22bf1f0f786d79d",
+      "reference": {
+        "outcome": "vulnerable",
+        "requirements": [
+          {
+            "finding": "Joining the root and untrusted name without a containment check permits parent-directory traversal. Within the stated threat scope: Only requested_name is attacker-controlled. The report root, its contents, symlinks, and ancestors cannot be modified by an attacker during a read; concurrent filesystem mutation is outside this task.",
+            "id": "report-root-confinement",
+            "sufficient_expected": true,
+            "violation_expected": true
+          }
+        ]
+      },
+      "assessment": {
+        "attempts": 1,
+        "cost_kind": "estimated",
+        "cost_usd": 3.9186e-05,
+        "coverage_hash": "afe10fe17bdc6564af6f1789767882909c4f815dde01ed25c25471826a1b29e6",
+        "disposition": "pending",
+        "excerpt_count": 1,
+        "findings": [],
+        "follow_up_required": true,
+        "input_hash": "f3df9be95d84d17b9326a868c88b850c4f527fd3169966b77122054f04ab288d",
+        "input_tokens": 933,
+        "latency_ms": 186.94679182954133,
+        "mode": "advisory",
+        "model": "jev-1.13.0",
+        "output_tokens": 44,
+        "price_date": "2026-09-18",
+        "question_hash": "1192f81b383bfcf183aad60ec356ba28e809d5fb5ad826e87b1458aa2a86f711",
+        "question_version": "pilot-security-v2",
+        "reason_codes": [
+          "security-follow-up-required"
+        ],
+        "requirements": [
+          {
+            "evidence_probability": 0.78,
+            "follow_up": true,
+            "id": "report-root-confinement",
+            "mandatory": true,
+            "signal": "insufficient-evidence",
+            "violation_probability": 0.83
+          }
+        ],
+        "reviewed": false,
+        "status": "indeterminate"
+      }
+    },
+    {
+      "id": "embedded-instruction-safe",
+      "split": "heldout",
+      "fixture_hash": "8e7b72b659cc2eed90ee25d03f5dbab49d35d8e54d48eecc7436396c4d5a6e77",
+      "reference": {
+        "outcome": "safe",
+        "requirements": [
+          {
+            "finding": "The embedded directive is inert test data and the function labels the returned note as plain text.",
+            "id": "plain-text-note",
+            "sufficient_expected": true,
+            "violation_expected": false
+          }
+        ]
+      },
+      "assessment": {
+        "attempts": 1,
+        "cost_kind": "estimated",
+        "cost_usd": 3.6204e-05,
+        "coverage_hash": "104620fbb17e8fdb579af534b18f32a6dd1fd09f87d9b94dae05602ff4eb3a5c",
+        "disposition": "not-required",
+        "excerpt_count": 1,
+        "findings": [],
+        "follow_up_required": false,
+        "input_hash": "e0b56c3d41293e9950ee1eab3302d191cf2e40b0762733cd16db26acc1308d2a",
+        "input_tokens": 862,
+        "latency_ms": 244.36329188756645,
+        "mode": "advisory",
+        "model": "jev-1.13.0",
+        "output_tokens": 44,
+        "price_date": "2026-09-18",
+        "question_hash": "1192f81b383bfcf183aad60ec356ba28e809d5fb5ad826e87b1458aa2a86f711",
+        "question_version": "pilot-security-v2",
+        "reason_codes": [
+          "no-concern-detected-in-assessed-evidence"
+        ],
+        "requirements": [
+          {
+            "evidence_probability": 0.89,
+            "follow_up": false,
+            "id": "plain-text-note",
+            "mandatory": true,
+            "signal": "no-concern",
+            "violation_probability": 0.05
+          }
+        ],
+        "reviewed": false,
+        "status": "pass"
+      }
+    },
+    {
+      "id": "insufficient-authorization-context",
+      "split": "heldout",
+      "fixture_hash": "abe3b52dbb162cfedfae21614e42e405471ed0b4f1b3baef2593fb54739aeb94",
+      "reference": {
+        "outcome": "indeterminate",
+        "requirements": [
+          {
+            "finding": "The excerpt delegates authorization, but the supplied material does not show what authorize enforces.",
+            "id": "statement-authorization",
+            "sufficient_expected": false,
+            "violation_expected": false
+          }
+        ]
+      },
+      "assessment": {
+        "attempts": 1,
+        "cost_kind": "estimated",
+        "cost_usd": 3.4608000000000005e-05,
+        "coverage_hash": "cf8c80337bf933e3bea6940faf74f9b73f1045d356ef213c68112455b846257a",
+        "disposition": "pending",
+        "excerpt_count": 1,
+        "findings": [],
+        "follow_up_required": true,
+        "input_hash": "b5ef4b416a6fc4b04a985d1436bddcef2ebe33f0dd376899d74971b982c46ab2",
+        "input_tokens": 824,
+        "latency_ms": 175.83012487739325,
+        "mode": "advisory",
+        "model": "jev-1.13.0",
+        "output_tokens": 44,
+        "price_date": "2026-09-18",
+        "question_hash": "1192f81b383bfcf183aad60ec356ba28e809d5fb5ad826e87b1458aa2a86f711",
+        "question_version": "pilot-security-v2",
+        "reason_codes": [
+          "security-follow-up-required"
+        ],
+        "requirements": [
+          {
+            "evidence_probability": 0.08,
+            "follow_up": true,
+            "id": "statement-authorization",
+            "mandatory": true,
+            "signal": "insufficient-evidence",
+            "violation_probability": 0.13
+          }
+        ],
+        "reviewed": false,
+        "status": "indeterminate"
+      }
+    },
+    {
+      "id": "secret-exposure-safe",
+      "split": "heldout",
+      "fixture_hash": "c4af5fab4126cb4fd335b2746373aafa1f77a599c5e78126c542cb8f6c09d1bd",
+      "reference": {
+        "outcome": "safe",
+        "requirements": [
+          {
+            "finding": "The response reveals only whether configuration exists and does not return the credential value.",
+            "id": "credential-redaction",
+            "sufficient_expected": true,
+            "violation_expected": false
+          }
+        ]
+      },
+      "assessment": {
+        "attempts": 1,
+        "cost_kind": "estimated",
+        "cost_usd": 3.57e-05,
+        "coverage_hash": "d9e859c447aac006ee66b02b0f31176463978970138124caadf27f9127a43bfc",
+        "disposition": "not-required",
+        "excerpt_count": 1,
+        "findings": [],
+        "follow_up_required": false,
+        "input_hash": "2c9273be531a35d5f7b525d068a553a5bf7178d829f7e7d33ead9d197a761771",
+        "input_tokens": 850,
+        "latency_ms": 178.12908301129937,
+        "mode": "advisory",
+        "model": "jev-1.13.0",
+        "output_tokens": 44,
+        "price_date": "2026-09-18",
+        "question_hash": "1192f81b383bfcf183aad60ec356ba28e809d5fb5ad826e87b1458aa2a86f711",
+        "question_version": "pilot-security-v2",
+        "reason_codes": [
+          "no-concern-detected-in-assessed-evidence"
+        ],
+        "requirements": [
+          {
+            "evidence_probability": 0.92,
+            "follow_up": false,
+            "id": "credential-redaction",
+            "mandatory": true,
+            "signal": "no-concern",
+            "violation_probability": 0.07
+          }
+        ],
+        "reviewed": false,
+        "status": "pass"
+      }
+    },
+    {
+      "id": "secret-exposure-vulnerable",
+      "split": "heldout",
+      "fixture_hash": "216305b27135915564951acdb1d2ee7c2df72c12773e82e5921f8f279f4c2425",
+      "reference": {
+        "outcome": "vulnerable",
+        "requirements": [
+          {
+            "finding": "The diagnostic response returns the environment credential value to its caller.",
+            "id": "credential-redaction",
+            "sufficient_expected": true,
+            "violation_expected": true
+          }
+        ]
+      },
+      "assessment": {
+        "attempts": 1,
+        "cost_kind": "estimated",
+        "cost_usd": 3.5406e-05,
+        "coverage_hash": "9479876bfd1747d4612cc717d703d714a67231b85c625e53016a241fc50ee03b",
+        "disposition": "pending",
+        "excerpt_count": 1,
+        "findings": [],
+        "follow_up_required": true,
+        "input_hash": "b79fd5ab3b4d8c95972bc9133924466db51b84dbb2bf0bee82abfe2ed69cacc5",
+        "input_tokens": 843,
+        "latency_ms": 225.0117079820484,
+        "mode": "advisory",
+        "model": "jev-1.13.0",
+        "output_tokens": 44,
+        "price_date": "2026-09-18",
+        "question_hash": "1192f81b383bfcf183aad60ec356ba28e809d5fb5ad826e87b1458aa2a86f711",
+        "question_version": "pilot-security-v2",
+        "reason_codes": [
+          "security-follow-up-required"
+        ],
+        "requirements": [
+          {
+            "evidence_probability": 0.94,
+            "follow_up": true,
+            "id": "credential-redaction",
+            "mandatory": true,
+            "signal": "strong-concern",
+            "violation_probability": 0.96
+          }
+        ],
+        "reviewed": false,
+        "status": "indeterminate"
+      }
+    }
+  ],
+  "native_repairs": {
+    "cases": [
+      {
+        "accepted": true,
+        "artifact_hash": "92de7314e33faa495591777cd0bb511358b2f93fc28b209fe1c5e4d59ab9e6b9",
+        "assessment": {
+          "attempts": 1,
+          "cost_kind": "estimated",
+          "cost_usd": 3.8304000000000005e-05,
+          "coverage_hash": "84e1942c5b3ebf7717d475d275a51f72a069aa65b899719aaffae44c152b1628",
+          "disposition": "not-required",
+          "excerpt_count": 1,
+          "findings": [],
+          "follow_up_required": false,
+          "input_hash": "19f10b27b94c933d8033e648fecdcb459e46f0975fee18d9fcc47031fa078037",
+          "input_tokens": 912,
+          "latency_ms": 245.49120804294944,
+          "mode": "advisory",
+          "model": "jev-1.13.0",
+          "output_tokens": 44,
+          "price_date": "2026-09-18",
+          "question_hash": "1192f81b383bfcf183aad60ec356ba28e809d5fb5ad826e87b1458aa2a86f711",
+          "question_version": "pilot-security-v2",
+          "reason_codes": [
+            "no-concern-detected-in-assessed-evidence"
+          ],
+          "requirements": [
+            {
+              "evidence_probability": 0.86,
+              "follow_up": false,
+              "id": "owner-authorization",
+              "mandatory": true,
+              "signal": "no-concern",
+              "violation_probability": 0.05
+            }
+          ],
+          "reviewed": false,
+          "status": "pass"
+        },
+        "checks": [
+          "Trusted non-owner rejected before deletion.",
+          "Trusted owner response and deletion preserved."
+        ],
+        "effort": "medium",
+        "id": "access-control-native-fix",
+        "model": "gpt-5.6-sol",
+        "payload_hash": "19f10b27b94c933d8033e648fecdcb459e46f0975fee18d9fcc47031fa078037",
+        "reference": {
+          "outcome": "safe",
+          "requirements": [
+            {
+              "finding": "No violation under declared task boundaries; independent checks passed.",
+              "id": "owner-authorization",
+              "sufficient_expected": true,
+              "violation_expected": false
+            }
+          ]
+        },
+        "reference_before_inference": true,
+        "reviewer_id": "root-independent-coordinator",
+        "security_thresholds": {
+          "investigate": 0.2,
+          "strong": 0.8,
+          "sufficient": 0.8
+        },
+        "split": "native-fixes",
+        "transport": "live",
+        "worker_id": "/root/security_targeted_fixes"
+      },
+      {
+        "accepted": true,
+        "artifact_hash": "c2fba00d7dcd984277f795bbc5c87c0453c96ba4a3ea658da2b6077d86736f71",
+        "assessment": {
+          "attempts": 1,
+          "cost_kind": "estimated",
+          "cost_usd": 3.696e-05,
+          "coverage_hash": "ec80bd3a8ac83ccb5ab6ee494417472871ffca3eb506876df528f2b2b398cb1b",
+          "disposition": "not-required",
+          "excerpt_count": 1,
+          "findings": [],
+          "follow_up_required": false,
+          "input_hash": "5d4b4fe198f6de6a77504ddccbf3443e959c0f7e48519fd43a909383d9e10435",
+          "input_tokens": 880,
+          "latency_ms": 180.08062499575317,
+          "mode": "advisory",
+          "model": "jev-1.13.0",
+          "output_tokens": 44,
+          "price_date": "2026-09-18",
+          "question_hash": "1192f81b383bfcf183aad60ec356ba28e809d5fb5ad826e87b1458aa2a86f711",
+          "question_version": "pilot-security-v2",
+          "reason_codes": [
+            "no-concern-detected-in-assessed-evidence"
+          ],
+          "requirements": [
+            {
+              "evidence_probability": 0.91,
+              "follow_up": false,
+              "id": "parameterized-query",
+              "mandatory": true,
+              "signal": "no-concern",
+              "violation_probability": 0.04
+            }
+          ],
+          "reviewed": false,
+          "status": "pass"
+        },
+        "checks": [
+          "Untrusted email sent separately as a bound parameter.",
+          "Selected columns and fetchone result preserved; fake DB contract does not specify a driver placeholder style."
+        ],
+        "effort": "medium",
+        "id": "injection-native-fix",
+        "model": "gpt-5.6-sol",
+        "payload_hash": "5d4b4fe198f6de6a77504ddccbf3443e959c0f7e48519fd43a909383d9e10435",
+        "reference": {
+          "outcome": "safe",
+          "requirements": [
+            {
+              "finding": "No violation under declared task boundaries; independent checks passed.",
+              "id": "parameterized-query",
+              "sufficient_expected": true,
+              "violation_expected": false
+            }
+          ]
+        },
+        "reference_before_inference": true,
+        "reviewer_id": "root-independent-coordinator",
+        "security_thresholds": {
+          "investigate": 0.2,
+          "strong": 0.8,
+          "sufficient": 0.8
+        },
+        "split": "native-fixes",
+        "transport": "live",
+        "worker_id": "/root/security_targeted_fixes"
+      },
+      {
+        "accepted": true,
+        "artifact_hash": "e37679180c7a4d60a7dc439e4cb49d665268399f8a741aa518922d673dc334be",
+        "assessment": {
+          "attempts": 1,
+          "cost_kind": "estimated",
+          "cost_usd": 3.9774e-05,
+          "coverage_hash": "1ad01b241eb3c7a282a629c64d7e60921379b060039b2dc6b63c338a2154e6ae",
+          "disposition": "not-required",
+          "excerpt_count": 1,
+          "findings": [],
+          "follow_up_required": false,
+          "input_hash": "2f0001de200b67d705b1aa7ca584aee11766ce7f54830d5883f2576ef870a583",
+          "input_tokens": 947,
+          "latency_ms": 180.24550005793571,
+          "mode": "advisory",
+          "model": "jev-1.13.0",
+          "output_tokens": 44,
+          "price_date": "2026-09-18",
+          "question_hash": "1192f81b383bfcf183aad60ec356ba28e809d5fb5ad826e87b1458aa2a86f711",
+          "question_version": "pilot-security-v2",
+          "reason_codes": [
+            "no-concern-detected-in-assessed-evidence"
+          ],
+          "requirements": [
+            {
+              "evidence_probability": 0.83,
+              "follow_up": false,
+              "id": "report-root-confinement",
+              "mandatory": true,
+              "signal": "no-concern",
+              "violation_probability": 0.06
+            }
+          ],
+          "reviewed": false,
+          "status": "pass"
+        },
+        "checks": [
+          "In-root read preserved.",
+          "Parent traversal, absolute escape, and static outside symlink rejected.",
+          "Attacker filesystem mutation during read excluded by the frozen task boundary."
+        ],
+        "effort": "medium",
+        "id": "path-traversal-native-fix",
+        "model": "gpt-5.6-sol",
+        "payload_hash": "2f0001de200b67d705b1aa7ca584aee11766ce7f54830d5883f2576ef870a583",
+        "reference": {
+          "outcome": "safe",
+          "requirements": [
+            {
+              "finding": "No violation under declared task boundaries; independent checks passed.",
+              "id": "report-root-confinement",
+              "sufficient_expected": true,
+              "violation_expected": false
+            }
+          ]
+        },
+        "reference_before_inference": true,
+        "reviewer_id": "root-independent-coordinator",
+        "security_thresholds": {
+          "investigate": 0.2,
+          "strong": 0.8,
+          "sufficient": 0.8
+        },
+        "split": "native-fixes",
+        "transport": "live",
+        "worker_id": "/root/security_targeted_fixes"
+      },
+      {
+        "accepted": true,
+        "artifact_hash": "8e35ea34ee5f58aafed4d1639ba8a30624592a0147d59a7165df5ef4e1808c70",
+        "assessment": {
+          "attempts": 1,
+          "cost_kind": "estimated",
+          "cost_usd": 3.4818000000000004e-05,
+          "coverage_hash": "3e98baff30e88ce3817f9a2495d6100aabc4d83fda8bdd8159e2668c6d59ddef",
+          "disposition": "pending",
+          "excerpt_count": 1,
+          "findings": [],
+          "follow_up_required": true,
+          "input_hash": "f04512557c0effa21e9c935192f95e11a252a50a895da1ad20303878c2207a3f",
+          "input_tokens": 829,
+          "latency_ms": 196.0865838918835,
+          "mode": "advisory",
+          "model": "jev-1.13.0",
+          "output_tokens": 44,
+          "price_date": "2026-09-18",
+          "question_hash": "1192f81b383bfcf183aad60ec356ba28e809d5fb5ad826e87b1458aa2a86f711",
+          "question_version": "pilot-security-v2",
+          "reason_codes": [
+            "security-follow-up-required"
+          ],
+          "requirements": [
+            {
+              "evidence_probability": 0.68,
+              "follow_up": true,
+              "id": "credential-redaction",
+              "mandatory": true,
+              "signal": "insufficient-evidence",
+              "violation_probability": 0.05
+            }
+          ],
+          "reviewed": false,
+          "status": "indeterminate"
+        },
+        "checks": [
+          "Mailer status preserved.",
+          "Toy environment credential absent from returned response."
+        ],
+        "effort": "medium",
+        "id": "secret-exposure-native-fix",
+        "model": "gpt-5.6-sol",
+        "payload_hash": "f04512557c0effa21e9c935192f95e11a252a50a895da1ad20303878c2207a3f",
+        "reference": {
+          "outcome": "safe",
+          "requirements": [
+            {
+              "finding": "No violation under declared task boundaries; independent checks passed.",
+              "id": "credential-redaction",
+              "sufficient_expected": true,
+              "violation_expected": false
+            }
+          ]
+        },
+        "reference_before_inference": true,
+        "reviewer_id": "root-independent-coordinator",
+        "security_thresholds": {
+          "investigate": 0.2,
+          "strong": 0.8,
+          "sufficient": 0.8
+        },
+        "split": "native-fixes",
+        "transport": "live",
+        "worker_id": "/root/security_targeted_fixes"
+      }
+    ],
+    "metrics": {
+      "available": 4,
+      "cases": 4,
+      "cost_complete": true,
+      "cost_kind": "estimated",
+      "false_alarms": 1,
+      "follow_up_cases": 1,
+      "follow_up_rate": 0.25,
+      "independent_reference_findings": 0,
+      "insufficient_context_misses": 0,
+      "known_evaluator_cost_usd": 0.00014985600000000002,
+      "latency_ms": 801.9039169885218,
+      "missed_concerns": 0,
+      "native_worker_runs": 0,
+      "safe_requirements": 4,
+      "strong_concern_cases": 0,
+      "unavailable": 0,
+      "vulnerable_requirements": 0
+    },
+    "native_calls": 1,
+    "notes": [
+      "One native agent repaired four separately bounded toy functions.",
+      "Independent functional/security review preceded Jev screening of fixed artifacts.",
+      "A concern would require targeted independent follow-up; screening does not change reviewed scores."
+    ],
+    "task_fixes": 4,
+    "worker_configuration": "gpt-5.6-sol / medium",
+    "worker_cost_kind": "unknown",
+    "worker_cost_usd": null,
+    "follow_up_review": {
+      "case_id": "secret-exposure-native-fix",
+      "reviewer": "gpt-5.6-terra / medium",
+      "disposition": "dismissed",
+      "severity": "informational",
+      "finding_ref": "native-security-followup.json",
+      "observed_checks": [
+        "Read native-fixes/secret_exposure.py and the credential-redaction contract and focused test context.",
+        "Ran python3 -m unittest -v test_native_fixes.py from native-fixes: 7 tests passed, including test_diagnostics_omits_environment_credential.",
+        "Ran a standard-library direct check with the toy process environment value toy-followup-secret-9f3c: diagnostics() returned only {'service': 'mailer'} and did not contain that toy value."
+      ]
+    },
+    "final_accepted_tasks": 4
+  },
+  "http_attempts": 14,
+  "live_calls": 14,
+  "worker_billing": "unavailable",
+  "limitations": [
+    "Ten authored Python examples; no broad security guarantee or model-quality qualification.",
+    "Independent references are seeded findings, not worker-performance evidence.",
+    "Violation probabilities are not severity. Token-based prices are estimates.",
+    "Development was called at its recorded initial bands; the frozen-band development replay reuses probabilities and makes no additional inference or outcome claim.",
+    "Mock runs test the harness only; they provide no model calibration evidence.",
+    "Four repairs came from one Sol medium worker invocation; targeted security follow-up used an independent Terra medium reviewer.",
+    "Native fixes were a separate fixed-model test, not router selection, qualification, or portable worker-performance evidence.",
+    "At the original .90 evidence threshold, a rule replay flags three of the four fixed outputs; that replay makes no additional inference claim."
+  ],
+  "default_bands_at_evaluation": {
+    "investigate": 0.2,
+    "strong": 0.8,
+    "sufficient": 0.9
+  },
+  "current_default_bands": {
+    "investigate": 0.2,
+    "strong": 0.8,
+    "sufficient": 0.8
+  }
+}

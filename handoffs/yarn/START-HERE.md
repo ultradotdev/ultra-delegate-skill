@@ -10,6 +10,9 @@ The bundled Ultra Delegation pilot prepares bounded native work through
 `runtime/ultra-delegation/scripts/pilot.py`. It does not execute a model, run
 tests, make a worktree, merge a patch, or accept the product. The coordinator owns
 architecture, integration, native tool calls, independent review, and release.
+Every real packet must declare its structured boundary contract explicitly. The
+pilot does not derive authorization, allowed changes, protected behavior/data,
+coordinator decisions, or security requirements from a task-card sentence.
 
 Read `PLAN.md`, then `RUNBOOK.md`. Begin with a concise inventory and behavior
 matrix, select one small end-to-end slice, declare its acceptance contract, and
@@ -42,11 +45,16 @@ delivery.
   and the optional judge are separate permissions.
 - Discover exact current Codex models, efforts, capacities, and declared
   `read-files`/`edit-files`/`run-tests` tools. A tool declaration is not a sandbox.
+- Inspect `worker-contract.md` beside every prepared packet and verify its exact
+  JSON boundary contract and hash before routing.
 - After routing, use the persisted workflow: plan → per-attempt recheck → native
   run record → artifact completion → independent outcome → reviewed event. One
   repair may follow a concrete review finding, then an eligible fallback.
 - Preserve failed, rejected, incomplete, comparison, repair, and canceled
   attempts. A passing alternative completes the request; never auto-merge it.
+- Security screening is off by default and never runs scanners. If enabled,
+  preview `workflow-security` before `--live`; independently disposition required
+  findings before `workflow-review` can accept the artifact.
 - Credential lifecycle is user-controlled. Read an existing environment credential
   or configured store locator only; never create, modify, expose, or place a key
   in argv.

@@ -399,7 +399,7 @@ def _event(root, identifier, value, *, packet=None):
             d = pilot.get_decision(root, a['decision_id'])
             required = {'decision_id', 'configuration_id', 'artifact_hash', 'reviewer_id', 'reviewer_kind', 'review_accepted',
                         'gates', 'scores', 'costs', 'latency_ms', 'request_id', 'attempt_id', 'attempt_kind', 'worker_id'}
-            optional = {'prompt_version', 'reviewed_demands', 'critical_defects'}
+            optional = {'prompt_version', 'reviewed_demands', 'critical_defects', 'security_review', 'boundary_hash'}
             verified = core.assess_outcome({k: outcome[k] for k in required | optional if k in outcome}, d, pilot.load_policy(root))
             core.require(verified['id'] == outcome_id and verified['accepted'] == outcome['accepted'], 'outcome-changed')
             a.update(state='accepted' if verified['accepted'] else 'rejected', outcome_id=outcome_id,

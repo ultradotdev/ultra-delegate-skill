@@ -133,6 +133,11 @@ class PilotWorkflowTests(unittest.TestCase):
         with self.assertRaisesRegex(core.PilotError, "synthetic-decision"):
             pilot.recheck(self.root, d["id"], self.packet)
 
+    def security_packet(self):
+        boundaries = copy.deepcopy(self.packet['task']['boundaries'])
+        return {'boundaries': boundaries, 'requirements': boundaries['security_requirements']['items'],
+                'excerpts':['PRIVATE-CODE'], 'validation_summary':'Independently checked selected excerpt.'}
+
     def test_disabled_security_never_reads_credentials_or_calls_service(self):
         d = self.decision()
         with patch.object(transport, "credential", side_effect=AssertionError), patch.object(transport, "request", side_effect=AssertionError):
@@ -144,7 +149,7 @@ class PilotWorkflowTests(unittest.TestCase):
         d = self.decision()
         def fail(payload, key):
             raise RuntimeError("SECRET-PROVIDER-ERROR")
-        o = pilot.observe(self.root, self.raw(d), security_input={"requirements": ["Do not expose secrets"], "excerpts": ["PRIVATE-CODE"], "validation_summary": "Reviewed excerpts"}, security_check=True, live=True, call=fail, key="SECRET-KEY")
+        o = pilot.observe(self.root, self.raw(d), security_input=self.security_packet(), security_check=True, live=True, call=fail, key="SECRET-KEY")
         self.assertTrue(o["accepted"])
         self.assertEqual("unavailable", o["security"]["status"])
         encoded = json.dumps(o)
@@ -157,23 +162,23 @@ class PilotWorkflowTests(unittest.TestCase):
             self.assertEqual(d['action'], 'route')
             self.assertEqual(d['reason_codes'], ['credential-store-timeout'])
             self.assertEqual(d['router']['attempts'], 0)
-            packet = {'requirements':['Authorization required'], 'excerpts':['selected-code'], 'validation_summary':'independent checks passed'}
+            packet = self.security_packet()
             o = pilot.observe(self.root, self.raw(d), security_input=packet, security_check=True, live=True)
         self.assertTrue(o['accepted'])
         self.assertEqual(o['security']['status'], 'unavailable')
         self.assertEqual(o['security']['reason_codes'], ['credential-store-timeout'])
         self.assertEqual(o['security']['attempts'], 0)
 
-    def test_security_findings_do_not_override_independent_verdict(self):
+    def test_security_signal_requires_followup_before_publication(self):
         d = self.decision()
         def finding(payload, key):
             result, meta = pilot.synthetic_response(payload, key)
-            result["answers"]["material_vulnerability"]["noul"] = 0.95
+            result["answers"]["violation_0"]["noul"] = 0.95
             return result, meta
-        packet = {"requirements": ["Authorization required"], "excerpts": ["selected-code"], "validation_summary": "tests passed"}
-        o = pilot.observe(self.root, self.raw(d), security_input=packet, security_check=True, live=True, call=finding, key="x")
-        self.assertTrue(o["accepted"])
-        self.assertEqual("fail", o["security"]["status"])
+        packet = self.security_packet()
+        with self.assertRaisesRegex(core.PilotError, 'security-follow-up-required'):
+            pilot.observe(self.root, self.raw(d), security_input=packet, security_check=True, live=True, call=finding, key="x")
+        self.assertFalse(list((self.root/'outcomes').glob('*.json')))
 
     def test_artifact_sharing_is_independent_from_routing(self):
         p = {**self.p, "share_artifacts": False}

@@ -28,6 +28,12 @@ ATTEMPT_STATES = ("planned", "launching", "running", "completed", "accepted", "r
 REQUEST_STATES = ("in-progress", "accepted", "success", "coordinator-required", "canceled")
 JUDGE_STATUSES = ("unavailable", "insufficient-evidence", "scored")
 JUDGE_DIMENSIONS = ("coverage", "scope", "evidence", "clarity")
+SECURITY_SIGNALS = ("no-concern", "investigate", "strong-concern", "insufficient-evidence")
+SECURITY_DISPOSITIONS = ("not-required", "completed", "handoff", "unavailable", "pending")
+SECURITY_FINDING_DISPOSITIONS = ("confirmed", "dismissed", "unresolved")
+SECURITY_SEVERITIES = ("critical", "high", "medium", "low", "informational")
+SECURITY_SCOPES = ("delivered", "pre-existing")
+SECURITY_COORDINATOR_DISPOSITIONS = ("accept-with-limitation", "handoff")
 LOCAL_DESCRIPTION_MAX_CHARS = 1024
 
 
@@ -123,6 +129,125 @@ def _assessment_evidence(value: Any) -> dict[str, Any]:
 def _probability(value: Any) -> float | None:
     number = _number(value)
     return number if number is not None and 0 <= number <= 1 else None
+
+
+def _hash64(value: Any) -> str | None:
+    return value if isinstance(value, str) and re.fullmatch(r"[a-f0-9]{64}", value) else None
+
+
+def _nonnegative_int(value: Any, default: int = 0) -> int:
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else default
+
+
+def _nonnegative_int_or_none(value: Any) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+
+
+def _security_requirement(value: Any) -> dict[str, Any] | None:
+    """Project one assessment signal without retaining requirement prose."""
+    if not isinstance(value, dict) or not _metadata_label(value.get("id")):
+        return None
+    violation = _probability(value.get("violation_probability"))
+    evidence = _probability(value.get("evidence_probability"))
+    signal = value.get("signal")
+    if violation is None or evidence is None or signal not in SECURITY_SIGNALS:
+        return None
+    return {
+        "id": value["id"],
+        "mandatory": value.get("mandatory") is True,
+        "violation_probability": violation,
+        "evidence_probability": evidence,
+        "signal": signal,
+        "follow_up": value.get("follow_up") is True,
+    }
+
+
+def _security_finding(value: Any) -> dict[str, Any] | None:
+    """Allowlist coordinator-reviewed finding metadata, never finding prose."""
+    if not isinstance(value, dict) or not _metadata_label(value.get("id")):
+        return None
+    requirement_id = value.get("requirement_id")
+    if requirement_id is not None and not _metadata_label(requirement_id):
+        return None
+    if (value.get("disposition") not in SECURITY_FINDING_DISPOSITIONS
+            or value.get("severity") not in SECURITY_SEVERITIES
+            or value.get("scope") not in SECURITY_SCOPES
+            or value.get("coordinator_disposition") not in (*SECURITY_COORDINATOR_DISPOSITIONS, None)):
+        return None
+    return {key: value[key] for key in (
+        "id", "requirement_id", "disposition", "severity", "scope", "coordinator_disposition")}
+
+
+def _project_security(value: Any) -> dict[str, Any]:
+    security = value if isinstance(value, dict) else {}
+    requirements = ([clean for item in security.get("requirements", [])
+                     if (clean := _security_requirement(item)) is not None]
+                    if isinstance(security.get("requirements"), list) else [])
+    findings = ([clean for item in security.get("findings", [])
+                if (clean := _security_finding(item)) is not None]
+               if isinstance(security.get("findings"), list) else [])
+    details_hash = _hash64(security.get("details_hash"))
+    details_ref = security.get("details_ref")
+    expected_ref = f"security-findings/{details_hash}.json" if details_hash else None
+    if not isinstance(details_ref, str) or details_ref != expected_ref:
+        details_ref = None
+    return {
+        "mode": security.get("mode") if security.get("mode") in ("off", "advisory") else "off",
+        "status": security.get("status") if security.get("status") in ("not_checked", "pass", "fail", "indeterminate", "unavailable") else "not_checked",
+        "reason_codes": _code_labels(security.get("reason_codes")),
+        "required_finding_ids": _code_labels(security.get("required_finding_ids")),
+        "latency_ms": _number(security.get("latency_ms"), 0),
+        "cost_usd": _number(security.get("cost_usd")),
+        "cost_kind": security.get("cost_kind") if security.get("cost_kind") in ("measured", "estimated", "unknown") else "unknown",
+        "attempts": _number(security.get("attempts"), 0),
+        "model": _label(security.get("model")),
+        "question_version": _label(security.get("question_version")),
+        "input_hash": _label(security.get("input_hash")),
+        "question_hash": _label(security.get("question_hash")),
+        "input_tokens": _nonnegative_int_or_none(security.get("input_tokens")),
+        "output_tokens": _nonnegative_int_or_none(security.get("output_tokens")),
+        "assessment_id": security.get("assessment_id") if _metadata_label(security.get("assessment_id")) else None,
+        "artifact_hash": _hash64(security.get("artifact_hash")),
+        "boundary_hash": _hash64(security.get("boundary_hash")),
+        "coverage_hash": _hash64(security.get("coverage_hash")),
+        "excerpt_count": _nonnegative_int(security.get("excerpt_count")),
+        "follow_up_required": security.get("follow_up_required") is True,
+        "reviewed": security.get("reviewed") is True,
+        "disposition": security.get("disposition") if security.get("disposition") in SECURITY_DISPOSITIONS else "unavailable",
+        "requirements": requirements,
+        "findings": findings,
+        "details_hash": details_hash,
+        "details_ref": details_ref,
+    }
+
+
+def _project_security_assessment(value: Any) -> dict[str, Any] | None:
+    """Project a saved evaluator record separately from reviewed outcomes."""
+    if not isinstance(value, dict) or value.get("schema") != "ultra-pilot-security-v1":
+        return None
+    binding = value.get("binding")
+    if not isinstance(binding, dict):
+        return None
+    request_id, attempt_id = binding.get("request_id"), binding.get("attempt_id")
+    decision_id, artifact_hash = binding.get("decision_id"), _hash64(binding.get("artifact_hash"))
+    if (not _metadata_label(request_id) or not _metadata_label(attempt_id)
+            or not _metadata_label(decision_id) or artifact_hash is None
+            or value.get("artifact_hash") != artifact_hash
+            or not _metadata_label(value.get("assessment_id"))):
+        return None
+    security = _project_security(value)
+    # A saved assessment is evaluator output, not a coordinator review.
+    security.update(reviewed=False, findings=[], details_hash=None, details_ref=None)
+    if security["disposition"] not in {"not-required", "pending", "unavailable"}:
+        security["disposition"] = "unavailable"
+    return {
+        "assessment_id": security["assessment_id"],
+        "decision_id": decision_id,
+        "request_id": request_id,
+        "attempt_id": attempt_id,
+        "artifact_hash": artifact_hash,
+        "security": security,
+    }
 
 
 def _efficiency_hint(value: Any) -> dict[str, Any] | None:
@@ -250,7 +375,7 @@ def _project_outcome(raw: Any) -> dict[str, Any] | None:
         if isinstance(gate, dict): gates.append({"id": _label(gate.get("id")), "mandatory": gate.get("mandatory") is True, "passed": gate.get("passed") is True})
     scores = raw.get("scores") if isinstance(raw.get("scores"), dict) else {}
     costs = raw.get("costs") if isinstance(raw.get("costs"), dict) else {}
-    security = raw.get("security") if isinstance(raw.get("security"), dict) else {}
+    security = _project_security(raw.get("security"))
     judge_raw = raw.get("judge") if isinstance(raw.get("judge"), dict) else {}
     judge_scores = judge_raw.get("scores") if isinstance(judge_raw.get("scores"), dict) else {}
     judge = {
@@ -277,13 +402,7 @@ def _project_outcome(raw: Any) -> dict[str, Any] | None:
         "scores": {key: _number(scores.get(key)) for key in ("coverage", "correctness", "maintainability", "clarity")},
         "costs": {key: _cost(costs.get(key)) for key in ("preparation", "worker", "review", "retry", "fallback")},
         "latency_ms": _number(raw.get("latency_ms")),
-        "security": {"mode": security.get("mode") if security.get("mode") in ("off", "advisory") else "off",
-                     "status": security.get("status") if security.get("status") in ("not_checked", "pass", "fail", "indeterminate", "unavailable") else "not_checked",
-                     "reason_codes": _code_labels(security.get("reason_codes")), "latency_ms": _number(security.get("latency_ms"), 0),
-                     "cost_usd": _number(security.get("cost_usd")), "cost_kind": security.get("cost_kind") if security.get("cost_kind") in ("measured", "estimated", "unknown") else "unknown",
-                     "attempts": _number(security.get("attempts"), 0),
-                     "model": _label(security.get("model")), "question_version": _label(security.get("question_version")),
-                     "input_hash": _label(security.get("input_hash")), "question_hash": _label(security.get("question_hash"))},
+        "security": security,
         # This is intentionally separate from independent acceptance.  In
         # particular, there is no derived judge verdict in the report.
         "judge": judge,
@@ -331,6 +450,7 @@ def _project_request(raw: Any, outcomes_by_id: dict[str, dict[str, Any]]) -> dic
         clean_attempts.append({
             "id": _label(attempt.get("id")), "configuration_id": _label(attempt.get("configuration_id")),
             "kind": kind, "state": state,
+            "decision_id": attempt.get("decision_id") if _metadata_label(attempt.get("decision_id")) else None,
             "parent_attempt_id": attempt.get("parent_attempt_id") if _metadata_label(attempt.get("parent_attempt_id")) else None,
             "reason_code": attempt.get("reason_code") if attempt.get("reason_code") in _code_labels([attempt.get("reason_code")]) else None,
             "outcome_id": outcome_id, "artifact_hash": attempt.get("artifact_hash") if _metadata_label(attempt.get("artifact_hash")) else None,
@@ -402,19 +522,42 @@ def _cost_components(costs):
             for kind in ("measured", "estimated")}
 
 
-def _security_state(outcome: dict[str, Any] | None) -> str:
-    if outcome is None:
+def _security_state_value(security: dict[str, Any] | None) -> str:
+    if security is None:
         return "unavailable"
-    security = outcome["security"]
-    if security["mode"] == "off":
+    if security.get("mode", "off") == "off":
         return "off"
-    return "completed" if security["status"] in {"pass", "fail", "indeterminate"} else "unavailable"
+    return "completed" if security.get("status") in {"pass", "fail", "indeterminate"} else "unavailable"
 
 
-def _overview(decisions, outcomes, requests):
+def _security_firstscreen(security: dict[str, Any] | None) -> dict[str, Any]:
+    """Return compact security metadata suitable for the report overview."""
+    if security is None:
+        return {"state": "unavailable", "result": None, "confirmed": 0, "unresolved": 0,
+                "requirement_ids": [], "requirements": [], "excerpt_count": 0, "follow_up_required": False,
+                "disposition": "unavailable"}
+    findings = security.get("findings", [])
+    requirements = security.get("requirements", [])
+    return {
+        "state": _security_state_value(security),
+        "result": security.get("status", "not_checked"),
+        "confirmed": sum(f["disposition"] == "confirmed" for f in findings),
+        "unresolved": sum(f["disposition"] == "unresolved" for f in findings),
+        "requirement_ids": [r["id"] for r in requirements],
+        "requirements": [{key: r[key] for key in
+                          ("id", "violation_probability", "evidence_probability", "signal")} for r in requirements],
+        "excerpt_count": security.get("excerpt_count", 0),
+        "follow_up_required": security.get("follow_up_required") is True,
+        "disposition": security.get("disposition", "unavailable"),
+    }
+
+
+def _overview(decisions, outcomes, requests, assessments):
     """One concise, machine-readable story per request (or unstarted decision)."""
     by_decision = {d["id"]: d for d in decisions}
     by_outcome = {o["id"]: o for o in outcomes}
+    assessments_by_binding = {(a["request_id"], a["attempt_id"], a["artifact_hash"], a["decision_id"]): a
+                              for a in assessments}
     identities = {c["configuration_id"]: c for d in decisions for c in d["candidates"]}
     rows = []
     requested = {did for r in requests for did in r["decision_history"]}
@@ -433,10 +576,20 @@ def _overview(decisions, outcomes, requests):
         times = []
         for attempt in attempts:
             outcome = by_outcome.get(attempt.get("outcome_id"))
+            assessment = None
+            if request is not None and outcome is None:
+                decision_id = attempt.get("decision_id") or request.get("decision_id")
+                assessment = assessments_by_binding.get(
+                    (request["id"], attempt["id"], attempt.get("artifact_hash"), decision_id))
             identity = identities.get(attempt["configuration_id"], {})
             attempt_cost = _outcome_costs(outcome) if outcome else [{"usd": None, "kind": "unknown"}]
+            if assessment is not None:
+                pending_security = assessment["security"]
+                attempt_cost.append({"usd": pending_security["cost_usd"], "kind": pending_security["cost_kind"]})
             costs.extend(attempt_cost)
             times.append(outcome["latency_ms"] if outcome else None)
+            security_source = outcome["security"] if outcome is not None else assessment["security"] if assessment is not None else None
+            security_summary = _security_firstscreen(security_source)
             attempt_rows.append({"id": attempt["id"], "configuration_id": attempt["configuration_id"],
                                  "model": identity.get("model"), "effort": identity.get("effort"),
                                  "kind": attempt["kind"], "state": attempt["state"],
@@ -444,8 +597,10 @@ def _overview(decisions, outcomes, requests):
                                  "artifact_correction": attempt.get("artifact_correction"),
                                  "critical_defects": outcome["critical_defects"] if outcome else attempt.get("critical_defects", []),
                                  "latency_ms": outcome["latency_ms"] if outcome else None,
-                                 "cost": _total_cost(attempt_cost), "security": _security_state(outcome),
-                                 "security_result": outcome["security"]["status"] if outcome else None})
+                                 "cost": _total_cost(attempt_cost), "security": security_summary["state"],
+                                 "security_result": security_summary["result"],
+                                 "security_summary": security_summary,
+                                 "security_source": "outcome" if outcome is not None else "assessment" if assessment is not None else None})
         router = decision.get("router", {})
         routers = [by_decision.get(did, {}).get("router", {}) for did in request["decision_history"]] if request else [router]
         costs.extend({"usd": item.get("cost_usd"), "kind": item.get("cost_kind", "unknown")} for item in routers)
@@ -481,12 +636,31 @@ def _overview(decisions, outcomes, requests):
     return rows
 
 
-def build_report(decisions: list[dict[str, Any]], outcomes: list[dict[str, Any]], requests=()) -> dict[str, Any]:
+def build_report(decisions: list[dict[str, Any]], outcomes: list[dict[str, Any]], requests=(), assessments=()) -> dict[str, Any]:
     """Build a pure data report from the two append-only ledgers."""
     ds = [x for x in (_project_decision(d) for d in decisions if isinstance(d, dict)) if x]
     os = [x for x in (_project_outcome(o) for o in outcomes if isinstance(o, dict)) if x]
     outcomes_by_id = {o["id"]: o for o in os}
     workflows = [x for x in (_project_request(r, outcomes_by_id) for r in requests if isinstance(r, dict)) if x]
+    projected_assessments = [x for x in (_project_security_assessment(a) for a in assessments if isinstance(a, dict)) if x]
+    workflow_bindings = {
+        (request["id"], attempt["id"], attempt.get("artifact_hash"),
+         attempt.get("decision_id") or request["decision_id"])
+        for request in workflows for attempt in request["attempts"]
+    }
+    completed_bindings = {
+        (request["id"], attempt["id"], attempt.get("artifact_hash"),
+         attempt.get("decision_id") or request["decision_id"])
+        for request in workflows for attempt in request["attempts"] if attempt["state"] == "completed"
+    }
+    projected_assessments = [a for a in projected_assessments
+                             if (a["request_id"], a["attempt_id"], a["artifact_hash"], a["decision_id"])
+                             in workflow_bindings]
+    attached_assessment_ids = {o["security"]["assessment_id"] for o in os if o["security"]["assessment_id"]}
+    pending_assessments = [a for a in projected_assessments
+                           if a["assessment_id"] not in attached_assessment_ids
+                           and (a["request_id"], a["attempt_id"], a["artifact_hash"], a["decision_id"])
+                           in completed_bindings]
     request_by_decision = {r["decision_id"]: r for r in workflows}
     outcomes_by_decision: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for outcome in os: outcomes_by_decision[outcome["decision_id"]].append(outcome)
@@ -507,6 +681,8 @@ def build_report(decisions: list[dict[str, Any]], outcomes: list[dict[str, Any]]
         if outcome["decision_id"] in {d["id"] for d in ds if d["action"] == "experiment"}: experiment_costs.extend(costs)
     router_costs = [{"usd": d["router"]["cost_usd"], "kind": d["router"]["cost_kind"]} for d in ds]
     all_costs.extend(router_costs)
+    all_costs.extend({"usd": a["security"]["cost_usd"], "kind": a["security"]["cost_kind"]}
+                     for a in pending_assessments)
     # Include experiments and comparator spend in the workload denominator.
     # A trial outcome does not establish that the coordinator's task is done.
     # Every native attempt belongs in cost coverage.  A planned/canceled/failed
@@ -600,7 +776,8 @@ def build_report(decisions: list[dict[str, Any]], outcomes: list[dict[str, Any]]
                     "cost": _total_cost(all_costs), "whole_workload_cost": workload_total, "experiment_cost": _total_cost(experiment_costs),
                     "cost_note": "Known logged spend may mix measured and estimated values. Complete workload cost stays unknown while a selected route, fallback, or final coordinator outcome is unobserved; no savings are claimed."},
         "decisions": ds, "outcomes": os, "requests": workflows,
-        "overview": _overview(ds, os, workflows),
+        "security_assessments": pending_assessments,
+        "overview": _overview(ds, os, workflows, pending_assessments),
         "request_metrics": request_metrics,
     }
 
@@ -634,6 +811,61 @@ def _evidence_text(value: dict[str, Any]) -> str:
     return (f"{value.get('passed_groups', 0)}/{value.get('groups', 0)} groups passing; "
             f"{value.get('failed_groups', 0)} failed; lower bound {value.get('lower_bound', 'unknown')}; "
             "observational history, not a dispatch gate")
+
+
+def _security_result_label(security: dict[str, Any]) -> str:
+    if security.get("mode") == "off":
+        return "off"
+    return {
+        "pass": "no concern detected in assessed evidence",
+        "fail": "concern detected in assessed evidence",
+        "indeterminate": "insufficient evidence",
+        "unavailable": "unavailable",
+        "not_checked": "unavailable",
+    }.get(security.get("status"), "unavailable")
+
+
+def _security_details_html(security: dict[str, Any]) -> str:
+    """Render bounded assessment metadata; detailed prose remains in local artifacts."""
+    requirements = security.get("requirements", [])
+    findings = security.get("findings", [])
+    requirement_rows = "".join(
+        "<tr><td>" + _e(item["id"]) + "</td><td>" + ("yes" if item["mandatory"] else "no") +
+        "</td><td>" + _e(item["violation_probability"]) + "</td><td>" +
+        _e(item["evidence_probability"]) + "</td><td>" + _e(item["signal"]) +
+        "</td><td>" + ("yes" if item["follow_up"] else "no") + "</td></tr>"
+        for item in requirements)
+    finding_rows = "".join(
+        "<tr><td>" + _e(item["id"]) + "</td><td>" + _e(item["requirement_id"]) +
+        "</td><td>" + _e(item["disposition"]) + "</td><td>" + _e(item["severity"]) +
+        "</td><td>" + _e(item["scope"]) + "</td><td>" + _e(item["coordinator_disposition"]) + "</td></tr>"
+        for item in findings)
+    evidence_ref = ("<p><b>Local evidence reference:</b> <a href=\"../" + _e(security["details_ref"]) +
+                    "\"><code>" + _e(security["details_ref"]) + "</code></a></p>"
+                    if security.get("details_ref") else "<p><b>Local evidence reference:</b> unavailable</p>")
+    return (
+        "<details><summary>Security assessment details</summary><p><b>Result:</b> " +
+        _e(_security_result_label(security)) + " · <b>Assessment:</b> " + _e(security.get("assessment_id")) +
+        " · <b>Reviewed:</b> " + ("yes" if security.get("reviewed") else "no") +
+        " · <b>Disposition:</b> " + _e(security.get("disposition")) +
+        " · <b>Excerpts assessed:</b> " + _e(security.get("excerpt_count", 0)) + "</p>" +
+        evidence_ref +
+        "<table><thead><tr><th>Requirement</th><th>Mandatory</th><th>Violation probability</th><th>Evidence probability</th><th>Signal</th><th>Follow up</th></tr></thead><tbody>" +
+        (requirement_rows or "<tr><td colspan=6>No per-requirement assessment metadata recorded.</td></tr>") +
+        "</tbody></table><table><thead><tr><th>Finding</th><th>Requirement</th><th>Disposition</th><th>Severity</th><th>Scope</th><th>Coordinator disposition</th></tr></thead><tbody>" +
+        (finding_rows or "<tr><td colspan=6>No reviewed finding metadata recorded.</td></tr>") +
+        "</tbody></table></details>")
+
+
+def _security_cell_html(security: dict[str, Any]) -> str:
+    if security.get("mode") != "advisory":
+        has_review = bool(security.get("requirements") or security.get("findings") or security.get("reviewed")
+                          or security.get("details_ref") or security.get("disposition") not in {None, "unavailable"})
+        return "security off" + (_security_details_html(security) if has_review else "")
+    headline = ("security advisory " + _e(security.get("status", "unavailable")) + ": " +
+                _e(_security_result_label(security)) + "; " +
+                _money({"usd": security.get("cost_usd"), "kind": security.get("cost_kind", "unknown")}))
+    return headline + _security_details_html(security)
 
 
 def render_html(report: dict[str, Any]) -> str:
@@ -672,8 +904,25 @@ def render_html(report: dict[str, Any]) -> str:
             elapsed = "unknown" if attempt["latency_ms"] is None else f"{attempt['latency_ms'] / 1000:.2f}s"
             cost = attempt["cost"] if attempt["cost"]["complete"] else {"usd": None}
             security = attempt["security"]
+            security_summary = attempt.get("security_summary", {})
             if security == "completed":
-                security += " (advisory " + str(attempt["security_result"]) + ")"
+                security = "completed (" + _security_result_label({"mode": "advisory", "status": attempt["security_result"]}) + ")"
+            if (security != "off" or security_summary.get("confirmed") or security_summary.get("unresolved")
+                    or security_summary.get("requirement_ids")
+                    or security_summary.get("disposition") not in {None, "unavailable"}):
+                requirement_ids = ", ".join(security_summary.get("requirement_ids", [])) or "none recorded"
+                probability_text = "; ".join(
+                    str(requirement["id"]) + ": violation " + str(requirement["violation_probability"]) +
+                    ", evidence " + str(requirement["evidence_probability"]) +
+                    " (" + str(requirement["signal"]) + ")"
+                    for requirement in security_summary.get("requirements", [])) or "none recorded"
+                security += ("; confirmed " + str(security_summary.get("confirmed", 0)) +
+                             ", unresolved " + str(security_summary.get("unresolved", 0)) +
+                             "; requirements " + requirement_ids +
+                             "; probabilities " + probability_text +
+                             "; excerpts " + str(security_summary.get("excerpt_count", 0)) +
+                             "; follow-up " + ("required" if security_summary.get("follow_up_required") else "not required") +
+                             "; disposition " + str(security_summary.get("disposition", "unavailable")))
             rows.append("<tr><td>" + _e(attempt["kind"]) + "</td><td>" + _e(model) + "</td><td>" +
                         _e(state_labels.get(attempt["state"], attempt["state"])) + "</td><td>" + _e(elapsed) +
                         "</td><td>" + _money(cost) + "</td><td>" + _e(security) + "</td></tr>")
@@ -733,7 +982,7 @@ def render_html(report: dict[str, Any]) -> str:
         recommendation = f"{_e(recommended['model'])} / {_e(recommended['effort'])}" if recommended else _e(d["recommended_configuration_id"])
         nominee_pairs = [(cid, f"{_e(candidates_by_id[cid]['model'])} / {_e(candidates_by_id[cid]['effort'])}") for cid in d["nominated_configuration_ids"] if cid in candidates_by_id]
         candidate_rows = "".join(f"<tr><td>{_e(c['model'])} / {_e(c['effort'])}<br><small>{_e(c['configuration_id'])}</small></td><td>{'eligible' if c['eligible'] else 'ineligible'}; output {_e(c['output_limit_source'])}, limit {_e(c['max_output_tokens'] if c['max_output_tokens'] is not None else 'unreported')}</td><td>{_e(assessments.get(c['configuration_id'], {}).get('status', 'not assessed'))}; {_e(', '.join(assessments.get(c['configuration_id'], {}).get('reason_codes', [])) or 'no assessment reasons')}</td><td>{_e(_evidence_text(assessments.get(c['configuration_id'], {}).get('evidence', c['evidence'])))}</td></tr>" for c in d["candidates"])
-        outcome_rows = "".join(f"<tr><td>{_e(candidates_by_id.get(o['configuration_id'], {}).get('model', o['configuration_id']))} / {_e(candidates_by_id.get(o['configuration_id'], {}).get('effort', 'unreported'))}<br><small>{_e(o['observation_role'] or 'role unrecorded')}</small></td><td>{'accepted' if o['accepted'] else 'not accepted'}<br><small>critical defects: {_e(', '.join(o['critical_defects']) or 'none recorded')} · reviewed demands: {_e(', '.join(_demand_name(x) for x in o['reviewed_demands']) or 'none recorded')}</small></td><td>{_e(o['scores'])}</td><td>prep {_money(o['costs']['preparation'])}; worker {_money(o['costs']['worker'])}; review {_money(o['costs']['review'])}; retry {_money(o['costs']['retry'])}; fallback {_money(o['costs']['fallback'])}</td><td>{'security advisory ' + _e(o['security']['status']) + '; ' + _money({'usd': o['security']['cost_usd'], 'kind': o['security']['cost_kind']}) if o['security']['mode'] == 'advisory' else 'security off'}<br>{'quality advisory ' + _e(o['judge']['status']) + '; rubric ' + _e(o['judge']['rubric_version']) + '; ' + _money(o['judge']['cost']) if o['judge']['mode'] == 'advisory' else 'quality judge off'}</td></tr>" for o in rows) or "<tr><td colspan=5>Pending - no outcome recorded.</td></tr>"
+        outcome_rows = "".join(f"<tr><td>{_e(candidates_by_id.get(o['configuration_id'], {}).get('model', o['configuration_id']))} / {_e(candidates_by_id.get(o['configuration_id'], {}).get('effort', 'unreported'))}<br><small>{_e(o['observation_role'] or 'role unrecorded')}</small></td><td>{'accepted' if o['accepted'] else 'not accepted'}<br><small>critical defects: {_e(', '.join(o['critical_defects']) or 'none recorded')} · reviewed demands: {_e(', '.join(_demand_name(x) for x in o['reviewed_demands']) or 'none recorded')}</small></td><td>{_e(o['scores'])}</td><td>prep {_money(o['costs']['preparation'])}; worker {_money(o['costs']['worker'])}; review {_money(o['costs']['review'])}; retry {_money(o['costs']['retry'])}; fallback {_money(o['costs']['fallback'])}</td><td>{_security_cell_html(o['security'])}<br>{'quality advisory ' + _e(o['judge']['status']) + '; rubric ' + _e(o['judge']['rubric_version']) + '; ' + _money(o['judge']['cost']) if o['judge']['mode'] == 'advisory' else 'quality judge off'}</td></tr>" for o in rows) or "<tr><td colspan=5>Pending - no outcome recorded.</td></tr>"
         signals = " ".join(f"{_pill(k + ': ' + json.dumps(v, separators=(',', ':')))}" for k, v in d["signals"].items()) or "No validated question probabilities recorded."
         synthetic = '<p class="warning">Synthetic telemetry; it does not establish live routing evidence.</p>' if d["synthetic"] else ""
         pending = '<p class="warning">Selected worker outcome pending - comparator outcomes do not establish selected-worker acceptance.</p>' if selected_pending else ('<p class="warning">Experiment pending - no routine acceptance conclusion is available.</p>' if experiment_pending else '')
