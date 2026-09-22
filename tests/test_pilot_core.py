@@ -7,6 +7,7 @@ from pathlib import Path
 SCRIPT = Path(__file__).resolve().parents[1] / ".agents/skills/ultra-delegation/scripts"
 sys.path.insert(0, str(SCRIPT))
 import pilot_core as core
+import pilot_boundaries
 
 NOW = dt.datetime(2026, 9, 20, tzinfo=dt.timezone.utc)
 
@@ -27,7 +28,7 @@ def packet(**changes):
              "task": {"scope_id": "parser", "summary": "Repair a parser.", "requirements": ["Keep API."],
                       "worker_boundary": "Patch plus tests.", "intended_use": "Internal reviewed release.", "risk": "low",
                       "work_kind": "coding", "operation": "repair-parser", "complexity": "routine",
-                      "acceptance_gates": ["tests-pass"], "required_tools": ["tests"], "required_modalities": [],
+                      "acceptance_gates": ["tests-pass"], "boundaries": pilot_boundaries.example(), "required_tools": ["tests"], "required_modalities": [],
                       "input_tokens": 100, "output_tokens": 100},
              "context": {"host": "codex", "provider": "openai", "observed_at": NOW.isoformat(), "delegation_allowed": True},
              "candidates": [candidate()]}
@@ -139,7 +140,7 @@ class PilotCoreTests(unittest.TestCase):
         self.assertEqual(base["task"]["complexity"], "routine")
 
     def test_assess_outcome_requires_independent_acceptance_gates(self):
-        c = candidate(); decision = {"id": "decision-a", "task_id": "task-a", "group_id": "group-current", "scope_id": "parser", "operation": "repair-parser", "risk": "low", "work_kind": "coding", "complexity": "routine", "synthetic": False, "decision_policy_version": core.DECISION_POLICY_VERSION, "acceptance_gates": ["tests-pass"], "candidates": [{"configuration_id": core.configuration_id(c), "eligible": True}]}
+        c = candidate(); decision = {"id": "decision-a", "task_id": "task-a", "group_id": "group-current", "scope_id": "parser", "operation": "repair-parser", "risk": "low", "work_kind": "coding", "complexity": "routine", "synthetic": False, "decision_policy_version": core.DECISION_POLICY_VERSION, "acceptance_gates": ["tests-pass"], "boundaries": pilot_boundaries.example(), "candidates": [{"configuration_id": core.configuration_id(c), "eligible": True}]}
         raw = {"decision_id": "decision-a", "configuration_id": core.configuration_id(c), "artifact_hash": "a" * 64, "worker_id": "native-worker-a", "reviewer_id": "reviewer-a", "reviewer_kind": "human", "review_accepted": True, "gates": [{"id": "tests-pass", "mandatory": True, "passed": True}], "scores": {key: 90 for key in ("coverage", "correctness", "maintainability", "clarity")}, "costs": {key: {"usd": 0.01, "kind": "measured"} for key in ("preparation", "worker", "review", "retry", "fallback")}, "latency_ms": 10}
         self.assertTrue(core.assess_outcome(raw, decision, core.policy())["accepted"])
         synthetic = copy.deepcopy(raw); synthetic["reviewer_kind"] = "synthetic"

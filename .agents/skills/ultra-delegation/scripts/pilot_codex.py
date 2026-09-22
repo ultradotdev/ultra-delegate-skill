@@ -140,7 +140,7 @@ def prepare_project(root, task_packet, catalog, host, output_dir, *, profiles=No
         'files': {name: str(path.resolve()) for name, path in paths.items()}}
     pilot.write_new(paths['packet.json'], packet)
     pilot.write_new(paths['sharing-preview.json'], preview)
-    _write_new_text(paths['worker-contract.md'], pilot_boundaries.worker_contract(packet['task']['boundaries']))
+    _write_new_text(paths['worker-contract.md'], pilot_boundaries.worker_contract(packet['task']['boundaries']) + '\nPrepared packet hash: `sha256:' + preview['input_hash'] + '`\n')
     pilot.write_new(paths['task-labels.json'], {packet['task_id']: packet['task']['summary']})
     pilot.write_new(paths['next-steps.json'], instructions)
     return instructions

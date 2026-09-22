@@ -33,9 +33,12 @@ def fixtures():
     unclear['task'].update(summary='Implement input validation. The requester has not specified input format, allowed values, or required output.',
                           requirements=['Implement the desired validation behavior.'], operation='validation-proposal',
                           worker_boundary='Propose only the requested validation. Do not invent missing product requirements.')
-    security = {'requirements':['Only an authenticated owner may read a document. get_document is the sole authorization boundary; there are no upstream checks and database.read_document returns any requested document.'],
+    boundaries = copy.deepcopy(clear['task']['boundaries'])
+    requirements = [{'id':'owner-read','mandatory':True,'requirement':'Only an authenticated owner may read a document. get_document is the sole authorization boundary; there are no upstream checks and database.read_document returns any requested document.'}]
+    boundaries['security_requirements'] = {'items':requirements,'not_applicable':None}
+    security = {'boundaries':boundaries,'requirements':requirements,
                 'excerpts':['def get_document(request, doc_id):\n    return database.read_document(doc_id)'],
-                'validation_summary':'Synthetic example: an unauthenticated request with another user\'s doc_id returns that document. No other checks are present.'}
+                'validation_summary':'Synthetic example: an unauthenticated request with another user document ID returns that document. No other checks are present.'}
     return clear, unclear, security
 
 
@@ -68,8 +71,8 @@ def run(root, *, live=False, locator=None):
         result, meta = pilot.synthetic_response(payload, secret)
         if payload['state'].get('task',{}).get('operation') == 'validation-proposal':
             result['answers']['missing_requirement']['noul'] = .99
-        if 'material_vulnerability' in result['answers']:
-            result['answers']['material_vulnerability']['noul'] = .99
+        if 'violation_0' in result['answers']:
+            result['answers']['violation_0']['noul'] = .99
         return result, meta
     for name, packet, expected in [('bounded-test-draft', clear, 'route'), ('missing-requirements', unclear, 'clarify')]:
         # Exact preview is safe here because every input is authored synthetic data.
@@ -83,8 +86,8 @@ def run(root, *, live=False, locator=None):
     if len(cases)==2 and all(c['status']!='unavailable' for c in cases):
         s = pilot.security_assessment(security,p,True,live=True,call=call,key=key)
         pilot.write_new(root/'security.json',s)
-        cases.append({'name':'missing-document-authorization','expected':'fail','observed':s['status'],
-                      'passed':s['status']=='fail','status':s['status'],'reason_codes':s['reason_codes'],
+        cases.append({'name':'missing-document-authorization','expected':'indeterminate','observed':s['status'],
+                      'passed':s['status']=='indeterminate','status':s['status'],'reason_codes':s['reason_codes'],
                       'usage':{k:s[k] for k in ('attempts','latency_ms','cost_usd','cost_kind')}})
     report.update(status='completed' if len(cases)==3 else 'incomplete', passed=sum(c['passed'] for c in cases),
                   observed_cases=len(cases), pending_cases=3-len(cases), http_attempts=reserved if live else 0,

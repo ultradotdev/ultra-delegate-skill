@@ -42,7 +42,7 @@ def status(root, request_id):
         "planned": "Run workflow-next with the current packet; reserve launching immediately before the native call.",
         "launching": "Reconcile with the native host. Do not launch again unless the host confirms absence.",
         "running": "Wait for the recorded native run; record completion or execution-failed.",
-        "completed": "Create a workflow-review-template, independently review, then submit workflow-review.",
+        "completed": "Independently review the output and boundaries. If security is enabled, run workflow-security before workflow-review; address required follow-up with --security-findings.",
         "accepted": "Deliver the independently accepted artifact; integrate only within the user's task scope.",
         "rejected": "Retain the failed result and follow the request's comparison or recovery actions.",
         "failed": "Retain the failure and follow the request's comparison or recovery actions.",
@@ -91,12 +91,26 @@ def _review(root, request_id, attempt_id, raw, *, repairable=None, findings_hash
     decision = pilot.get_decision(root, attempt["decision_id"])
     assessed = core.assess_outcome(bound, decision, pilot.load_policy(root))
     destination = Path(root) / "outcomes" / (assessed["id"] + ".json")
-    if not destination.exists():
+    already_recorded = destination.exists()
+    if not already_recorded:
         try:
             pilot.observe(root, bound, **evaluation)
         except FileExistsError:
             # Another invocation may have completed the same immutable review.
             core.require(destination.exists(), "outcome-publication-failed")
+            already_recorded = True
     persisted = pilot.read_json(destination)
+    if already_recorded:
+        if evaluation.get('security_findings') is not None:
+            core.require(core.digest(evaluation['security_findings']) == persisted.get('security_review', {}).get('details_hash'), 'security-review-changed')
+        if evaluation.get('security_input') is not None:
+            core.require(core.digest(evaluation['security_input']) == persisted.get('security', {}).get('input_hash'), 'security-inputs-changed')
+        if evaluation.get('security_check'):
+            core.require(persisted.get('security', {}).get('mode') == 'advisory', 'outcome-security-changed')
+        if evaluation.get('judge_input') is not None:
+            core.require(core.digest(evaluation['judge_input']) == persisted.get('judge', {}).get('input_hash'), 'judge-inputs-changed')
+    if 'security_review' in persisted and 'security_review' not in bound:
+        bound = {**bound, 'security_review':persisted['security_review']}
+        assessed = core.assess_outcome(bound, decision, pilot.load_policy(root))
     core.require(all(persisted.get(k) == v for k, v in assessed.items() if k != "created_at"), "outcome-changed")
     return event(root, request_id, attempt_id, "reviewed", outcome_id=assessed["id"], repairable=repairable, findings_hash=findings_hash)

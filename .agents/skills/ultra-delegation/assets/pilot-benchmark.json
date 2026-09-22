@@ -124,7 +124,7 @@
         "context": {
           "delegation_allowed": true,
           "host": "codex",
-          "observed_at": "2026-09-21T17:41:51.701557+00:00",
+          "observed_at": "2026-09-22T03:59:48.363841+00:00",
           "provider": "openai"
         },
         "group_id": "review-0",
@@ -135,6 +135,46 @@
             "component-tests",
             "independent-review"
           ],
+          "boundaries": {
+            "allowed_actions": {
+              "items": [
+                "Read the supplied component and report evidence-backed findings."
+              ],
+              "not_applicable": null
+            },
+            "allowed_changes": {
+              "items": [],
+              "not_applicable": "The review produces findings and does not change files."
+            },
+            "authorization": "granted",
+            "coordinator_decisions": {
+              "items": [
+                "The coordinator decides whether and how to change the reviewed component."
+              ],
+              "not_applicable": null
+            },
+            "protected_behavior": {
+              "items": [
+                "Treat supplied public behavior as the review baseline."
+              ],
+              "not_applicable": null
+            },
+            "protected_data": {
+              "items": [],
+              "not_applicable": "The synthetic benchmark contains no user, production, or credential data."
+            },
+            "security_requirements": {
+              "items": [
+                {
+                  "id": "no-external-effects",
+                  "mandatory": true,
+                  "requirement": "Do not use networks, external services, credentials, or external writes."
+                }
+              ],
+              "not_applicable": null
+            },
+            "security_sensitive": false
+          },
           "complexity": "routine",
           "input_tokens": 8000,
           "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
@@ -284,7 +324,7 @@
         "context": {
           "delegation_allowed": true,
           "host": "codex",
-          "observed_at": "2026-09-21T17:41:51.701648+00:00",
+          "observed_at": "2026-09-22T03:59:48.364248+00:00",
           "provider": "openai"
         },
         "group_id": "review-1",
@@ -295,6 +335,46 @@
             "component-tests",
             "independent-review"
           ],
+          "boundaries": {
+            "allowed_actions": {
+              "items": [
+                "Read the supplied component and report evidence-backed findings."
+              ],
+              "not_applicable": null
+            },
+            "allowed_changes": {
+              "items": [],
+              "not_applicable": "The review produces findings and does not change files."
+            },
+            "authorization": "granted",
+            "coordinator_decisions": {
+              "items": [
+                "The coordinator decides whether and how to change the reviewed component."
+              ],
+              "not_applicable": null
+            },
+            "protected_behavior": {
+              "items": [
+                "Treat supplied public behavior as the review baseline."
+              ],
+              "not_applicable": null
+            },
+            "protected_data": {
+              "items": [],
+              "not_applicable": "The synthetic benchmark contains no user, production, or credential data."
+            },
+            "security_requirements": {
+              "items": [
+                {
+                  "id": "no-external-effects",
+                  "mandatory": true,
+                  "requirement": "Do not use networks, external services, credentials, or external writes."
+                }
+              ],
+              "not_applicable": null
+            },
+            "security_sensitive": false
+          },
           "complexity": "routine",
           "input_tokens": 8000,
           "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
@@ -444,7 +524,7 @@
         "context": {
           "delegation_allowed": true,
           "host": "codex",
-          "observed_at": "2026-09-21T17:41:51.701654+00:00",
+          "observed_at": "2026-09-22T03:59:48.364293+00:00",
           "provider": "openai"
         },
         "group_id": "review-2",
@@ -455,6 +535,46 @@
             "component-tests",
             "independent-review"
           ],
+          "boundaries": {
+            "allowed_actions": {
+              "items": [
+                "Read the supplied component and report evidence-backed findings."
+              ],
+              "not_applicable": null
+            },
+            "allowed_changes": {
+              "items": [],
+              "not_applicable": "The review produces findings and does not change files."
+            },
+            "authorization": "granted",
+            "coordinator_decisions": {
+              "items": [
+                "The coordinator decides whether and how to change the reviewed component."
+              ],
+              "not_applicable": null
+            },
+            "protected_behavior": {
+              "items": [
+                "Treat supplied public behavior as the review baseline."
+              ],
+              "not_applicable": null
+            },
+            "protected_data": {
+              "items": [],
+              "not_applicable": "The synthetic benchmark contains no user, production, or credential data."
+            },
+            "security_requirements": {
+              "items": [
+                {
+                  "id": "no-external-effects",
+                  "mandatory": true,
+                  "requirement": "Do not use networks, external services, credentials, or external writes."
+                }
+              ],
+              "not_applicable": null
+            },
+            "security_sensitive": false
+          },
           "complexity": "routine",
           "input_tokens": 8000,
           "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
@@ -604,7 +724,7 @@
         "context": {
           "delegation_allowed": true,
           "host": "codex",
-          "observed_at": "2026-09-21T17:41:51.701658+00:00",
+          "observed_at": "2026-09-22T03:59:48.364335+00:00",
           "provider": "openai"
         },
         "group_id": "review-3",
@@ -615,6 +735,46 @@
             "component-tests",
             "independent-review"
           ],
+          "boundaries": {
+            "allowed_actions": {
+              "items": [
+                "Read the supplied component and report evidence-backed findings."
+              ],
+              "not_applicable": null
+            },
+            "allowed_changes": {
+              "items": [],
+              "not_applicable": "The review produces findings and does not change files."
+            },
+            "authorization": "granted",
+            "coordinator_decisions": {
+              "items": [
+                "The coordinator decides whether and how to change the reviewed component."
+              ],
+              "not_applicable": null
+            },
+            "protected_behavior": {
+              "items": [
+                "Treat supplied public behavior as the review baseline."
+              ],
+              "not_applicable": null
+            },
+            "protected_data": {
+              "items": [],
+              "not_applicable": "The synthetic benchmark contains no user, production, or credential data."
+            },
+            "security_requirements": {
+              "items": [
+                {
+                  "id": "no-external-effects",
+                  "mandatory": true,
+                  "requirement": "Do not use networks, external services, credentials, or external writes."
+                }
+              ],
+              "not_applicable": null
+            },
+            "security_sensitive": false
+          },
           "complexity": "routine",
           "input_tokens": 8000,
           "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
@@ -764,7 +924,7 @@
         "context": {
           "delegation_allowed": true,
           "host": "codex",
-          "observed_at": "2026-09-21T17:41:51.701663+00:00",
+          "observed_at": "2026-09-22T03:59:48.364377+00:00",
           "provider": "openai"
         },
         "group_id": "tests-0",
@@ -775,6 +935,48 @@
             "component-tests",
             "independent-review"
           ],
+          "boundaries": {
+            "allowed_actions": {
+              "items": [
+                "Read the supplied component and run its focused test command locally."
+              ],
+              "not_applicable": null
+            },
+            "allowed_changes": {
+              "items": [
+                "Add focused tests and minimal test fixtures for the supplied component contract."
+              ],
+              "not_applicable": null
+            },
+            "authorization": "granted",
+            "coordinator_decisions": {
+              "items": [
+                "The coordinator decides whether the test artifact is integrated."
+              ],
+              "not_applicable": null
+            },
+            "protected_behavior": {
+              "items": [
+                "Do not change production behavior while authoring the test artifact."
+              ],
+              "not_applicable": null
+            },
+            "protected_data": {
+              "items": [],
+              "not_applicable": "The synthetic benchmark contains no user, production, or credential data."
+            },
+            "security_requirements": {
+              "items": [
+                {
+                  "id": "no-external-effects",
+                  "mandatory": true,
+                  "requirement": "Do not use networks, external services, credentials, or external writes."
+                }
+              ],
+              "not_applicable": null
+            },
+            "security_sensitive": false
+          },
           "complexity": "routine",
           "input_tokens": 8000,
           "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
@@ -924,7 +1126,7 @@
         "context": {
           "delegation_allowed": true,
           "host": "codex",
-          "observed_at": "2026-09-21T17:41:51.701669+00:00",
+          "observed_at": "2026-09-22T03:59:48.364418+00:00",
           "provider": "openai"
         },
         "group_id": "tests-1",
@@ -935,6 +1137,48 @@
             "component-tests",
             "independent-review"
           ],
+          "boundaries": {
+            "allowed_actions": {
+              "items": [
+                "Read the supplied component and run its focused test command locally."
+              ],
+              "not_applicable": null
+            },
+            "allowed_changes": {
+              "items": [
+                "Add focused tests and minimal test fixtures for the supplied component contract."
+              ],
+              "not_applicable": null
+            },
+            "authorization": "granted",
+            "coordinator_decisions": {
+              "items": [
+                "The coordinator decides whether the test artifact is integrated."
+              ],
+              "not_applicable": null
+            },
+            "protected_behavior": {
+              "items": [
+                "Do not change production behavior while authoring the test artifact."
+              ],
+              "not_applicable": null
+            },
+            "protected_data": {
+              "items": [],
+              "not_applicable": "The synthetic benchmark contains no user, production, or credential data."
+            },
+            "security_requirements": {
+              "items": [
+                {
+                  "id": "no-external-effects",
+                  "mandatory": true,
+                  "requirement": "Do not use networks, external services, credentials, or external writes."
+                }
+              ],
+              "not_applicable": null
+            },
+            "security_sensitive": false
+          },
           "complexity": "routine",
           "input_tokens": 8000,
           "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
@@ -1084,7 +1328,7 @@
         "context": {
           "delegation_allowed": true,
           "host": "codex",
-          "observed_at": "2026-09-21T17:41:51.701673+00:00",
+          "observed_at": "2026-09-22T03:59:48.364458+00:00",
           "provider": "openai"
         },
         "group_id": "tests-2",
@@ -1095,6 +1339,48 @@
             "component-tests",
             "independent-review"
           ],
+          "boundaries": {
+            "allowed_actions": {
+              "items": [
+                "Read the supplied component and run its focused test command locally."
+              ],
+              "not_applicable": null
+            },
+            "allowed_changes": {
+              "items": [
+                "Add focused tests and minimal test fixtures for the supplied component contract."
+              ],
+              "not_applicable": null
+            },
+            "authorization": "granted",
+            "coordinator_decisions": {
+              "items": [
+                "The coordinator decides whether the test artifact is integrated."
+              ],
+              "not_applicable": null
+            },
+            "protected_behavior": {
+              "items": [
+                "Do not change production behavior while authoring the test artifact."
+              ],
+              "not_applicable": null
+            },
+            "protected_data": {
+              "items": [],
+              "not_applicable": "The synthetic benchmark contains no user, production, or credential data."
+            },
+            "security_requirements": {
+              "items": [
+                {
+                  "id": "no-external-effects",
+                  "mandatory": true,
+                  "requirement": "Do not use networks, external services, credentials, or external writes."
+                }
+              ],
+              "not_applicable": null
+            },
+            "security_sensitive": false
+          },
           "complexity": "routine",
           "input_tokens": 8000,
           "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
@@ -1244,7 +1530,7 @@
         "context": {
           "delegation_allowed": true,
           "host": "codex",
-          "observed_at": "2026-09-21T17:41:51.701677+00:00",
+          "observed_at": "2026-09-22T03:59:48.364498+00:00",
           "provider": "openai"
         },
         "group_id": "tests-3",
@@ -1255,6 +1541,48 @@
             "component-tests",
             "independent-review"
           ],
+          "boundaries": {
+            "allowed_actions": {
+              "items": [
+                "Read the supplied component and run its focused test command locally."
+              ],
+              "not_applicable": null
+            },
+            "allowed_changes": {
+              "items": [
+                "Add focused tests and minimal test fixtures for the supplied component contract."
+              ],
+              "not_applicable": null
+            },
+            "authorization": "granted",
+            "coordinator_decisions": {
+              "items": [
+                "The coordinator decides whether the test artifact is integrated."
+              ],
+              "not_applicable": null
+            },
+            "protected_behavior": {
+              "items": [
+                "Do not change production behavior while authoring the test artifact."
+              ],
+              "not_applicable": null
+            },
+            "protected_data": {
+              "items": [],
+              "not_applicable": "The synthetic benchmark contains no user, production, or credential data."
+            },
+            "security_requirements": {
+              "items": [
+                {
+                  "id": "no-external-effects",
+                  "mandatory": true,
+                  "requirement": "Do not use networks, external services, credentials, or external writes."
+                }
+              ],
+              "not_applicable": null
+            },
+            "security_sensitive": false
+          },
           "complexity": "routine",
           "input_tokens": 8000,
           "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
@@ -1404,7 +1732,7 @@
         "context": {
           "delegation_allowed": true,
           "host": "codex",
-          "observed_at": "2026-09-21T17:41:51.701682+00:00",
+          "observed_at": "2026-09-22T03:59:48.364540+00:00",
           "provider": "openai"
         },
         "group_id": "implementation-0",
@@ -1415,6 +1743,48 @@
             "component-tests",
             "independent-review"
           ],
+          "boundaries": {
+            "allowed_actions": {
+              "items": [
+                "Read the supplied component and run its focused tests locally."
+              ],
+              "not_applicable": null
+            },
+            "allowed_changes": {
+              "items": [
+                "Patch the supplied component and its focused tests for the confirmed defect."
+              ],
+              "not_applicable": null
+            },
+            "authorization": "granted",
+            "coordinator_decisions": {
+              "items": [
+                "The coordinator owns integration, release, and broader architecture decisions."
+              ],
+              "not_applicable": null
+            },
+            "protected_behavior": {
+              "items": [
+                "Preserve documented public behavior outside the confirmed defect."
+              ],
+              "not_applicable": null
+            },
+            "protected_data": {
+              "items": [],
+              "not_applicable": "The synthetic benchmark contains no user, production, or credential data."
+            },
+            "security_requirements": {
+              "items": [
+                {
+                  "id": "no-external-effects",
+                  "mandatory": true,
+                  "requirement": "Do not use networks, external services, credentials, or external writes."
+                }
+              ],
+              "not_applicable": null
+            },
+            "security_sensitive": false
+          },
           "complexity": "routine",
           "input_tokens": 8000,
           "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
@@ -1564,7 +1934,7 @@
         "context": {
           "delegation_allowed": true,
           "host": "codex",
-          "observed_at": "2026-09-21T17:41:51.701686+00:00",
+          "observed_at": "2026-09-22T03:59:48.364581+00:00",
           "provider": "openai"
         },
         "group_id": "implementation-1",
@@ -1575,6 +1945,48 @@
             "component-tests",
             "independent-review"
           ],
+          "boundaries": {
+            "allowed_actions": {
+              "items": [
+                "Read the supplied component and run its focused tests locally."
+              ],
+              "not_applicable": null
+            },
+            "allowed_changes": {
+              "items": [
+                "Patch the supplied component and its focused tests for the confirmed defect."
+              ],
+              "not_applicable": null
+            },
+            "authorization": "granted",
+            "coordinator_decisions": {
+              "items": [
+                "The coordinator owns integration, release, and broader architecture decisions."
+              ],
+              "not_applicable": null
+            },
+            "protected_behavior": {
+              "items": [
+                "Preserve documented public behavior outside the confirmed defect."
+              ],
+              "not_applicable": null
+            },
+            "protected_data": {
+              "items": [],
+              "not_applicable": "The synthetic benchmark contains no user, production, or credential data."
+            },
+            "security_requirements": {
+              "items": [
+                {
+                  "id": "no-external-effects",
+                  "mandatory": true,
+                  "requirement": "Do not use networks, external services, credentials, or external writes."
+                }
+              ],
+              "not_applicable": null
+            },
+            "security_sensitive": false
+          },
           "complexity": "routine",
           "input_tokens": 8000,
           "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
@@ -1724,7 +2136,7 @@
         "context": {
           "delegation_allowed": true,
           "host": "codex",
-          "observed_at": "2026-09-21T17:41:51.701690+00:00",
+          "observed_at": "2026-09-22T03:59:48.364623+00:00",
           "provider": "openai"
         },
         "group_id": "implementation-2",
@@ -1735,6 +2147,48 @@
             "component-tests",
             "independent-review"
           ],
+          "boundaries": {
+            "allowed_actions": {
+              "items": [
+                "Read the supplied component and run its focused tests locally."
+              ],
+              "not_applicable": null
+            },
+            "allowed_changes": {
+              "items": [
+                "Patch the supplied component and its focused tests for the confirmed defect."
+              ],
+              "not_applicable": null
+            },
+            "authorization": "granted",
+            "coordinator_decisions": {
+              "items": [
+                "The coordinator owns integration, release, and broader architecture decisions."
+              ],
+              "not_applicable": null
+            },
+            "protected_behavior": {
+              "items": [
+                "Preserve documented public behavior outside the confirmed defect."
+              ],
+              "not_applicable": null
+            },
+            "protected_data": {
+              "items": [],
+              "not_applicable": "The synthetic benchmark contains no user, production, or credential data."
+            },
+            "security_requirements": {
+              "items": [
+                {
+                  "id": "no-external-effects",
+                  "mandatory": true,
+                  "requirement": "Do not use networks, external services, credentials, or external writes."
+                }
+              ],
+              "not_applicable": null
+            },
+            "security_sensitive": false
+          },
           "complexity": "routine",
           "input_tokens": 8000,
           "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
@@ -1884,7 +2338,7 @@
         "context": {
           "delegation_allowed": true,
           "host": "codex",
-          "observed_at": "2026-09-21T17:41:51.701694+00:00",
+          "observed_at": "2026-09-22T03:59:48.364662+00:00",
           "provider": "openai"
         },
         "group_id": "implementation-3",
@@ -1895,6 +2349,48 @@
             "component-tests",
             "independent-review"
           ],
+          "boundaries": {
+            "allowed_actions": {
+              "items": [
+                "Read the supplied component and run its focused tests locally."
+              ],
+              "not_applicable": null
+            },
+            "allowed_changes": {
+              "items": [
+                "Patch the supplied component and its focused tests for the confirmed defect."
+              ],
+              "not_applicable": null
+            },
+            "authorization": "granted",
+            "coordinator_decisions": {
+              "items": [
+                "The coordinator owns integration, release, and broader architecture decisions."
+              ],
+              "not_applicable": null
+            },
+            "protected_behavior": {
+              "items": [
+                "Preserve documented public behavior outside the confirmed defect."
+              ],
+              "not_applicable": null
+            },
+            "protected_data": {
+              "items": [],
+              "not_applicable": "The synthetic benchmark contains no user, production, or credential data."
+            },
+            "security_requirements": {
+              "items": [
+                {
+                  "id": "no-external-effects",
+                  "mandatory": true,
+                  "requirement": "Do not use networks, external services, credentials, or external writes."
+                }
+              ],
+              "not_applicable": null
+            },
+            "security_sensitive": false
+          },
           "complexity": "routine",
           "input_tokens": 8000,
           "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
@@ -2043,7 +2539,7 @@
         "context": {
           "delegation_allowed": true,
           "host": "codex",
-          "observed_at": "2026-09-21T17:41:51.701557+00:00",
+          "observed_at": "2026-09-22T03:59:48.363841+00:00",
           "provider": "openai"
         },
         "group_id": "perturb-ambiguity",
@@ -2054,6 +2550,46 @@
             "component-tests",
             "independent-review"
           ],
+          "boundaries": {
+            "allowed_actions": {
+              "items": [
+                "Read the supplied component and report evidence-backed findings."
+              ],
+              "not_applicable": null
+            },
+            "allowed_changes": {
+              "items": [],
+              "not_applicable": "The review produces findings and does not change files."
+            },
+            "authorization": "granted",
+            "coordinator_decisions": {
+              "items": [
+                "The coordinator decides whether and how to change the reviewed component."
+              ],
+              "not_applicable": null
+            },
+            "protected_behavior": {
+              "items": [
+                "Treat supplied public behavior as the review baseline."
+              ],
+              "not_applicable": null
+            },
+            "protected_data": {
+              "items": [],
+              "not_applicable": "The synthetic benchmark contains no user, production, or credential data."
+            },
+            "security_requirements": {
+              "items": [
+                {
+                  "id": "no-external-effects",
+                  "mandatory": true,
+                  "requirement": "Do not use networks, external services, credentials, or external writes."
+                }
+              ],
+              "not_applicable": null
+            },
+            "security_sensitive": false
+          },
           "complexity": "routine",
           "input_tokens": 8000,
           "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
@@ -2199,7 +2735,7 @@
         "context": {
           "delegation_allowed": true,
           "host": "codex",
-          "observed_at": "2026-09-21T17:41:51.701557+00:00",
+          "observed_at": "2026-09-22T03:59:48.363841+00:00",
           "provider": "openai"
         },
         "group_id": "perturb-instruction",
@@ -2210,6 +2746,46 @@
             "component-tests",
             "independent-review"
           ],
+          "boundaries": {
+            "allowed_actions": {
+              "items": [
+                "Read the supplied component and report evidence-backed findings."
+              ],
+              "not_applicable": null
+            },
+            "allowed_changes": {
+              "items": [],
+              "not_applicable": "The review produces findings and does not change files."
+            },
+            "authorization": "granted",
+            "coordinator_decisions": {
+              "items": [
+                "The coordinator decides whether and how to change the reviewed component."
+              ],
+              "not_applicable": null
+            },
+            "protected_behavior": {
+              "items": [
+                "Treat supplied public behavior as the review baseline."
+              ],
+              "not_applicable": null
+            },
+            "protected_data": {
+              "items": [],
+              "not_applicable": "The synthetic benchmark contains no user, production, or credential data."
+            },
+            "security_requirements": {
+              "items": [
+                {
+                  "id": "no-external-effects",
+                  "mandatory": true,
+                  "requirement": "Do not use networks, external services, credentials, or external writes."
+                }
+              ],
+              "not_applicable": null
+            },
+            "security_sensitive": false
+          },
           "complexity": "routine",
           "input_tokens": 8000,
           "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
@@ -2355,7 +2931,7 @@
         "context": {
           "delegation_allowed": true,
           "host": "codex",
-          "observed_at": "2026-09-21T17:41:51.701557+00:00",
+          "observed_at": "2026-09-22T03:59:48.363841+00:00",
           "provider": "openai"
         },
         "group_id": "perturb-candidate-order",
@@ -2366,6 +2942,46 @@
             "component-tests",
             "independent-review"
           ],
+          "boundaries": {
+            "allowed_actions": {
+              "items": [
+                "Read the supplied component and report evidence-backed findings."
+              ],
+              "not_applicable": null
+            },
+            "allowed_changes": {
+              "items": [],
+              "not_applicable": "The review produces findings and does not change files."
+            },
+            "authorization": "granted",
+            "coordinator_decisions": {
+              "items": [
+                "The coordinator decides whether and how to change the reviewed component."
+              ],
+              "not_applicable": null
+            },
+            "protected_behavior": {
+              "items": [
+                "Treat supplied public behavior as the review baseline."
+              ],
+              "not_applicable": null
+            },
+            "protected_data": {
+              "items": [],
+              "not_applicable": "The synthetic benchmark contains no user, production, or credential data."
+            },
+            "security_requirements": {
+              "items": [
+                {
+                  "id": "no-external-effects",
+                  "mandatory": true,
+                  "requirement": "Do not use networks, external services, credentials, or external writes."
+                }
+              ],
+              "not_applicable": null
+            },
+            "security_sensitive": false
+          },
           "complexity": "routine",
           "input_tokens": 8000,
           "intended_use": "An isolated proposal reviewed before integration into the consolidated Yarn app.",
@@ -2396,6 +3012,7 @@
     "allowed_risks": [
       "low"
     ],
+    "bakeoff": "auto",
     "baseline_id": null,
     "capability_age_seconds": 300,
     "credential_ref": "default",
@@ -2424,15 +3041,24 @@
     "quarantined_configurations": [],
     "schema": "ultra-pilot-policy-v2",
     "security_check": false,
+    "security_thresholds": {
+      "investigate": 0.2,
+      "strong": 0.8,
+      "sufficient": 0.9
+    },
+    "selection_preference": "efficiency_hints",
     "share_artifacts": false,
     "share_summaries": false,
     "shortlist_limit": 8,
     "thresholds": {
-      "coordinator_coupling": 0.2,
+      "code_interaction_fit": 0.85,
+      "context_synthesis_fit": 0.85,
+      "coordinator_coupling": 0.4,
       "demand": 0.7,
       "evidence_comparable": 0.8,
       "missing_requirement": 0.2,
       "operation_match": 0.85,
+      "reasoning_fit": 0.85,
       "scope_exceeded": 0.15,
       "severe_impact": 0.1
     },

@@ -2,11 +2,13 @@
 
 Let a capable coordinator plan and verify the work while smaller models handle bounded tasks. Learn which model, thinking setting, and prompt work for each task family, then reuse that evidence.
 
-**Active routing and recovery:** after project setup, Jev selects workers immediately, including on an empty history. Native bake-offs, one targeted repair, and eligible fallbacks continue toward an independently accepted result. No qualification gate or routing shadow rollout is required. See the [workflow](.agents/skills/ultra-delegation/references/pilot-workflow.md) and [current validation status](docs/repository-trial-validation.md).
+**Active routing and recovery:** after project setup, Jev selects workers immediately, including on an empty history. Native bake-offs, one targeted repair, and eligible fallbacks continue toward an independently accepted result. No qualification gate or routing shadow rollout is required. See the [workflow](.agents/skills/ultra-delegation/references/pilot-workflow.md) and [current security validation](docs/security-review-validation.md).
 
-**Development release candidate: 1.3.0-rc.7.** Python 3.10 or newer. The offline helper and HTTP adapter have no required Python package dependencies; read-only credential lookup uses the native macOS Keychain utility or optional `keyring` on Windows/Linux. Host execution requires an installed agent host and access to its models. See the [compatibility matrix](docs/compatibility.md) for tested capabilities and limits.
+**Development release candidate: 1.3.0-rc.8.** Python 3.10 or newer. The offline helper and HTTP adapter have no required Python package dependencies; read-only credential lookup uses the native macOS Keychain utility or optional `keyring` on Windows/Linux. Host execution requires an installed agent host and access to its models. See the [compatibility matrix](docs/compatibility.md) for tested capabilities and limits.
 
 For a repository trial, start with the [agent walkthrough](.agents/skills/ultra-delegation/references/repository-trial.md). It covers packet preparation, active routing, native execution, review, recovery, and HTML/JSON reporting. The user supplies an ordinary task; the agent maintains the internal files.
+
+Every new task carries explicit boundaries. Optional requirement-specific Jev security screening stays off by default; independent findings control acceptance and recovery. See the [security checks and live signal results](docs/security-review-validation.md).
 
 ## Proof of concept — use with care
 

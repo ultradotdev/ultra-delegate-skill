@@ -11,12 +11,13 @@ import re
 from urllib.parse import urlsplit
 
 import jev_transport as transport
-from pilot_questions import ROUTING_THRESHOLDS, DEMAND_BANDS
+from pilot_questions import ROUTING_THRESHOLDS, DEMAND_BANDS, SECURITY_THRESHOLDS
 
 SCHEMA = "ultra-pilot-policy-v2"
 DEFAULTS = {
     "schema": SCHEMA, "mode": "off", "share_summaries": False,
     "share_artifacts": False, "security_check": False,
+    "security_thresholds": copy.deepcopy(SECURITY_THRESHOLDS),
     "allow_host_managed_output": False,
     "model": "jev-1.13.0", "credential_service": transport.SERVICE,
     "credential_ref": "default", "baseline_id": None, "pin_id": None,
@@ -27,7 +28,7 @@ DEFAULTS = {
     "thresholds": copy.deepcopy(ROUTING_THRESHOLDS),
     "demand_bands": copy.deepcopy(DEMAND_BANDS),
 }
-DECISION_POLICY_VERSION = "pilot-selection-v7"
+DECISION_POLICY_VERSION = "pilot-selection-v8"
 DEMAND_GATES = {"reasoning": "review-reasoning", "code_interaction": "review-code-interaction",
                 "context_synthesis": "review-context-synthesis"}
 
@@ -134,6 +135,8 @@ def policy(value=None):
         fields(band, {"absent", "required"})
         require(all(transport.number(v) for v in band.values()) and band["absent"] < band["required"], "invalid-demand-band")
         p["demand_bands"][tag] = copy.deepcopy(band)
+    import pilot_security
+    pilot_security.bands(p)
     return p
 
 
@@ -532,8 +535,10 @@ def observation_role(decision, configuration_id_value):
 
 
 def assess_outcome(raw, decision, p):
-    fields(raw, {"decision_id", "configuration_id", "artifact_hash", "reviewer_id", "reviewer_kind", "review_accepted", "gates", "scores", "costs", "latency_ms"}, {"prompt_version", "reviewed_demands", "request_id", "attempt_id", "attempt_kind", "critical_defects", "worker_id"})
+    fields(raw, {"decision_id", "configuration_id", "artifact_hash", "reviewer_id", "reviewer_kind", "review_accepted", "gates", "scores", "costs", "latency_ms"}, {"prompt_version", "reviewed_demands", "request_id", "attempt_id", "attempt_kind", "critical_defects", "worker_id", "security_review", "boundary_hash"})
     require(raw["decision_id"] == decision["id"], "decision-mismatch")
+    if "boundary_hash" in raw:
+        require(raw["boundary_hash"] == decision.get("boundary_hash"), "review-boundaries-changed")
     require(raw["configuration_id"] in {c["configuration_id"] for c in decision["candidates"] if c["eligible"]}, "unknown-outcome-candidate")
     role = observation_role(decision, raw["configuration_id"])
     require(isinstance(raw["artifact_hash"], str) and re.fullmatch(r"[a-f0-9]{64}", raw["artifact_hash"]), "invalid-artifact-hash")
@@ -573,10 +578,19 @@ def assess_outcome(raw, decision, p):
     if "worker_id" in raw:
         label(raw["worker_id"])
         require(raw["worker_id"] != raw["reviewer_id"], "worker-cannot-review-self")
+    if "security_review" in raw:
+        import pilot_security
+        passed = pilot_security.validate_review(raw["security_review"], raw, decision)
+        gates = copy.deepcopy(gates)
+        supplied = next((g for g in gates if g['id'] == 'security-review'), None)
+        if supplied is not None:
+            require(supplied == {'id':'security-review','mandatory':True,'passed':passed}, 'security-gate-changed')
+        else:
+            gates.append({'id':'security-review','mandatory':True,'passed':passed})
     accepted = (not defects and raw["review_accepted"] and all(g["passed"] for g in gates if g["mandatory"])
                 and min(raw["scores"].values()) >= p["dimension_floor"]
                 and sum(raw["scores"].values()) / len(DIMENSIONS) >= p["quality_floor"])
-    o = {**copy.deepcopy(raw), "schema": "ultra-pilot-outcome-v1", "created_at": now(), "accepted": accepted,
+    o = {**copy.deepcopy(raw), "schema": "ultra-pilot-outcome-v1", "created_at": now(), "accepted": accepted, "gates": copy.deepcopy(gates),
          "task_id": decision["task_id"], "group_id": decision["group_id"], "scope_id": decision["scope_id"],
          "operation": decision["operation"], "risk": decision["risk"], "work_kind": decision["work_kind"],
          "complexity": decision["complexity"], "reviewed_demands": sorted(reviewed_demands),

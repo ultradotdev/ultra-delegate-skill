@@ -12,7 +12,7 @@ import re
 import tempfile
 import zipfile
 
-VERSION = "1.3.0-rc.7"
+VERSION = "1.3.0-rc.8"
 REPOSITORY = Path(__file__).resolve().parents[1]
 SKILL = Path(".agents/skills/ultra-delegation")
 SKILL_FILES = (
@@ -30,13 +30,13 @@ SKILL_FILES = (
     "scripts/shortlist.py",
     "scripts/pilot.py",
     "scripts/pilot_workflow.py", "scripts/pilot_judge.py", "scripts/pilot_benchmark.py", "scripts/pilot_learning.py",
-    "scripts/pilot_core.py",
+    "scripts/pilot_core.py", "scripts/pilot_boundaries.py", "scripts/pilot_security.py",
     "scripts/pilot_questions.py",
     "scripts/pilot_report.py",
     "scripts/pilot_codex.py",
     "scripts/pilot_convenience.py",
     "scripts/pilot_fixtures.py",
-    "assets/repository-fixtures.json",
+    "assets/repository-fixtures.json", "assets/security-fixtures.json",
     "assets/efficiency-hints.json",
     "references/repository-trial.md",
     "references/repository-benchmark.md",
@@ -86,7 +86,9 @@ SOURCE_FILES = (
     "scripts/build_yarn_handoff.py", "docs/active-router-plan.md", "docs/active-recovery-validation.md",
     "handoffs/yarn/START-HERE.md", "handoffs/yarn/PLAN.md", "handoffs/yarn/RUNBOOK.md",
     "handoffs/yarn/templates/task-cards.json", "handoffs/yarn/templates/acceptance-checklist.md",
-    "tests/test_pilot_native_capacity.py", "tests/test_pilot_demands.py",
+    "tests/test_pilot_native_capacity.py", "tests/test_pilot_demands.py", "tests/test_pilot_boundaries.py",
+    "tests/test_pilot_security.py", "tests/test_pilot_security_questions.py", "tests/test_pilot_security_report.py",
+    "tests/test_security_qualification.py",
     "tests/test_capability_index.py",
     "tests/test_epoch_import.py",
     "tests/test_pilot_convenience.py",
@@ -96,6 +98,9 @@ SOURCE_FILES = (
     "docs/repository-trial-results.json",
     "docs/full-model-matrix-validation.md", "docs/full-model-matrix-results.json",
     "docs/coordinator-dependency-validation.md", "docs/coordinator-dependency-results.json",
+    "docs/security-review-validation.md", "docs/security-review-results.json",
+    "scripts/security_qualification.py",
+    "tests/test_security_fixture_execution.py", "tests/test_pilot_security_workflow.py",
 )
 SOURCE_PREFIX = f"ultra-delegate-skill-{VERSION}"
 SOURCE_GITIGNORE = b"__pycache__/\n*.py[cod]\n/dist/\n/.ultra-delegation/\n.env\n"

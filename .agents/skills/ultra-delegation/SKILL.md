@@ -24,8 +24,11 @@ Use [pilot-codex.md](references/pilot-codex.md) for discovery,
 [pilot-workflow.md](references/pilot-workflow.md) for recovery,
 [pilot-questions.md](references/pilot-questions.md) for generated atomic questions,
 and [repository-benchmark.md](references/repository-benchmark.md) for executable
-multilingual trials. Security and blinded judging are advisory and need separate
-artifact-sharing permission. Read [pilot.md](references/pilot.md) for lower-level
+multilingual trials. Every new packet requires an explicit structured boundary
+contract; never infer or auto-fill one from task prose. Security screening is off
+by default, uses only coordinator-selected evidence when separately enabled, and
+does not run scanners. Screening signals are advisory, but required independent
+finding dispositions become acceptance gates. Read [pilot.md](references/pilot.md) for lower-level
 interfaces and [pilot-demands.md](references/pilot-demands.md) for review gates.
 
 ## Host boundary
@@ -73,7 +76,13 @@ Keep these with the frontier coordinator unless the user explicitly changes the 
 - Security-sensitive, destructive, externally consequential, or tightly coupled work.
 - Tasks whose acceptance criteria cannot be made independently testable.
 
-Delegate only a bounded task packet with an explicit goal, scope, baseline, acceptance gates, validation commands, and output format. Use separate isolated proposals or worktrees when candidate outputs could conflict.
+Delegate only a bounded task packet with an explicit goal, scope, baseline,
+acceptance gates, validation commands, output format, and structured boundaries
+for allowed changes/actions, protected behavior/data, coordinator decisions,
+security requirements, authorization, and security sensitivity. Each category
+must contain explicit items or a non-applicability explanation. Unknown
+authorization cannot route. Use separate isolated proposals or worktrees when
+candidate outputs could conflict.
 
 For routine work, pass minimal context rather than conversation history. Cache capability discovery within the session, invalidating it on host/model configuration changes or rejected settings. Use one worker, one bounded result, and at most one repair attempt before coordinator escalation. Run bakeoffs only when requested or when evidence is missing, stale, or conflicting. Load references only for the current operation.
 

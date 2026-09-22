@@ -32,7 +32,9 @@ calibration evidence.
 
 Use `runtime/ultra-delegation/references/repository-trial.md` as the current
 agent walkthrough. The agent creates the task/discovery inputs and uses
-`pilot_codex.py prepare` to produce a validated packet and sharing preview.
+`pilot_codex.py prepare` to produce a validated packet, sharing preview, and
+`worker-contract.md`. Inspect the exact structured boundary JSON and hash; the
+preparer does not infer a real task's boundaries.
 The Yarn user does not need to author JSON or manage events.
 
 Selection defaults to `efficiency_hints`. Configure `strongest_fit` if preferred;
@@ -40,6 +42,14 @@ Selection defaults to `efficiency_hints`. Configure `strongest_fit` if preferred
 sharing retain their existing boundaries. Use flag-based `workflow-event`,
 `workflow-review-template`, `workflow-review`, and `workflow-status` for the
 persisted execution/recovery cycle. Repeated initialization preserves policy.
+
+Security is off by default, and the helper runs no scanners. When separately
+enabled, run `workflow-security --input SECURITY_INPUT --dry-run` first, inspect
+the exact payload, then use `--live` only after artifact sharing is authorized.
+If follow-up is required, or the contract is security-sensitive, a distinct
+human/frontier reviewer must complete the returned findings template. Pass that
+local document to `workflow-review --security-findings FILE`; required findings
+must be dispositioned before acceptance.
 
 Keep consolidation architecture with the coordinator. First delegate one bounded
 slice with project tests and independent review. Deliver the actual reviewed

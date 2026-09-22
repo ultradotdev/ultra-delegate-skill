@@ -63,6 +63,11 @@ Create the form after completion. It binds the decision, request, attempt, run,
 configuration, and artifact hash. Fill it from a separate review and observed
 tests, then write the resulting outcome before the `reviewed` event.
 
+Each decision is also bound to the packet's structured boundary hash. Review the
+delivered artifact against allowed changes/actions, protected behavior/data,
+coordinator decisions, and every mandatory security requirement. The worker
+contract cannot be widened during recovery.
+
 ```sh
 python3 "$SKILL_PATH/scripts/pilot.py" --root .ultra-delegation/pilot outcome-template \
   --decision dec_RETURNED_ID --candidate candidate-LOCAL_ID \
@@ -76,6 +81,29 @@ JSON
 python3 "$SKILL_PATH/scripts/pilot.py" --root .ultra-delegation/pilot workflow-event \
   --request req_RETURNED_ID --input /tmp/reviewed.json
 ```
+
+Security is off by default. The helper does not invoke scanners or collect
+evidence. When security screening is enabled, the coordinator supplies only the
+selected excerpts and validation summary, plus the unchanged boundaries and
+security requirements from the packet. It previews the exact payload, and then
+explicitly requests the live advisory call:
+
+```sh
+python3 "$SKILL_PATH/scripts/pilot.py" --root .ultra-delegation/pilot workflow-security \
+  --request req_RETURNED_ID --attempt attempt-1 --input security-input.json --dry-run
+python3 "$SKILL_PATH/scripts/pilot.py" --root .ultra-delegation/pilot workflow-security \
+  --request req_RETURNED_ID --attempt attempt-1 --input security-input.json --live
+```
+
+If the result says `security-follow-up-required`, or the boundary marks the task
+security-sensitive, a separate human/frontier reviewer completes the returned
+review template with evidence-backed findings. Submit the detailed local document
+with `workflow-review --security-findings security-findings.json` or the matching
+`observe` option. Findings must be recorded before acceptance. Jev probabilities
+do not set finding severity or disposition. Confirmed mandatory delivered
+findings block acceptance; unresolved findings require `accept-with-limitation`
+or `handoff`. Detailed prose remains in the hash-bound local findings file while
+the outcome ledger stores allowlisted metadata.
 
 The helper independently reloads the outcome and verifies its decision,
 configuration, artifact, attempt kind, native run, required gates, scores, and
@@ -140,3 +168,5 @@ models and efforts even when earlier decisions used the same pair. Group only
 matching configurations into a native invocation, and record actual accepted
 host controls. Never copy a planned configuration into telemetry for a different
 worker. Host configuration identity does not establish immutable model weights.
+
+Experimental security bands can be changed with `configure --security-investigate 0.20 --security-strong 0.80 --security-sufficient 0.90`. Changing bands does not enable screening or artifact sharing. Known concerns on an unchanged artifact still require independent disposition; a changed policy cannot erase them.
