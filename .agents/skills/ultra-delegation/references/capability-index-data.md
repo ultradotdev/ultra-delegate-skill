@@ -1,12 +1,14 @@
 # Capability research index
 
-As of 2026-09-21; version 3.
+As of 2026-09-22; version 4.
 
 Research priors only: provider positioning and external evaluations do not establish native task success, security, availability or billed cost. Effort-specific capability is unknown unless explicitly evaluated. Reviewed local outcomes remain separate.
 
 | Model | Research summary | Source checked | Evaluation date | Flags |
 | --- | --- | --- | --- | --- |
 | openai/gpt-6-astra | OpenAI positions Astra for demanding end-to-end work, including complex reasoning, coding, research and computer use. | 2026-09-21 | Unknown / not an evaluation | provider-claim-not-evaluation |
+| openai/gpt-6-luna | OpenAI positions GPT-6 Luna as an efficient option for focused, high-volume tasks. | 2026-09-22 | Unknown / not an evaluation | provider-claim-not-evaluation |
+| openai/gpt-6-sol | OpenAI positions GPT-6 Sol for complex coding and agentic workflows. | 2026-09-22 | Unknown / not an evaluation | provider-claim-not-evaluation |
 | openai/gpt-5.6-sol | OpenAI positions Sol as the flagship GPT-5.6 variant for complex professional work. | 2026-09-21 | Unknown / not an evaluation | provider-claim-not-evaluation |
 | openai/gpt-5.6-terra | OpenAI positions Terra as the GPT-5.6 option balancing intelligence and cost. | 2026-09-21 | Unknown / not an evaluation | provider-claim-not-evaluation |
 | openai/gpt-5.6-luna | OpenAI positions Luna for high-volume workloads where cost is a priority. | 2026-09-21 | Unknown / not an evaluation | provider-claim-not-evaluation |
@@ -281,6 +283,8 @@ Research priors only: provider positioning and external evaluations do not estab
 ## Sources
 
 - [OpenAI gpt-6-astra model documentation](https://developers.openai.com/api/docs/models/gpt-6-astra) (curated-summary); checked 2026-09-21; published unknown; revision unversioned. Original summary of provider positioning. Page publication date and effort-specific evaluation are unknown. API documentation does not establish Codex-native availability, controls, task quality, security or subscription cost.
+- [OpenAI gpt-6-luna model documentation](https://developers.openai.com/api/docs/models/gpt-6-luna) (curated-summary); checked 2026-09-22; published unknown; revision unversioned. Original summary of provider positioning. Page publication date and effort-specific evaluation are unknown. API documentation does not establish Codex-native availability, controls, task quality, security or subscription cost.
+- [OpenAI gpt-6-sol model documentation](https://developers.openai.com/api/docs/models/gpt-6-sol) (curated-summary); checked 2026-09-22; published unknown; revision unversioned. Original summary of provider positioning. Page publication date and effort-specific evaluation are unknown. API documentation does not establish Codex-native availability, controls, task quality, security or subscription cost.
 - [OpenAI gpt-5.6-sol model documentation](https://developers.openai.com/api/docs/models/gpt-5.6-sol) (curated-summary); checked 2026-09-21; published unknown; revision unversioned. Original summary of provider positioning. Page publication date and effort-specific evaluation are unknown. API documentation does not establish Codex-native availability, controls, task quality, security or subscription cost.
 - [OpenAI gpt-5.6-terra model documentation](https://developers.openai.com/api/docs/models/gpt-5.6-terra) (curated-summary); checked 2026-09-21; published unknown; revision unversioned. Original summary of provider positioning. Page publication date and effort-specific evaluation are unknown. API documentation does not establish Codex-native availability, controls, task quality, security or subscription cost.
 - [OpenAI gpt-5.6-luna model documentation](https://developers.openai.com/api/docs/models/gpt-5.6-luna) (curated-summary); checked 2026-09-21; published unknown; revision unversioned. Original summary of provider positioning. Page publication date and effort-specific evaluation are unknown. API documentation does not establish Codex-native availability, controls, task quality, security or subscription cost.

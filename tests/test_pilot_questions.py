@@ -52,11 +52,29 @@ class PilotQuestionTests(unittest.TestCase):
             self.assertEqual(set(question["criteria"]), {"true", "false"})
         self.assertEqual(candidates, before)
 
+    def test_shared_capability_prefix_is_lossless_and_questions_unchanged(self):
+        candidates = self.candidates()
+        prefix = "Shared research provenance and limitations. " * 6 + "\n"
+        original = p.route_payload(task(), candidates, "jev-1.13.0")
+        for candidate in candidates:
+            candidate["capability_description"] = prefix + candidate["capability_description"]
+        before = copy.deepcopy(candidates)
+        payload = p.route_payload(task(), candidates, "jev-1.13.0")
+        self.assertEqual(payload["questions"], original["questions"])
+        self.assertEqual(payload["state"]["candidate_capability_prefix"], prefix)
+        for expected, actual in zip(candidates, payload["state"]["candidates"]):
+            restored = copy.deepcopy(actual)
+            self.assertTrue(restored["capability_description"].startswith(p.SHARED_CAPABILITY_REF))
+            restored["capability_description"] = prefix + restored["capability_description"][len(p.SHARED_CAPABILITY_REF):]
+            self.assertEqual(restored, expected)
+        self.assertEqual(candidates, before)
+        self.assertEqual(__import__('json').loads(jev_transport.encoded_payload(payload)), payload)
+
     def test_dependency_question_is_single_batch_and_excludes_later_coordinator_work(self):
         payload = p.route_payload(task(), self.candidates(), "jev-1.13.0")
         question = payload["questions"]["coordinator_coupling"]
         entry = next(entry for entry in p.ROUTING_REGISTRY if entry["id_template"] == "coordinator_coupling")
-        self.assertEqual(p.ROUTING_VERSION, "pilot-routing-v9")
+        self.assertEqual(p.ROUTING_VERSION, "pilot-routing-v10")
         self.assertEqual(p.ROUTING_THRESHOLDS["coordinator_coupling"], .40)
         self.assertEqual(p.ROUTING_THRESHOLDS["missing_requirement"], .20)
         self.assertIn("Later review, acceptance, integration or deployment", question["instructions"])

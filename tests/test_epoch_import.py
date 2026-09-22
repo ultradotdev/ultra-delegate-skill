@@ -51,6 +51,16 @@ class EpochImportTests(unittest.TestCase):
         self.assertIn('Scored rows normalized', source['attribution'])
         self.assertEqual(self.index, research.load())
 
+    def test_gpt6_sol_luna_map_only_exact_new_identities(self):
+        result=self.imported(export([
+            ['GPT-6 Sol','OpenAI','160','158','162','2026-09-22'],
+            ['GPT-6 Luna','OpenAI','150','148','152','2026-09-22'],
+            ['GPT-6 Sol Pro','OpenAI','170','168','172','2026-09-22'],
+        ]))
+        rows=[r for r in result['claims'] if r['kind']=='capability-prior']
+        self.assertEqual({r['model'] for r in rows if r['metric']['native_identity']}, {'gpt-6-sol','gpt-6-luna'})
+        self.assertNotIn('Epoch general ECI',research.describe(result,'openai','gpt-5.6-sol','medium',as_of=self.day))
+
     def test_release_date_is_never_evaluation_date(self):
         result = self.imported()
         row = next(r for r in result['claims'] if r['kind'] == 'capability-prior' and r['model'] == 'gpt-6-astra')
@@ -167,7 +177,7 @@ class EpochImportTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.imported(export([['GPT-5', 'OpenAI', '150', '140', '', '2025-08-07']]))
 
-    def test_five_model_packet_fits_wire_limit_with_research_in_each_card(self):
+    def test_seven_model_packet_fits_wire_limit_with_research_in_each_card(self):
         task, catalog, host = native_tests.PilotCodexPacketTests().inputs()
         template = catalog['models'][0]
         models = list(epoch.MODEL_MAP.values())
@@ -177,13 +187,18 @@ class EpochImportTests(unittest.TestCase):
                                          'Bounded code repair.', 'One module.', capability_index=self.index)
         policy = core.policy()
         prepared = core.prepare(packet, policy, clock=core.timestamp(host['observed_at']))
-        self.assertEqual(len(prepared['cards']), 5)
+        self.assertEqual(len(prepared['cards']), 7)
         self.assertTrue(all(not card['evidence_cohorts'] for card in prepared['cards']))
         payload = pilot_questions.route_payload(packet['task'], prepared['cards'], policy['model'])
         encoded = core.transport.encoded_payload(payload)
-        self.assertLessEqual(len(encoded), core.transport.REQUEST_LIMIT)
+        self.assertLessEqual(len(encoded), core.transport.REQUEST_LIMIT-256)
+        by_id={core.configuration_id(c):c['model'] for c in packet['candidates']}
         for card in payload['state']['candidates']:
-            self.assertIn('Epoch general ECI', card['capability_description'])
+            model=by_id[card['id']]
+            if model in {'gpt-6-sol','gpt-6-luna'}:
+                self.assertNotIn('Epoch general ECI', card['capability_description'])
+            else:
+                self.assertIn('Epoch general ECI', card['capability_description'])
 
 
 if __name__ == '__main__':

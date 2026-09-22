@@ -203,14 +203,18 @@ def describe(index, provider, model, effort, *, as_of=None):
     statements = []
     for row in matches:
         source = row['source']
-        details = [row['kind'], 'source='+source['id'], 'checked='+source['checked_on'],
-                   'evaluated='+str(row['evaluated_on'] or 'unknown'),
-                   'effort='+str(row['effort'] or 'unspecified')]
-        if row['benchmark']: details += ['benchmark='+row['benchmark'], 'harness='+str(row['harness'] or 'mixed/unspecified')]
+        details = [row['kind'], 'source='+source['id'], 'checked='+source['checked_on']]
+        if row['kind'] == 'benchmark-result':
+            details += ['evaluated='+str(row['evaluated_on'] or 'unknown'),
+                        'effort='+str(row['effort'] or 'unspecified'),
+                        'benchmark='+row['benchmark'], 'harness='+str(row['harness'] or 'mixed/unspecified')]
         if row['kind'] == 'capability-prior':
             details += ['snapshot='+source['revision'], 'retrieved='+source['retrieved_on'],
                         'attribution=Epoch AI CC-BY-4.0 https://epoch.ai/eci']
-        details += row['flags']
+        # Provider claims are unevaluated by schema; composite flags and summaries
+        # already state unknown evaluation date and mixed effort/benchmark settings.
+        # Keep freshness flags, without repeating provider-claim-not-evaluation.
+        details += [flag for flag in row['flags'] if flag != 'provider-claim-not-evaluation']
         statements.append('['+'; '.join(details)+'] '+row['summary'])
     if not statements: statements = ['No matching research for this exact model/effort; capability unknown.']
     result = ('Research index '+index['version']+' sha256:'+data['index_hash']+'. '+NOTICE+'\n'

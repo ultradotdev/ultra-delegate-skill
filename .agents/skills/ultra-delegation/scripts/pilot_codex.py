@@ -109,10 +109,8 @@ def prepare_project(root, task_packet, catalog, host, output_dir, *, profiles=No
     identities = [(r['provider'], r['model'], r['effort']) for r in hints['models']]
     core.require(len(identities) == len(set(identities)), 'duplicate-efficiency-hint')
     packet = build_packet(task_packet, catalog, host, profiles,
-        capability or ('Native coding assistant. Supported work includes inspecting source, proposing bounded '
-                       'implementation fixes, writing tests, and reviewing code for defects using the discovered '
-                       'tools. This describes work types, not a demonstrated success rate. Model-specific '
-                       'capability expectations follow in the attributed research.'),
+        capability or ('Native coding assistant for bounded fixes, tests and code review with discovered tools. '
+                       'Work types are not demonstrated success rates; attributed research follows.'),
         envelope or task_packet['task']['worker_boundary'], index)
     for candidate in packet['candidates']:
         matches = [r for r in hints['models'] if r['provider'] == candidate['provider'] and r['model'] == candidate['model'] and r['effort'] in {None, candidate['effort']}]

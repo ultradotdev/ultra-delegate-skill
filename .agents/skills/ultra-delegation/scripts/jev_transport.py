@@ -172,7 +172,7 @@ def auth(action, ref, model, service=SERVICE):
 
 
 def encoded_payload(payload):
-    try: data = json.dumps(payload, allow_nan=False, ensure_ascii=False).encode("utf-8")
+    try: data = json.dumps(payload, allow_nan=False, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     except (ValueError, TypeError): raise ServiceError("invalid-request") from None
     if len(data) > REQUEST_LIMIT: raise ServiceError("request-too-large")
     return data

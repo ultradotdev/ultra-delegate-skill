@@ -193,7 +193,7 @@ class ConvenienceTests(unittest.TestCase):
         packet=pilot.read_json(result['files']['packet.json']); preview=pilot.read_json(result['files']['sharing-preview.json'])
         self.assertEqual(core.digest(packet),preview['input_hash'])
         self.assertEqual(packet['candidates'][0]['effort'],'medium')
-        self.assertEqual(packet['candidates'][0]['efficiency_hint']['rank'],1)
+        self.assertEqual(packet['candidates'][0]['efficiency_hint']['rank'],2)
         self.assertIsNone(packet['candidates'][0]['estimate_usd'])
         self.assertEqual(result['eligible_candidates'],1)
         self.assertFalse(result['dispatch_authorized'])
@@ -214,7 +214,7 @@ class ConvenienceTests(unittest.TestCase):
 
     def test_native_pool_preparation_fits_wire_budget_and_accepts_global_root(self):
         task={k:copy.deepcopy(self.packet[k]) for k in ('task_id','group_id','task')}
-        names=['gpt-6-astra','gpt-5.6-sol','gpt-5.6-terra','gpt-5.6-luna','gpt-5.5']
+        names=['gpt-6-astra','gpt-6-sol','gpt-6-luna','gpt-5.6-sol','gpt-5.6-terra','gpt-5.6-luna','gpt-5.5']
         host={'observed_at':core.now(),'models':{name:['medium'] for name in names},
               'tools':['read-files','edit-files','run-tests'],'delegation_allowed':True}
         catalog={'models':[{'slug':name,'supported_reasoning_levels':[{'effort':'medium'}],
@@ -224,9 +224,16 @@ class ConvenienceTests(unittest.TestCase):
         result=subprocess.run([sys.executable,'-I','-S',str(Path(pilot_codex.__file__)),
             '--root',str(self.root),'prepare','--task',str(self.directory/'task.json'),
             '--catalog',str(self.directory/'catalog.json'),'--host-observation',str(self.directory/'host.json'),
-            '--output-dir',str(self.directory/'five')],capture_output=True,text=True)
+            '--output-dir',str(self.directory/'seven')],capture_output=True,text=True)
         self.assertEqual(result.returncode,0,result.stderr)
-        self.assertEqual(json.loads(result.stdout)['eligible_candidates'],5)
+        self.assertEqual(json.loads(result.stdout)['eligible_candidates'],7)
+        packet=pilot.read_json(self.directory/'seven'/'packet.json')
+        candidates={c['model']:c for c in packet['candidates']}
+        self.assertEqual(set(candidates),set(names))
+        self.assertTrue(all(c['effort']=='medium' and c['estimate_usd'] is None for c in candidates.values()))
+        self.assertLess(candidates['gpt-6-luna']['efficiency_hint']['rank'],candidates['gpt-5.6-luna']['efficiency_hint']['rank'])
+        self.assertLess(candidates['gpt-6-sol']['efficiency_hint']['rank'],candidates['gpt-5.6-terra']['efficiency_hint']['rank'])
+
 
 
 if __name__=='__main__': unittest.main()

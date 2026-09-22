@@ -20,15 +20,42 @@ class CapabilityIndexTests(unittest.TestCase):
 
     def test_shipped_claims_are_distinct_and_not_benchmark_results(self):
         data = research.report(self.index, self.today)
-        self.assertEqual(data['counts']['provider_claims'], 5)
+        self.assertEqual(data['counts']['provider_claims'], 7)
         self.assertEqual(data['counts']['benchmark_results'], 0)
         providers = [r for r in data['claims'] if r['kind'] == 'provider-claim']
-        self.assertEqual(len({r['summary'] for r in providers}), 5)
+        self.assertEqual(len({r['summary'] for r in providers}), 7)
         self.assertEqual(data['counts']['capability_priors'], 266)
         self.assertEqual(data['counts']['native_mapped_priors'], 5)
         self.assertTrue(all(r['evaluation_age_days'] is None for r in data['claims']))
         self.assertTrue(all(r['flags'] == ['provider-claim-not-evaluation'] for r in providers))
         self.assertNotIn('artificialanalysis', json.dumps(self.index).lower())
+
+    def test_new_models_have_distinct_priors_without_inherited_scores(self):
+        for model in ('gpt-6-sol','gpt-6-luna'):
+            description=research.describe(self.index,'openai',model,'medium',as_of=self.today)
+            self.assertIn('source=openai-'+model,description)
+            self.assertIn('checked=2026-09-22',description)
+            self.assertNotIn('Epoch general ECI',description)
+            self.assertNotIn('gpt-5.6',description)
+
+    def test_native_gpt6_efforts_and_capacity_override_api_documentation(self):
+        task,catalog,host=native_tests.PilotCodexPacketTests().inputs()
+        template=catalog['models'][0]
+        levels={'gpt-6-sol':['low','medium','high','xhigh','max','ultra'],
+                'gpt-6-luna':['low','medium','high','xhigh','max']}
+        catalog['models']=[{**copy.deepcopy(template),'slug':m,'context_window':272000,
+                           'effective_context_window_percent':100,'max_output_tokens':None,
+                           'supported_reasoning_levels':[{'effort':e} for e in efforts]} for m,efforts in levels.items()]
+        host.update(models=levels,observed_at=self.today+'T12:00:00+00:00')
+        packet=pilot_codex.build_packet(task,catalog,host,['gpt-6-sol:ultra','gpt-6-luna:max'],
+                                       'Bounded coding.','One module.',capability_index=self.index)
+        for candidate in packet['candidates']:
+            self.assertEqual(candidate['context_window'],272000)
+            self.assertIsNone(candidate['max_output_tokens'])
+            self.assertEqual(candidate['output_limit_source'],'native-host')
+        for unsupported in ('gpt-6-luna:ultra','gpt-6-sol:none'):
+            with self.assertRaisesRegex(core.PilotError,'native-setting-unavailable'):
+                pilot_codex.build_packet(task,catalog,host,[unsupported],'Bounded coding.','One module.',capability_index=self.index)
 
     def benchmark(self):
         source = next(s for s in self.index['sources'] if s['id'] == 'swe-bench')
@@ -43,7 +70,7 @@ class CapabilityIndexTests(unittest.TestCase):
     def test_recent_retrieval_does_not_refresh_old_evaluation(self):
         self.benchmark()
         row = research.report(self.index, self.today)['claims'][-1]
-        self.assertEqual(row['source_check_age_days'], 0)
+        self.assertEqual(row['source_check_age_days'], (dt.date.fromisoformat(self.today)-dt.date.fromisoformat(row['source']['checked_on'])).days)
         self.assertGreater(row['evaluation_age_days'], 180)
         self.assertIn('old-evaluation', row['flags'])
         description = research.describe(self.index, 'openai', 'test-model', 'medium', as_of=self.today)

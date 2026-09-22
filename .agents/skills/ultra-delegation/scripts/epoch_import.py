@@ -23,7 +23,8 @@ import pilot_core as core
 URL = 'https://epoch.ai/data/eci_scores.csv'
 SOURCE_ID = 'epoch-general-eci'
 # Explicit correspondence, not a normalization heuristic. Pro/Instant are distinct.
-MODEL_MAP = {'GPT-6 Astra': 'gpt-6-astra', 'GPT-5.6 Sol': 'gpt-5.6-sol',
+MODEL_MAP = {'GPT-6 Astra': 'gpt-6-astra', 'GPT-6 Sol': 'gpt-6-sol',
+             'GPT-6 Luna': 'gpt-6-luna', 'GPT-5.6 Sol': 'gpt-5.6-sol',
              'GPT-5.6 Terra': 'gpt-5.6-terra', 'GPT-5.6 Luna': 'gpt-5.6-luna',
              'GPT-5.5': 'gpt-5.5'}
 REQUIRED = {'Model', 'Organization', 'eci', 'eci_ci_low', 'eci_ci_high', 'date'}

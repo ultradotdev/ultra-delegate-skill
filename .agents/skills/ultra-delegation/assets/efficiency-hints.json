@@ -1,16 +1,31 @@
 {
   "schema": "ultra-efficiency-hints-v1",
-  "note": "Ordinal ordering of published standard API input and output rates, both ascending. Model-level only; no claim about native effort token usage, latency, Codex subscription billing or total task cost. Sol pricing is promotional through at least 2026-11-21; recheck before relying on later runs. Missing/stale hints remain unknown. These reference rates are not worker cost estimates.",
+  "note": "Ordinal ordering of published Standard short-context API input and output rates, both nondecreasing. Model-level only; no claim about native effort token usage, latency, Codex subscription billing or total task cost. GPT-5.6 Sol pricing is promotional through at least 2026-11-21; recheck before relying on later runs. Missing/stale hints remain unknown. These reference rates are not worker cost estimates.",
   "models": [
+    {
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "effort": null,
+      "hint": {
+        "rank": 1,
+        "basis": "openai-standard-api-rate-order",
+        "source_url": "https://developers.openai.com/api/docs/pricing",
+        "checked_on": "2026-09-22"
+      },
+      "reference_rates_per_million": {
+        "input": 0.1,
+        "output": 0.5
+      }
+    },
     {
       "provider": "openai",
       "model": "gpt-5.6-luna",
       "effort": null,
       "hint": {
-        "rank": 1,
+        "rank": 2,
         "basis": "openai-standard-api-rate-order",
-        "source_url": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
-        "checked_on": "2026-09-21"
+        "source_url": "https://developers.openai.com/api/docs/pricing",
+        "checked_on": "2026-09-22"
       },
       "reference_rates_per_million": {
         "input": 0.2,
@@ -19,13 +34,28 @@
     },
     {
       "provider": "openai",
+      "model": "gpt-6-sol",
+      "effort": null,
+      "hint": {
+        "rank": 3,
+        "basis": "openai-standard-api-rate-order",
+        "source_url": "https://developers.openai.com/api/docs/pricing",
+        "checked_on": "2026-09-22"
+      },
+      "reference_rates_per_million": {
+        "input": 2,
+        "output": 10
+      }
+    },
+    {
+      "provider": "openai",
       "model": "gpt-5.6-terra",
       "effort": null,
       "hint": {
-        "rank": 2,
+        "rank": 4,
         "basis": "openai-standard-api-rate-order",
-        "source_url": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
-        "checked_on": "2026-09-21"
+        "source_url": "https://developers.openai.com/api/docs/pricing",
+        "checked_on": "2026-09-22"
       },
       "reference_rates_per_million": {
         "input": 2,
@@ -37,10 +67,10 @@
       "model": "gpt-5.6-sol",
       "effort": null,
       "hint": {
-        "rank": 3,
+        "rank": 5,
         "basis": "openai-standard-api-rate-order",
-        "source_url": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
-        "checked_on": "2026-09-21"
+        "source_url": "https://developers.openai.com/api/docs/pricing",
+        "checked_on": "2026-09-22"
       },
       "reference_rates_per_million": {
         "input": 4,
@@ -52,10 +82,10 @@
       "model": "gpt-5.5",
       "effort": null,
       "hint": {
-        "rank": 4,
+        "rank": 6,
         "basis": "openai-standard-api-rate-order",
-        "source_url": "https://developers.openai.com/api/docs/models/gpt-5.5",
-        "checked_on": "2026-09-21"
+        "source_url": "https://developers.openai.com/api/docs/pricing",
+        "checked_on": "2026-09-22"
       },
       "reference_rates_per_million": {
         "input": 5,
@@ -67,10 +97,10 @@
       "model": "gpt-6-astra",
       "effort": null,
       "hint": {
-        "rank": 5,
+        "rank": 7,
         "basis": "openai-standard-api-rate-order",
-        "source_url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
-        "checked_on": "2026-09-21"
+        "source_url": "https://developers.openai.com/api/docs/pricing",
+        "checked_on": "2026-09-22"
       },
       "reference_rates_per_million": {
         "input": 10,
