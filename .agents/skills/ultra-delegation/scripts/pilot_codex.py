@@ -8,14 +8,26 @@ from __future__ import annotations
 import copy
 import datetime as dt
 import json
+import os
 from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import pilot
+import pilot_boundaries
 import pilot_core as core
 import capability_index as research
+
+
+def _write_new_text(path, value):
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+            stream.write(value)
+    except BaseException:
+        Path(path).unlink(missing_ok=True)
+        raise
 
 
 def build_packet(task_packet, catalog, host, profiles, capability, envelope, capability_index=None):
@@ -115,7 +127,7 @@ def prepare_project(root, task_packet, catalog, host, output_dir, *, profiles=No
                  'preparation-directory-not-empty')
     directory.mkdir(parents=True, exist_ok=True)
     core.require(not directory.is_symlink(), 'preparation-directory-symlink')
-    paths = {name: directory / name for name in ('packet.json', 'sharing-preview.json', 'next-steps.json', 'task-labels.json')}
+    paths = {name: directory / name for name in ('packet.json', 'sharing-preview.json', 'worker-contract.md', 'next-steps.json', 'task-labels.json')}
     instructions = {'schema': 'ultra-pilot-preparation-v1', 'input_hash': preview['input_hash'],
         'policy_hash': preview['policy_hash'], 'dispatch_authorized': False,
         'selection_preference': p['selection_preference'], 'bakeoff': p['bakeoff'],
@@ -128,6 +140,7 @@ def prepare_project(root, task_packet, catalog, host, output_dir, *, profiles=No
         'files': {name: str(path.resolve()) for name, path in paths.items()}}
     pilot.write_new(paths['packet.json'], packet)
     pilot.write_new(paths['sharing-preview.json'], preview)
+    _write_new_text(paths['worker-contract.md'], pilot_boundaries.worker_contract(packet['task']['boundaries']))
     pilot.write_new(paths['task-labels.json'], {packet['task_id']: packet['task']['summary']})
     pilot.write_new(paths['next-steps.json'], instructions)
     return instructions

@@ -152,7 +152,11 @@ def validate_packet(packet):
     if packet.get("user_choice_id") is not None:
         label(packet["user_choice_id"])
     t = packet["task"]
-    fields(t, {"scope_id", "summary", "requirements", "acceptance_gates", "worker_boundary", "intended_use", "risk", "work_kind", "operation", "complexity", "required_tools", "required_modalities", "input_tokens", "output_tokens"})
+    require(isinstance(t, dict) and "boundaries" in t, "task-boundaries-required")
+    fields(t, {"scope_id", "summary", "requirements", "acceptance_gates", "worker_boundary", "intended_use", "risk", "work_kind", "operation", "complexity", "required_tools", "required_modalities", "input_tokens", "output_tokens", "boundaries"})
+    import pilot_boundaries
+    boundaries = pilot_boundaries.validate(t["boundaries"])
+    require(boundaries["authorization"] == "granted", "authorization-required")
     for key in ("scope_id", "operation"):
         label(t[key])
     for key in ("summary", "worker_boundary", "intended_use"):
