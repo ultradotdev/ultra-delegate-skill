@@ -304,7 +304,9 @@ class PilotReportTests(unittest.TestCase):
         self.assertAlmostEqual(row["cost"]["usd"], .106)
         self.assertEqual(row["recovery_attempts"], 1)
         self.assertAlmostEqual(report["summary"]["whole_workload_cost"]["usd"], .106)
-        self.assertEqual(row["known_cost_components_usd"], {"measured":.1, "estimated":.006})
+        self.assertEqual(set(row["known_cost_components_usd"]), {"measured", "estimated"})
+        self.assertAlmostEqual(row["known_cost_components_usd"]["measured"], .1)
+        self.assertAlmostEqual(row["known_cost_components_usd"]["estimated"], .006)
 
 
 if __name__ == '__main__': unittest.main()
