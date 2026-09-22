@@ -1,3 +1,9 @@
+# Current repository-trial iteration: 1.3.0-rc.7
+
+See [RC7 validation](repository-trial-validation.md) for the current status.
+The historical RC6 record below describes its original trial; it does not
+establish performance of the new questions or selection preference.
+
 # Active routing status: 1.3.0-rc.6
 
 RC6 implements active Jev routing for an eligible worker on the first task after

@@ -11,7 +11,7 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
-ROUTING_VERSION = "pilot-routing-v5"
+ROUTING_VERSION = "pilot-routing-v7"
 SECURITY_VERSION = "pilot-security-v1"
 MAX_CANDIDATES = 12
 MAX_COHORTS = 2
@@ -75,6 +75,15 @@ ROUTING_REGISTRY = (
            consumer="candidate semantic-match gate", applicability="per candidate", polarity="affirmative supports candidate", state_deps=("task.operation", "candidates[{i}].capability_description")),
     _entry("scope_exceeded_{i}", "noul", "Does the task require work beyond the boundaries described in `candidates[{i}].scope_envelope`? A missing envelope is unknown, not no exceedance.",
            consumer="candidate routine-dispatch scope gate", applicability="per candidate", polarity="affirmative excludes routine use", state_deps=("task", "candidates[{i}].scope_envelope")),
+    _entry("reasoning_fit_{i}", "noul", "Is adequate reasoning for `task` expected from `candidates[{i}].capability_description` and `candidates[{i}].evidence_cohorts`?",
+           criteria={"true": "Within expected capabilities; research is a prior, reviewed outcomes refine it.", "false": "Beyond expected capabilities or relevant capability information is missing."},
+           consumer="candidate reasoning-fit gate when reasoning demand is required", applicability="per candidate; code consumes when reasoning is required; uncertainty adds review only", polarity="affirmative supports candidate", state_deps=("task", "candidates[{i}].capability_description", "candidates[{i}].evidence_cohorts")),
+    _entry("code_interaction_fit_{i}", "noul", "Is adequate analysis of code interactions for `task` expected from `candidates[{i}].capability_description` and `candidates[{i}].evidence_cohorts`?",
+           criteria={"true": "Within expected capabilities; research is a prior, reviewed outcomes refine it.", "false": "Beyond expected capabilities or relevant capability information is missing."},
+           consumer="candidate code-interaction-fit gate when coding interaction demand is required", applicability="per candidate; code consumes when coding interaction is required; uncertainty adds review only", polarity="affirmative supports candidate", state_deps=("task", "candidates[{i}].capability_description", "candidates[{i}].evidence_cohorts")),
+    _entry("context_synthesis_fit_{i}", "noul", "Is adequate synthesis of separated facts for `task` expected from `candidates[{i}].capability_description` and `candidates[{i}].evidence_cohorts`?",
+           criteria={"true": "Within expected capabilities; research is a prior, reviewed outcomes refine it.", "false": "Beyond expected capabilities or relevant capability information is missing."},
+           consumer="candidate context-synthesis-fit gate when synthesis demand is required", applicability="per candidate; code consumes when synthesis is required; uncertainty adds review only", polarity="affirmative supports candidate", state_deps=("task", "candidates[{i}].capability_description", "candidates[{i}].evidence_cohorts")),
     _entry("evidence_comparable_{i}_{j}", "noul", "Is the operation described in `candidates[{i}].evidence_cohorts[{j}].task_description` comparable to the requested operation in `task`?",
            consumer="history relevance; never a dispatch qualification gate", applicability="per supplied evidence cohort, at most two", polarity="affirmative permits deterministic evidence checks", state_deps=("task.operation", "candidates[{i}].evidence_cohorts[{j}].task_description")),
 )
@@ -159,10 +168,10 @@ def route_payload(task, candidates, model):
     _task(task); _candidates(candidates); _text(model, "model")
     q = {}
     for entry in ROUTING_REGISTRY[:8]: q[entry["id_template"]] = _wire(entry)
-    op, scope, evidence = ROUTING_REGISTRY[8:]
+    candidate_questions, evidence = ROUTING_REGISTRY[8:-1], ROUTING_REGISTRY[-1]
     for i, candidate in enumerate(candidates):
-        q[op["id_template"].format(i=i)] = _wire(op, i=i)
-        q[scope["id_template"].format(i=i)] = _wire(scope, i=i)
+        for entry in candidate_questions:
+            q[entry["id_template"].format(i=i)] = _wire(entry, i=i)
         for j, _ in enumerate(candidate["evidence_cohorts"]):
             q[evidence["id_template"].format(i=i, j=j)] = _wire(evidence, i=i, j=j)
     return {"model": model, "state": {"task": deepcopy(task), "candidates": deepcopy(candidates)}, "questions": q}
@@ -182,6 +191,7 @@ def security_payload(packet, model):
 
 ROUTING_THRESHOLDS = {"missing_requirement": 0.20, "coordinator_coupling": 0.20,
                       "operation_match": 0.85, "scope_exceeded": 0.15,
+                      "reasoning_fit": 0.85, "code_interaction_fit": 0.85, "context_synthesis_fit": 0.85,
                       "evidence_comparable": 0.80, "demand": 0.70,
                       "severe_impact": 0.10}
 DEMAND_BANDS = {tag: {"absent": 0.30, "required": 0.70}
@@ -191,7 +201,9 @@ PROPOSED_THRESHOLDS = {
     "status": "experimental operating thresholds; evaluation informs refinement without gating first use",
     "values": ROUTING_THRESHOLDS,
     "demand_bands": DEMAND_BANDS,
-    "interpretation": "Demand signals use independently configurable absent/required boundaries: absent, uncertain, required. Required and uncertain demands select candidate evidence and review gates, not a global complexity stop. Other gates retain their stated cutoffs; no universal three-way calibration is claimed. Do not multiply Noul values or interpret them as worker success confidence.",
+    "interpretation": "Demand signals use independently configurable absent/required boundaries: absent, uncertain, required. Required and uncertain demands select candidate evidence and review gates. Only required demands impose candidate-fit gates; uncertainty about whether a capability is needed is not a qualification requirement. Other gates retain their stated cutoffs; no universal three-way calibration is claimed. Do not multiply Noul values or interpret them as worker success confidence.",
+    "capability_fits": "Each candidate fit is assessed independently from task and supplied evidence in one batch. Code applies fit thresholds only for required demand dimensions. Uncertain dimensions require independent review; absent and nonapplicable dimensions do not exclude a candidate. The minimum applicable fit and operation match is a ranking signal, not calibrated task-success probability.",
+    "selection": "First demote comparable recent failures. efficiency_hints uses complete comparable cost estimates, then complete same-basis efficiency hints checked within 180 days (future dates unusable), then reviewed outcomes and fit. Missing or incompatible hints mean unknown efficiency, never an expensive candidate. strongest_fit uses reviewed outcomes then fit. Stable configuration ID breaks exact ties. Local observations are useful immediately; no minimum count or baseline preference.",
     "operation_match": "affirmative supports a candidate; a middle result needs trial, review, or repackage",
     "scope_exceeded": "affirmative excludes routine dispatch; a middle result needs trial, review, or repackage",
 }

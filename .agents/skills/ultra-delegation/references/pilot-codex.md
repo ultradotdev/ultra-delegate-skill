@@ -5,6 +5,11 @@ proposal. The Python helper prepares packets and records the native workflow. Th
 coordinator calls Codex-native tools. Neither the helper nor a task packet creates
 a sandbox, grants authority, or runs a model.
 
+For normal first use, follow [repository-trial.md](repository-trial.md): its
+`prepare` command creates the packet, exact sharing preview, and next steps
+with the shipped research and efficiency hints. The lower-level builder below
+remains available for explicit packets.
+
 ## Discover the actual host
 
 Prepare a fresh `host.json` from the host's currently exposed model/effort/tool
@@ -28,17 +33,55 @@ work kind, operation, complexity, required tools/modalities, and input/output
 reservations. Keep the packet summary sanitized: source excerpts and credentials
 do not belong in routing inputs.
 
+The coordinator writes this shape (the user does not fill it in). Replace the
+example with the actual request, including every field; `task` is a nested object.
+
+```json
+{
+  "task_id": "parser-fix-001",
+  "group_id": "independent-parser-task-001",
+  "task": {
+    "scope_id": "python-parser",
+    "summary": "Repair a bounded parser edge case in the supplied repository.",
+    "requirements": ["Preserve the public API.", "Reject malformed tokens with ValueError."],
+    "acceptance_gates": ["behavioral-tests", "scope", "complete-output"],
+    "worker_boundary": "One parser and focused tests in an isolated checkout; coordinator owns integration.",
+    "intended_use": "Patch proposal independently reviewed before integration.",
+    "risk": "low",
+    "work_kind": "coding",
+    "operation": "patch-proposal",
+    "complexity": "routine",
+    "required_tools": ["read-files", "edit-files", "run-tests"],
+    "required_modalities": ["text"],
+    "input_tokens": 8000,
+    "output_tokens": 4000
+  }
+}
+```
+
+Token reservations are coordinator-supplied planning bounds, not observed usage.
+`prepare` accepts a new or empty output directory and refuses to overwrite a
+previous bundle. Its default candidate declaration names supported work types;
+the appended, model-specific research supplies expectations, not proven success.
+
 ```sh
 python3 "$SKILL_PATH/scripts/pilot_codex.py" \
   --task task.json --catalog codex-model-catalog.json \
   --host-observation host.json --output packet.json \
   --candidate discovered-model-id:medium \
   --candidate discovered-model-id:high \
+  --capability-index "$SKILL_PATH/assets/capability-index.json" \
   --capability-description 'Bounded component patch with project tests and review.' \
   --scope-envelope 'One isolated low-risk component; coordinator owns integration.'
 ```
 
 Every candidate must appear in both the supplied catalog and fresh host observation.
+The `--capability-index` option appends
+distinct, dated research priors where exact model matches exist. Read
+[capability-index.md](capability-index.md) for source coverage, age warnings and
+the offline HTML/JSON preview. Research does not replace host discovery or local
+outcome evidence.
+
 The builder writes a host-configuration revision and hashes the declared native
 tool policy into its identity. That describes advertised host configuration; it
 is not an immutable model-weights claim. `max_output_tokens` may be omitted only

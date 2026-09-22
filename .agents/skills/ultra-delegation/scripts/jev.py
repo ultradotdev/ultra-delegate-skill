@@ -364,6 +364,8 @@ def main(argv=None):
     args = parser().parse_args(argv)
     try:
         root = ud.root_from(args)
+        existing = ud.read_json(ud.policy_path(root), {})
+        require(not (isinstance(existing, dict) and str(existing.get("schema", "")).startswith("ultra-pilot-policy-")), "pilot-policy-use-pilot-cli")
         policy = ud.load_policy(root)
         if args.command == "auth":
             result = transport.auth(args.action, policy["jev"]["credential_ref"], policy["jev"]["model"], service=policy["jev"]["credential_service"])

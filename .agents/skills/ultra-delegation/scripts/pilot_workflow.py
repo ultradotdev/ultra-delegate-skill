@@ -167,8 +167,10 @@ def start(root, decision, packet, policy, bakeoff='auto'):
         pool = list(dict.fromkeys([selected, *alternatives]))
         outcomes = pilot.load_records(root, 'outcomes')
         core.require(core.digest(outcomes) == decision['evidence_hash'], 'decision-evidence-changed')
-        history = next(r['evidence'] for r in decision['candidates'] if r['configuration_id'] == selected)
-        compare = bakeoff == 'on' or (bakeoff == 'auto' and (not history.get('groups') or history.get('failed_groups', 0)))
+        history = next((r['evidence'] for r in decision.get('candidate_assessments', []) if r['configuration_id'] == selected), None)
+        if history is None:
+            history = next(r['evidence'] for r in decision['candidates'] if r['configuration_id'] == selected)
+        compare = bakeoff == 'on' or (bakeoff == 'auto' and (not history.get('groups') or history.get('recent_failure', False)))
         request = {'schema': 'ultra-pilot-request-v1', 'id': identifier, 'decision_id': decision['id'],
                    'created_at': core.now(), 'state': 'in-progress', 'task_id': packet['task_id'],
                    'group_id': packet.get('group_id', packet['task_id']), 'synthetic': packet.get('synthetic', False),
@@ -324,9 +326,23 @@ def replan(root, identifier, decision, packet, policy):
 
 def event(root, identifier, value, *, packet=None):
     """Idempotent allowlisted native events; reviewed results come from the outcome ledger."""
+    if isinstance(value, dict) and value.get('type') == 'artifact-corrected':
+        core.label(value.get('attempt_id'))
+        # Review publication and pre-review correction share the same lock order.
+        lock = _path(root, identifier).with_suffix('.review-' + value['attempt_id'] + '.lock')
+        with _lock(lock):
+            attempt = _attempt(get(root, identifier, _check_elapsed=False), value['attempt_id'])
+            outcome_id = 'out_' + core.digest({'decision': attempt['decision_id'],
+                'configuration': attempt['configuration_id'], 'attempt': attempt['id']})[:24]
+            with _lock(Path(root)/'outcomes'/(outcome_id+'.lock')):
+                return _event(root, identifier, value, packet=packet)
+    return _event(root, identifier, value, packet=packet)
+
+
+def _event(root, identifier, value, *, packet=None):
     import pilot
     core.fields(value, {'id', 'type', 'attempt_id'}, {'run_id', 'configuration_id', 'checkout_hash', 'base_revision',
-                'artifact_hash', 'outcome_id', 'reason_code', 'repairable', 'findings_hash', 'configuration_source'})
+                'artifact_hash', 'previous_artifact_hash', 'outcome_id', 'reason_code', 'repairable', 'findings_hash', 'configuration_source'})
     for key in ('id', 'type', 'attempt_id'): core.label(value[key])
     path = _path(root, identifier)
     lock = path.with_suffix('.lock')
@@ -359,6 +375,20 @@ def event(root, identifier, value, *, packet=None):
             core.require(a['state'] == 'running', 'attempt-not-running')
             _hash(value.get('artifact_hash'))
             a.update(state='completed', artifact_hash=value['artifact_hash'])
+        elif kind == 'artifact-corrected':
+            core.require(a['state'] == 'completed', 'artifact-already-reviewed-or-not-completed')
+            core.require(not a.get('artifact_correction'), 'artifact-correction-exhausted')
+            core.require(not any(o.get('request_id') == identifier and o.get('attempt_id') == a['id']
+                                 for o in pilot.load_records(root, 'outcomes')), 'artifact-review-already-published')
+            outcome_id = 'out_' + core.digest({'decision': a['decision_id'],
+                'configuration': a['configuration_id'], 'attempt': a['id']})[:24]
+            core.require(not (Path(root)/'outcomes'/(outcome_id+'.pending')).exists(), 'artifact-review-already-started')
+            _hash(value.get('artifact_hash')); _hash(value.get('previous_artifact_hash'))
+            core.require(value['previous_artifact_hash'] == a['artifact_hash'], 'artifact-correction-mismatch')
+            core.require(value['artifact_hash'] != a['artifact_hash'], 'artifact-correction-unchanged')
+            core.label(value.get('reason_code'))
+            correction = {k: value[k] for k in ('previous_artifact_hash', 'artifact_hash', 'reason_code')}
+            a.update(artifact_hash=value['artifact_hash'], artifact_correction=correction)
         elif kind == 'reviewed':
             core.require(a['state'] == 'completed', 'attempt-not-completed')
             outcome_id = value.get('outcome_id')
@@ -410,7 +440,8 @@ def event(root, identifier, value, *, packet=None):
                 row['state'] in {'planned', 'launching', 'running', 'completed'} for row in r['attempts']):
             r.update(state='canceled', reason_code=value['reason_code'])
         r['events'].append({'id': value['id'], 'type': kind, 'attempt_id': a['id'],
-                            'event_hash': core.digest(value), 'created_at': core.now()})
+                            'event_hash': core.digest(value), 'created_at': core.now(),
+                            **(a['artifact_correction'] if kind == 'artifact-corrected' else {})})
         core.require(len(r['events']) <= 1000, 'workflow-event-limit')
         _write(path, r)
         return r

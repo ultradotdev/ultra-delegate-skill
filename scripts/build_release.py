@@ -12,7 +12,7 @@ import re
 import tempfile
 import zipfile
 
-VERSION = "1.3.0-rc.6"
+VERSION = "1.3.0-rc.7"
 REPOSITORY = Path(__file__).resolve().parents[1]
 SKILL = Path(".agents/skills/ultra-delegation")
 SKILL_FILES = (
@@ -34,6 +34,16 @@ SKILL_FILES = (
     "scripts/pilot_questions.py",
     "scripts/pilot_report.py",
     "scripts/pilot_codex.py",
+    "scripts/pilot_convenience.py",
+    "scripts/pilot_fixtures.py",
+    "assets/repository-fixtures.json",
+    "assets/efficiency-hints.json",
+    "references/repository-trial.md",
+    "references/repository-benchmark.md",
+    "scripts/capability_index.py",
+    "scripts/epoch_import.py",
+    "assets/capability-index.json",
+    "references/capability-index.md", "references/capability-index-data.md",
     "references/pilot.md",
     "references/pilot-workflow.md", "references/pilot-benchmark.md",
     "references/pilot-codex.md",
@@ -77,6 +87,13 @@ SOURCE_FILES = (
     "handoffs/yarn/START-HERE.md", "handoffs/yarn/PLAN.md", "handoffs/yarn/RUNBOOK.md",
     "handoffs/yarn/templates/task-cards.json", "handoffs/yarn/templates/acceptance-checklist.md",
     "tests/test_pilot_native_capacity.py", "tests/test_pilot_demands.py",
+    "tests/test_capability_index.py",
+    "tests/test_epoch_import.py",
+    "tests/test_pilot_convenience.py",
+    "tests/test_pilot_selection.py",
+    "tests/test_pilot_fixtures.py",
+    "docs/repository-trial-validation.md",
+    "docs/repository-trial-results.json",
 )
 SOURCE_PREFIX = f"ultra-delegate-skill-{VERSION}"
 SOURCE_GITIGNORE = b"__pycache__/\n*.py[cod]\n/dist/\n/.ultra-delegation/\n.env\n"

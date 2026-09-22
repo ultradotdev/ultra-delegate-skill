@@ -1,3 +1,14 @@
+# Ultra Delegation 1.3.0-rc.7
+
+Adds attributed Epoch capability research, atomic candidate-fit questions,
+configurable efficiency/strongest-fit selection, packet preparation, flag-based
+workflow events, resumable review publication, concise HTML/JSON reports, and
+an executable twelve-case multilingual fixture benchmark. Relative API-rate
+hints are not native billing or savings. Credentials remain read-only.
+
+See [repository trial validation](repository-trial-validation.md) for current
+checks and live evidence. Installation and publication are separate actions.
+
 # Ultra Delegation 1.3.0-rc.6
 
 RC6 moves the pilot to immediate active routing after project setup. An eligible

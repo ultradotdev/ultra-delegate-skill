@@ -50,7 +50,9 @@ def answers(extended=False):
             "work_kind": {"choice": "coding", "confidence": 1},
             "reasoning_depth": {"probabilities": {"0": 0 if extended else 1, "1": 0, "2": 1 if extended else 0, "3": 0}},
             "context_synthesis": {"noul": 0}, "code_interaction": {"noul": 0}, "external_information": {"noul": 0},
-            "operation_match_0": {"noul": 1}, "scope_exceeded_0": {"noul": 0}}
+            "operation_match_0": {"noul": 1}, "scope_exceeded_0": {"noul": 0},
+            "reasoning_fit_0": {"noul": 1}, "code_interaction_fit_0": {"noul": 1},
+            "context_synthesis_fit_0": {"noul": 1}}
 
 
 class PilotCoreTests(unittest.TestCase):

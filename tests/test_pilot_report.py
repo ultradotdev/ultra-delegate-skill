@@ -202,8 +202,8 @@ class PilotReportTests(unittest.TestCase):
         self.assertEqual(report["decisions"][0]["alternative_configuration_ids"], ["frontier"])
         self.assertNotIn("qualified", json.dumps(report["decisions"][0]))
         page = p.render_html(report)
-        self.assertIn("First attempt accepted: False", page)
-        self.assertIn("final request accepted: True", page)
+        self.assertIn("First attempt: Not accepted", page)
+        self.assertIn("<b>Accepted</b>", page)
         self.assertNotIn("DO-NOT-SHARE", json.dumps(report))
 
     def test_unobserved_and_canceled_attempts_remain_unknown_not_failures(self):
@@ -246,6 +246,65 @@ class PilotReportTests(unittest.TestCase):
         self.assertNotIn("PRIVATE_EXCERPT", encoded)
         self.assertNotIn("raw prose leak", encoded)
         self.assertIn("quality advisory scored", p.render_html(report))
+
+    def test_overview_distinguishes_efficiency_from_money_and_preserves_v5_fit(self):
+        d = decision(decision_policy_version="pilot-selection-v5", selection_basis={
+            "preference":"efficiency_hints", "method":"dated-efficiency-hints",
+            "tie_breakers":["recent-comparable-failure", "efficiency-rank", "assessed-fit", "PRIVATE"], "private":"DROP"},
+            candidate_assessments=[{"configuration_id":"small", "status":"suitable", "evidence":{},
+                                   "applicable_fits":["reasoning"], "assessed_fit":.88,
+                                   "fit_probabilities":{"reasoning":.88,"code_interaction":.91,"context_synthesis":.99}}])
+        d["candidates"][0]["efficiency_hint"] = {"rank":1,"basis":"provider-price-tier","checked_on":"2026-09-21", "status":"current", "source_url":"SECRET"}
+        report = p.build_report([d], [outcome(costs={})])
+        item = report["overview"][0]
+        self.assertEqual(item["selection_basis"]["preference"], "efficiency_hints")
+        self.assertEqual(item["efficiency_hint"]["rank"], 1)
+        self.assertIsNone(item["cost"]["usd"])
+        self.assertEqual(report["decisions"][0]["candidate_assessments"][0]["assessed_fit"], .88)
+        self.assertNotIn("qualified", json.dumps(report["decisions"][0]))
+        self.assertNotIn("SECRET", json.dumps(report))
+        self.assertNotIn("PRIVATE", json.dumps(report))
+        page = p.render_html(report)
+        self.assertIn("not measured cost", page)
+        self.assertIn("not a dollar estimate", page)
+        self.assertLess(page.index('id="overview"'), page.index('<details class="audit">'))
+        self.assertNotIn('<details class="audit" open', page)
+
+    def test_overview_preserves_pending_and_security_states(self):
+        request = {"schema":"ultra-pilot-request-v1", "id":"req", "task_id":"safe-task", "decision_id":"d1",
+                   "state":"in-progress", "attempts":[
+                       {"id":"a1", "configuration_id":"small", "kind":"initial", "state":"running"},
+                       {"id":"a2", "configuration_id":"frontier", "kind":"comparison", "state":"accepted", "outcome_id":"o2"}]}
+        report = p.build_report([decision()], [outcome(id="o2", configuration_id="frontier", security={"mode":"off"})], [request])
+        item = report["overview"][0]
+        self.assertEqual(item["first_attempt"], "running")
+        self.assertEqual(item["final_result"], "in-progress")
+        self.assertIsNone(item["cost"]["usd"])
+        self.assertFalse(item["worker_time_complete"])
+        self.assertEqual([a["security"] for a in item["attempts"]], ["unavailable", "off"])
+        for status, expected in (("pass", "completed"), ("fail", "completed"), ("indeterminate", "completed"), ("unavailable", "unavailable")):
+            with self.subTest(status=status):
+                report = p.build_report([decision()], [outcome(security={"mode":"advisory", "status":status})])
+                self.assertEqual(report["overview"][0]["attempts"][0]["security"], expected)
+                self.assertTrue(report["outcomes"][0]["accepted"])
+
+    def test_overview_replan_includes_all_router_costs_without_duplicate_tasks(self):
+        request = {"schema":"ultra-pilot-request-v1", "id":"req", "task_id":"safe-task", "decision_id":"d2",
+                   "decision_history":["d1", "d2"], "state":"accepted", "attempts":[
+                       {"id":"a1", "configuration_id":"small", "kind":"initial", "state":"rejected", "outcome_id":"o1"},
+                       {"id":"a2", "configuration_id":"small", "kind":"fallback", "state":"accepted", "outcome_id":"o2"}]}
+        report = p.build_report([decision(), decision(id="d2")],
+                                [outcome(accepted=False, attempt_kind="initial"),
+                                 outcome(id="o2",decision_id="d2", attempt_kind="fallback")], [request])
+        self.assertEqual(len(report["overview"]), 1)
+        row = report["overview"][0]
+        self.assertEqual(row["first_attempt"], "rejected")
+        self.assertEqual(row["final_result"], "accepted")
+        self.assertEqual(row["router_time_ms"], 8)
+        self.assertAlmostEqual(row["cost"]["usd"], .106)
+        self.assertEqual(row["recovery_attempts"], 1)
+        self.assertAlmostEqual(report["summary"]["whole_workload_cost"]["usd"], .106)
+        self.assertEqual(row["known_cost_components_usd"], {"measured":.1, "estimated":.006})
 
 
 if __name__ == '__main__': unittest.main()

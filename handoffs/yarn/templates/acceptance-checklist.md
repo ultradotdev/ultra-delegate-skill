@@ -6,7 +6,7 @@ not failed or passed.
 - [ ] Both source versions and exact refs are recorded; unrelated changes remain preserved.
 - [ ] The behavior matrix records retain/reconcile/replace/defer decisions and unresolved product choices.
 - [ ] The selected unified slice builds and passes its declared user-flow checks.
-- [ ] A fresh RC6 pilot ledger was initialized; no older policy was silently migrated or activated.
+- [ ] A fresh pilot ledger was initialized; no older policy was silently migrated or activated.
 - [ ] Fresh host discovery records exact model/effort, capacities, modalities, and declared native tools.
 - [ ] Each executed task used a real non-synthetic packet, current context, bounded scope, and immutable gates.
 - [ ] Every dispatch had a per-attempt recheck and a `launching` reservation before the native tool call.
@@ -29,3 +29,7 @@ base, checkout, and artifact hashes; tests and reviewer identity; review dimensi
 and critical-defect status; accepted/rejected/canceled result; cost/latency kind;
 and report path. Keep source and detailed review notes in the repository; share
 only the pilot's sanitized metadata.
+
+Use the bundled `runtime/ultra-delegation/references/repository-trial.md` for the
+current prepare/execute/review flow and configurable efficiency preference.
+See `validation/repository-trial-validation.md` for this iteration’s test status.

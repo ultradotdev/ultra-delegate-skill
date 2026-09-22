@@ -16,7 +16,7 @@ matrix, select one small end-to-end slice, declare its acceptance contract, and
 complete it when the repository inputs and authorization exist. Do not stop at a
 plan where implementation is in scope.
 
-## RC6 status
+## Current handoff status
 
 The bundled pilot routes an eligible worker immediately after project setup; it
 does not wait for local qualification counts or a shadow rollout. The scoped live
@@ -35,7 +35,7 @@ delivery.
 ## Operating contract
 
 - Python 3.10+ is the pilot runtime. A Rust rewrite is out of scope.
-- Initialize a **fresh RC6 pilot ledger**. Do not copy or silently activate a
+- Initialize a **fresh pilot ledger**. Do not copy or silently activate a
   previous release policy. Historical records remain reportable as history.
 - `pilot init` defaults to active routing, but a live Jev request still requires
   both `--live` and explicit summary sharing. Artifact sharing, advisory security,
@@ -55,3 +55,7 @@ The local tests and simulated examples verify tooling behavior. They do not show
 real Yarn trial, live Jev quality, native-worker quality, security certification,
 calibrated thresholds, or savings. Use the twelve prepared task cards as the first
 real trial plan and record only actual observed results.
+
+Use the bundled `runtime/ultra-delegation/references/repository-trial.md` for the
+current prepare/execute/review flow and configurable efficiency preference.
+See `validation/repository-trial-validation.md` for this iteration’s test status.

@@ -37,7 +37,7 @@ def build(output_dir):
             entries["runtime/" + name] = z.read(name)
     entries["validation/" + source_name] = archives[source_name]
     with zipfile.ZipFile(io.BytesIO(archives[source_name])) as z:
-        for name in ("active-recovery-validation.md", "compatibility.md"):
+        for name in ("active-recovery-validation.md", "compatibility.md", "repository-trial-validation.md"):
             entries["validation/" + name] = z.read(release.SOURCE_PREFIX+"/docs/" + name)
     sys.path.insert(0, str(ROOT / ".agents/skills/ultra-delegation/scripts"))
     import pilot
@@ -54,7 +54,7 @@ def build(output_dir):
         "schema": "yarn-agent-handoff-v1", "pilot_version": VERSION,
         "source_snapshot_sha256": hashes[source_name], "pilot_archives_sha256": hashes,
         "purpose": "Consolidate the GPT-6 and Fable 5.1 Yarn app versions and integrate the optional Jev project pilot.",
-        "validation_status_file": "validation/active-recovery-validation.md",
+        "validation_status_file": "validation/repository-trial-validation.md",
         "routing": "active after explicit project setup; no statistical admission gate",
         "runtime_entrypoint": "runtime/ultra-delegation/scripts/pilot.py",
         "agent_entrypoint": "START-HERE.md", "synthetic_example_only": True,

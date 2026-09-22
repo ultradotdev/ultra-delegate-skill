@@ -1,0 +1,412 @@
+{
+  "assisted_fresh_agent": true,
+  "development_only": true,
+  "executed_overview": {
+    "attempts": [
+      {
+        "artifact_correction": {
+          "artifact_hash": "0e8273e50e99d05ad01e0e9397793c44bed6043ca3f096cbec40c1d236413177",
+          "previous_artifact_hash": "098d8863aa37058414ec2739c9185305f1a5dffcb96bbcab46335396e51fffc1",
+          "reason_code": "artifact-recording-error"
+        },
+        "configuration_id": "cfg_276e94da1f8bf93ca650c41e",
+        "cost": {
+          "complete": false,
+          "coverage": "4/7",
+          "kind": "mixed",
+          "usd": 0
+        },
+        "critical_defects": [],
+        "effort": "medium",
+        "id": "attempt-1",
+        "kind": "initial",
+        "latency_ms": null,
+        "model": "gpt-5.6-luna",
+        "reason_code": null,
+        "security": "off",
+        "security_result": "not_checked",
+        "state": "accepted"
+      },
+      {
+        "artifact_correction": {
+          "artifact_hash": "c08a977389ad1a7d325e98512b21aca653fb97613532d2e30e5bbc63e338f5c6",
+          "previous_artifact_hash": "2df78ba7d2cd31b8682755b9cb488564960eef1a897e2b3d4dbe2d31cbe9803b",
+          "reason_code": "artifact-recording-error"
+        },
+        "configuration_id": "cfg_92defe508f755a845aacc1f3",
+        "cost": {
+          "complete": false,
+          "coverage": "4/7",
+          "kind": "mixed",
+          "usd": 0
+        },
+        "critical_defects": [],
+        "effort": "medium",
+        "id": "attempt-2",
+        "kind": "comparison",
+        "latency_ms": null,
+        "model": "gpt-5.6-terra",
+        "reason_code": null,
+        "security": "off",
+        "security_result": "not_checked",
+        "state": "accepted"
+      }
+    ],
+    "comparison_attempts": 1,
+    "cost": {
+      "complete": false,
+      "coverage": "9/15",
+      "kind": "mixed",
+      "known_usd": 0.000252168,
+      "usd": null
+    },
+    "decision_id": "dec_e6f56facc93f6287d2cbcbb4",
+    "efficiency_hint": {
+      "basis": "openai-standard-api-rate-order",
+      "checked_on": "2026-09-21",
+      "rank": 1,
+      "status": "current"
+    },
+    "final_result": "accepted",
+    "first_attempt": "accepted",
+    "known_cost_components_usd": {
+      "estimated": 0.000252168,
+      "measured": 0
+    },
+    "reason_codes": [
+      "jev-semantic-selection"
+    ],
+    "recovery_attempts": 0,
+    "reported_worker_time_ms": null,
+    "request_id": "req_136cfb067f1ce458dcf64ed8",
+    "router_time_ms": 249.71133307553828,
+    "selected_configuration_id": "cfg_276e94da1f8bf93ca650c41e",
+    "selected_effort": "medium",
+    "selected_model": "gpt-5.6-luna",
+    "selection_basis": {
+      "method": "dated-efficiency-hints",
+      "preference": "efficiency_hints",
+      "tie_breakers": [
+        "recent-comparable-failure",
+        "efficiency-rank",
+        "reviewed-outcome-lower-bound",
+        "assessed-fit",
+        "configuration-id"
+      ]
+    },
+    "synthetic": false,
+    "task_id": "inclusive-range-parser-fix-001",
+    "worker_time_complete": false
+  },
+  "executed_request": {
+    "accepted_attempt_id": "attempt-1",
+    "attempts": [
+      {
+        "artifact_correction": {
+          "artifact_hash": "0e8273e50e99d05ad01e0e9397793c44bed6043ca3f096cbec40c1d236413177",
+          "previous_artifact_hash": "098d8863aa37058414ec2739c9185305f1a5dffcb96bbcab46335396e51fffc1",
+          "reason_code": "artifact-recording-error"
+        },
+        "artifact_hash": "0e8273e50e99d05ad01e0e9397793c44bed6043ca3f096cbec40c1d236413177",
+        "configuration_id": "cfg_276e94da1f8bf93ca650c41e",
+        "critical_defects": [],
+        "id": "attempt-1",
+        "kind": "initial",
+        "outcome_id": "out_b34254e511fba4b6eb480a36",
+        "parent_attempt_id": null,
+        "reason_code": null,
+        "state": "accepted"
+      },
+      {
+        "artifact_correction": {
+          "artifact_hash": "c08a977389ad1a7d325e98512b21aca653fb97613532d2e30e5bbc63e338f5c6",
+          "previous_artifact_hash": "2df78ba7d2cd31b8682755b9cb488564960eef1a897e2b3d4dbe2d31cbe9803b",
+          "reason_code": "artifact-recording-error"
+        },
+        "artifact_hash": "c08a977389ad1a7d325e98512b21aca653fb97613532d2e30e5bbc63e338f5c6",
+        "configuration_id": "cfg_92defe508f755a845aacc1f3",
+        "critical_defects": [],
+        "id": "attempt-2",
+        "kind": "comparison",
+        "outcome_id": "out_b41f135952e8664a2e2410a2",
+        "parent_attempt_id": null,
+        "reason_code": null,
+        "state": "accepted"
+      }
+    ],
+    "decision_history": [
+      "dec_e6f56facc93f6287d2cbcbb4"
+    ],
+    "decision_id": "dec_e6f56facc93f6287d2cbcbb4",
+    "first_attempt_resolved": true,
+    "first_attempt_success": true,
+    "id": "req_136cfb067f1ce458dcf64ed8",
+    "initial_bakeoff_resolved": true,
+    "initial_bakeoff_success": true,
+    "narrative": {
+      "alternative_configuration_ids": [
+        "cfg_92defe508f755a845aacc1f3"
+      ],
+      "artifact_references": [
+        {
+          "artifact_hash": "0e8273e50e99d05ad01e0e9397793c44bed6043ca3f096cbec40c1d236413177",
+          "attempt_id": "attempt-1"
+        },
+        {
+          "artifact_hash": "c08a977389ad1a7d325e98512b21aca653fb97613532d2e30e5bbc63e338f5c6",
+          "attempt_id": "attempt-2"
+        }
+      ],
+      "reason_codes": [],
+      "selected_configuration_id": "cfg_276e94da1f8bf93ca650c41e"
+    },
+    "recovery_attempts": 0,
+    "request_success": true,
+    "state": "accepted",
+    "task_id": "inclusive-range-parser-fix-001"
+  },
+  "fixture_id": "python-ranges",
+  "learning_diagnostic": {
+    "automatic_workflow_planned_attempts": 1,
+    "decision_id": "dec_d274dcea03e471e77136899c",
+    "diagnostic_only": true,
+    "meaning": "One reviewed comparable group informed selection immediately; automatic comparison was not scheduled in an isolated planning replay.",
+    "native_workers_launched": 0,
+    "reviewed_group_count": 1,
+    "selected_configuration_id": "cfg_276e94da1f8bf93ca650c41e"
+  },
+  "limits": [
+    "Single known development fixture; not held-out calibration",
+    "No native billing or worker-only latency",
+    "Security and artifact judging off",
+    "No general model-quality or savings claim"
+  ],
+  "native_worker_count": 2,
+  "release_candidate": "1.3.0-rc.7",
+  "review_blinded": false,
+  "reviewed_outcomes": [
+    {
+      "accepted": true,
+      "artifact_hash": "0e8273e50e99d05ad01e0e9397793c44bed6043ca3f096cbec40c1d236413177",
+      "attempt_id": "attempt-1",
+      "attempt_kind": "initial",
+      "configuration_id": "cfg_276e94da1f8bf93ca650c41e",
+      "costs": {
+        "fallback": {
+          "kind": "measured",
+          "usd": 0
+        },
+        "preparation": {
+          "kind": "unknown",
+          "usd": null
+        },
+        "retry": {
+          "kind": "measured",
+          "usd": 0
+        },
+        "review": {
+          "kind": "unknown",
+          "usd": null
+        },
+        "worker": {
+          "kind": "unknown",
+          "usd": null
+        }
+      },
+      "created_at": "2026-09-22T00:16:10.106687+00:00",
+      "critical_defects": [],
+      "decision_id": "dec_e6f56facc93f6287d2cbcbb4",
+      "gates": [
+        {
+          "id": "behavioral-tests",
+          "mandatory": true,
+          "passed": true
+        },
+        {
+          "id": "complete-output",
+          "mandatory": true,
+          "passed": true
+        },
+        {
+          "id": "review-context-synthesis",
+          "mandatory": true,
+          "passed": true
+        },
+        {
+          "id": "review-reasoning",
+          "mandatory": true,
+          "passed": true
+        },
+        {
+          "id": "scope",
+          "mandatory": true,
+          "passed": true
+        }
+      ],
+      "group_id": "inclusive-range-parser-fix-group-001",
+      "id": "out_b34254e511fba4b6eb480a36",
+      "judge": {
+        "attempts": 0,
+        "cost": {
+          "kind": "measured",
+          "usd": 0
+        },
+        "latency_ms": 0,
+        "mode": "off",
+        "model": "-",
+        "reason_codes": [],
+        "rubric_version": "-",
+        "scores": {
+          "clarity": null,
+          "coverage": null,
+          "evidence": null,
+          "scope": null
+        },
+        "status": "not_checked"
+      },
+      "latency_ms": null,
+      "observation_role": "selected-route",
+      "request_id": "req_136cfb067f1ce458dcf64ed8",
+      "reviewed_demands": [
+        "context_synthesis",
+        "reasoning"
+      ],
+      "reviewer_id": "root-frontier-coordinator",
+      "reviewer_kind": "frontier",
+      "scope_id": "python-inclusive-range-parser",
+      "scores": {
+        "clarity": 95,
+        "correctness": 95,
+        "coverage": 95,
+        "maintainability": 95
+      },
+      "security": {
+        "attempts": 0,
+        "cost_kind": "measured",
+        "cost_usd": 0,
+        "input_hash": "-",
+        "latency_ms": 0,
+        "mode": "off",
+        "model": "jev-1.13.0",
+        "question_hash": "-",
+        "question_version": "pilot-security-v1",
+        "reason_codes": [],
+        "status": "not_checked"
+      },
+      "synthetic": false,
+      "task_id": "inclusive-range-parser-fix-001"
+    },
+    {
+      "accepted": true,
+      "artifact_hash": "c08a977389ad1a7d325e98512b21aca653fb97613532d2e30e5bbc63e338f5c6",
+      "attempt_id": "attempt-2",
+      "attempt_kind": "comparison",
+      "configuration_id": "cfg_92defe508f755a845aacc1f3",
+      "costs": {
+        "fallback": {
+          "kind": "measured",
+          "usd": 0
+        },
+        "preparation": {
+          "kind": "unknown",
+          "usd": null
+        },
+        "retry": {
+          "kind": "measured",
+          "usd": 0
+        },
+        "review": {
+          "kind": "unknown",
+          "usd": null
+        },
+        "worker": {
+          "kind": "unknown",
+          "usd": null
+        }
+      },
+      "created_at": "2026-09-22T00:16:10.183402+00:00",
+      "critical_defects": [],
+      "decision_id": "dec_e6f56facc93f6287d2cbcbb4",
+      "gates": [
+        {
+          "id": "behavioral-tests",
+          "mandatory": true,
+          "passed": true
+        },
+        {
+          "id": "complete-output",
+          "mandatory": true,
+          "passed": true
+        },
+        {
+          "id": "review-context-synthesis",
+          "mandatory": true,
+          "passed": true
+        },
+        {
+          "id": "review-reasoning",
+          "mandatory": true,
+          "passed": true
+        },
+        {
+          "id": "scope",
+          "mandatory": true,
+          "passed": true
+        }
+      ],
+      "group_id": "inclusive-range-parser-fix-group-001",
+      "id": "out_b41f135952e8664a2e2410a2",
+      "judge": {
+        "attempts": 0,
+        "cost": {
+          "kind": "measured",
+          "usd": 0
+        },
+        "latency_ms": 0,
+        "mode": "off",
+        "model": "-",
+        "reason_codes": [],
+        "rubric_version": "-",
+        "scores": {
+          "clarity": null,
+          "coverage": null,
+          "evidence": null,
+          "scope": null
+        },
+        "status": "not_checked"
+      },
+      "latency_ms": null,
+      "observation_role": "coordinator-reviewed-comparison",
+      "request_id": "req_136cfb067f1ce458dcf64ed8",
+      "reviewed_demands": [
+        "context_synthesis",
+        "reasoning"
+      ],
+      "reviewer_id": "root-frontier-coordinator",
+      "reviewer_kind": "frontier",
+      "scope_id": "python-inclusive-range-parser",
+      "scores": {
+        "clarity": 95,
+        "correctness": 95,
+        "coverage": 95,
+        "maintainability": 95
+      },
+      "security": {
+        "attempts": 0,
+        "cost_kind": "measured",
+        "cost_usd": 0,
+        "input_hash": "-",
+        "latency_ms": 0,
+        "mode": "off",
+        "model": "jev-1.13.0",
+        "question_hash": "-",
+        "question_version": "pilot-security-v1",
+        "reason_codes": [],
+        "status": "not_checked"
+      },
+      "synthetic": false,
+      "task_id": "inclusive-range-parser-fix-001"
+    }
+  ],
+  "schema": "ultra-repository-trial-validation-v1"
+}

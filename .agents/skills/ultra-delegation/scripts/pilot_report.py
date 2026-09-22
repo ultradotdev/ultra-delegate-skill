@@ -120,6 +120,38 @@ def _assessment_evidence(value: Any) -> dict[str, Any]:
             "cost_observations": _number(value.get("cost_observations"), 0)}
 
 
+def _probability(value: Any) -> float | None:
+    number = _number(value)
+    return number if number is not None and 0 <= number <= 1 else None
+
+
+def _efficiency_hint(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    rank = value.get("rank")
+    if (not isinstance(rank, int) or isinstance(rank, bool) or rank < 0
+            or not _metadata_label(value.get("basis"))
+            or not isinstance(value.get("checked_on"), str)
+            or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value["checked_on"])
+            or value.get("status") not in {"current", "stale", "future"}):
+        return None
+    return {key: value[key] for key in ("rank", "basis", "checked_on", "status")}
+
+
+def _selection_basis(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    preference = value.get("preference")
+    method = value.get("method")
+    if (preference not in {"efficiency_hints", "strongest_fit"}
+            or method not in {"comparable-cost-estimates", "dated-efficiency-hints", "reviewed-outcomes-and-fit"}):
+        return {}
+    allowed = {"recent-comparable-failure", "estimate-usd", "efficiency-rank",
+               "reviewed-outcome-lower-bound", "assessed-fit", "configuration-id"}
+    return {"preference": preference, "method": method,
+            "tie_breakers": [key for key in _labels(value.get("tie_breakers")) if key in allowed]}
+
+
 def _project_decision(raw: Any) -> dict[str, Any] | None:
     if not isinstance(raw, dict) or raw.get("schema") != DECISION_SCHEMA:
         return None
@@ -133,6 +165,7 @@ def _project_decision(raw: Any) -> dict[str, Any] | None:
             "model": _label(item.get("model")), "effort": _label(item.get("effort")),
             "eligible": item.get("eligible") is True, "reasons": _labels(item.get("reasons")),
             "shortlisted": item.get("shortlisted") is True, "estimate_usd": _number(item.get("estimate_usd")),
+            "efficiency_hint": _efficiency_hint(item.get("efficiency_hint")),
             "output_limit_source": item.get("output_limit_source") if item.get("output_limit_source") in {"explicit", "native-host"} else "explicit",
             "max_output_tokens": _number(item.get("max_output_tokens")), "context_window": _number(item.get("context_window")),
             "input_budget_tokens": _number(item.get("input_budget_tokens")), "output_budget_tokens": _number(item.get("output_budget_tokens")),
@@ -148,7 +181,7 @@ def _project_decision(raw: Any) -> dict[str, Any] | None:
                 if clean is not None:
                     signals[key] = clean
     candidate_ids = {c["configuration_id"] for c in candidates}
-    is_current = raw.get("decision_policy_version") == "pilot-selection-v4"
+    is_current = raw.get("decision_policy_version") in {"pilot-selection-v4", "pilot-selection-v5"}
     assessments = []
     for assessment in raw.get("candidate_assessments", []) if isinstance(raw.get("candidate_assessments"), list) else []:
         if not isinstance(assessment, dict) or assessment.get("configuration_id") not in candidate_ids:
@@ -158,7 +191,11 @@ def _project_decision(raw: Any) -> dict[str, Any] | None:
             continue
         assessments.append({"configuration_id": assessment["configuration_id"], "status": status,
                             "reason_codes": [code for code in _labels(assessment.get("reason_codes")) if _metadata_label(code)],
-                            "evidence": _assessment_evidence(assessment.get("evidence"))})
+                            "evidence": _assessment_evidence(assessment.get("evidence")),
+                            "assessed_fit": _probability(assessment.get("assessed_fit")),
+                            "applicable_fits": _demand_list(assessment.get("applicable_fits")),
+                            "fit_probabilities": {key: _probability((assessment.get("fit_probabilities") or {}).get(key)) for key in DEMANDS}
+                            if isinstance(assessment.get("fit_probabilities"), dict) else {}})
     router = raw.get("router") if isinstance(raw.get("router"), dict) else {}
     demand_profile = _demand_profile(raw.get("demand_profile"))
     required_demands = _demand_list(raw.get("required_demands"))
@@ -177,10 +214,11 @@ def _project_decision(raw: Any) -> dict[str, Any] | None:
         "nominated_configuration_ids": _safe_labels(raw.get("nominated_configuration_ids")),
         "alternative_configuration_ids": _safe_labels(raw.get("alternative_configuration_ids")),
         "reason_codes": _code_labels(raw.get("reason_codes")),
+        "selection_basis": _selection_basis(raw.get("selection_basis")),
         "question_version": _label(raw.get("question_version")), "model": _label(raw.get("model")),
         "policy_hash": _label(raw.get("policy_hash")), "input_hash": _label(raw.get("input_hash")), "question_hash": _label(raw.get("question_hash")),
         "payload_hash": _label(raw.get("payload_hash")), "evidence_hash": _label(raw.get("evidence_hash")),
-        "decision_policy_version": raw.get("decision_policy_version") if raw.get("decision_policy_version") in {"pilot-selection-v3", "pilot-selection-v4"} else None,
+        "decision_policy_version": raw.get("decision_policy_version") if raw.get("decision_policy_version") in {"pilot-selection-v3", "pilot-selection-v4", "pilot-selection-v5"} else None,
         "demand_profile": demand_profile, "required_demands": required_demands,
         "review_requirements": [x for x in _labels(raw.get("review_requirements")) if x in REVIEW_GATES],
         "diagnostics": [x for x in _labels(raw.get("diagnostics")) if x in DIAGNOSTICS],
@@ -195,7 +233,10 @@ def _project_decision(raw: Any) -> dict[str, Any] | None:
     # Qualification was a historical release-gate concept.  Keep v3 records
     # readable, but do not carry it forward as a field in v4 telemetry.
     if is_current:
-        projected["candidate_assessments"] = []
+        if raw.get("decision_policy_version") == "pilot-selection-v4":
+            projected["candidate_assessments"] = []
+        for assessment in projected["candidate_assessments"]:
+            assessment["evidence"].pop("qualified", None)
         for candidate in projected["candidates"]:
             candidate["evidence"].pop("qualified", None)
     return projected
@@ -279,6 +320,14 @@ def _project_request(raw: Any, outcomes_by_id: dict[str, dict[str, Any]]) -> dic
         defects = _code_labels(attempt.get("critical_defects"))
         if outcome is not None:
             defects = list(dict.fromkeys([*defects, *outcome["critical_defects"]]))
+        correction = attempt.get("artifact_correction")
+        if not (isinstance(correction, dict)
+                and all(isinstance(correction.get(k), str) and re.fullmatch(r"[a-f0-9]{64}", correction[k])
+                        for k in ("previous_artifact_hash", "artifact_hash"))
+                and correction.get("reason_code") in _code_labels([correction.get("reason_code")])):
+            correction = None
+        elif correction:
+            correction = {k: correction[k] for k in ("previous_artifact_hash", "artifact_hash", "reason_code")}
         clean_attempts.append({
             "id": _label(attempt.get("id")), "configuration_id": _label(attempt.get("configuration_id")),
             "kind": kind, "state": state,
@@ -286,6 +335,7 @@ def _project_request(raw: Any, outcomes_by_id: dict[str, dict[str, Any]]) -> dic
             "reason_code": attempt.get("reason_code") if attempt.get("reason_code") in _code_labels([attempt.get("reason_code")]) else None,
             "outcome_id": outcome_id, "artifact_hash": attempt.get("artifact_hash") if _metadata_label(attempt.get("artifact_hash")) else None,
             "critical_defects": defects,
+            "artifact_correction": correction,
         })
     initial = next((a for a in clean_attempts if a["kind"] == "initial"), None)
     comparisons = [a for a in clean_attempts if a["kind"] == "comparison"]
@@ -305,6 +355,7 @@ def _project_request(raw: Any, outcomes_by_id: dict[str, dict[str, Any]]) -> dic
     }
     return {
         "id": _label(raw.get("id")), "task_id": _label(raw.get("task_id")), "decision_id": _label(raw.get("decision_id")),
+        "decision_history": _safe_labels(raw.get("decision_history")) or [_label(raw.get("decision_id"))],
         "state": state, "request_success": state in {"accepted", "success"},
         "first_attempt_success": bool(initial and initial["state"] == "accepted"),
         "first_attempt_resolved": first_resolved,
@@ -337,6 +388,97 @@ def _initial_phase_outcome(configuration_id: str | None, outcomes: list[dict[str
         if outcome["configuration_id"] == configuration_id and outcome["attempt_kind"] in (None, "initial", "comparison"):
             return outcome
     return None
+
+
+def _outcome_costs(outcome: dict[str, Any]) -> list[dict[str, Any]]:
+    return [*outcome["costs"].values(),
+            {"usd": outcome["security"]["cost_usd"], "kind": outcome["security"]["cost_kind"]},
+            outcome["judge"]["cost"]]
+
+
+def _cost_components(costs):
+    """Keep actual billing distinct from modelled spend, even in partial totals."""
+    return {kind: sum(item["usd"] for item in costs if item["kind"] == kind and item["usd"] is not None)
+            for kind in ("measured", "estimated")}
+
+
+def _security_state(outcome: dict[str, Any] | None) -> str:
+    if outcome is None:
+        return "unavailable"
+    security = outcome["security"]
+    if security["mode"] == "off":
+        return "off"
+    return "completed" if security["status"] in {"pass", "fail", "indeterminate"} else "unavailable"
+
+
+def _overview(decisions, outcomes, requests):
+    """One concise, machine-readable story per request (or unstarted decision)."""
+    by_decision = {d["id"]: d for d in decisions}
+    by_outcome = {o["id"]: o for o in outcomes}
+    identities = {c["configuration_id"]: c for d in decisions for c in d["candidates"]}
+    rows = []
+    requested = {did for r in requests for did in r["decision_history"]}
+    work = [(r, by_decision.get(r["decision_history"][0])) for r in requests]
+    work.extend((None, d) for d in decisions if d["id"] not in requested)
+    for request, decision in work:
+        decision = decision or {}
+        observed = [o for o in outcomes if o["decision_id"] == decision.get("id")]
+        attempts = request["attempts"] if request else [
+            {"id": o["attempt_id"] or o["id"], "configuration_id": o["configuration_id"],
+             "kind": o["attempt_kind"] or ("initial" if o["configuration_id"] == decision.get("selected_configuration_id") else "comparison"),
+             "state": "accepted" if o["accepted"] else "rejected", "outcome_id": o["id"]}
+            for o in observed]
+        attempt_rows = []
+        costs = []
+        times = []
+        for attempt in attempts:
+            outcome = by_outcome.get(attempt.get("outcome_id"))
+            identity = identities.get(attempt["configuration_id"], {})
+            attempt_cost = _outcome_costs(outcome) if outcome else [{"usd": None, "kind": "unknown"}]
+            costs.extend(attempt_cost)
+            times.append(outcome["latency_ms"] if outcome else None)
+            attempt_rows.append({"id": attempt["id"], "configuration_id": attempt["configuration_id"],
+                                 "model": identity.get("model"), "effort": identity.get("effort"),
+                                 "kind": attempt["kind"], "state": attempt["state"],
+                                 "reason_code": attempt.get("reason_code"),
+                                 "artifact_correction": attempt.get("artifact_correction"),
+                                 "critical_defects": outcome["critical_defects"] if outcome else attempt.get("critical_defects", []),
+                                 "latency_ms": outcome["latency_ms"] if outcome else None,
+                                 "cost": _total_cost(attempt_cost), "security": _security_state(outcome),
+                                 "security_result": outcome["security"]["status"] if outcome else None})
+        router = decision.get("router", {})
+        routers = [by_decision.get(did, {}).get("router", {}) for did in request["decision_history"]] if request else [router]
+        costs.extend({"usd": item.get("cost_usd"), "kind": item.get("cost_kind", "unknown")} for item in routers)
+        initial = next((a for a in attempt_rows if a["kind"] == "initial"), None)
+        selected_id = (request["narrative"]["selected_configuration_id"] if request else decision.get("selected_configuration_id"))
+        selected = identities.get(selected_id, {})
+        first = initial["state"] if initial else "not-started"
+        if request:
+            final = "accepted" if request["request_success"] else request["state"]
+        else:
+            final = ("accepted" if first == "accepted" else "reviewed-rejection" if first == "rejected"
+                     else "coordinator-required" if decision.get("action") == "coordinator" else "pending")
+        if not attempt_rows or final not in {"accepted", "reviewed-rejection"}:
+            costs.append({"usd": None, "kind": "unknown"})
+        total = _total_cost(costs)
+        if not total["complete"]:
+            total["known_usd"], total["usd"] = total["usd"], None
+        rows.append({"request_id": request["id"] if request else None,
+                     "decision_id": decision.get("id"), "task_id": request["task_id"] if request else decision.get("task_id"),
+                     "synthetic": decision.get("synthetic", False),
+                     "selected_configuration_id": selected_id, "selected_model": selected.get("model"), "selected_effort": selected.get("effort"),
+                     "selection_basis": decision.get("selection_basis", {}), "reason_codes": decision.get("reason_codes", []),
+                     "efficiency_hint": selected.get("efficiency_hint"),
+                     "first_attempt": first, "final_result": final,
+                     "comparison_attempts": sum(a["kind"] == "comparison" and a["state"] != "planned" for a in attempt_rows),
+                     "recovery_attempts": sum(a["kind"] in {"repair", "fallback"} and a["state"] != "planned" for a in attempt_rows),
+                     "cost": total,
+                     "known_cost_components_usd": _cost_components(costs),
+                     "reported_worker_time_ms": sum(t for t in times if t is not None) if any(t is not None for t in times) else None,
+                     "worker_time_complete": bool(times) and all(t is not None for t in times),
+                     "router_time_ms": sum(item.get("latency_ms", 0) for item in routers),
+                     "attempts": attempt_rows})
+    return rows
 
 
 def build_report(decisions: list[dict[str, Any]], outcomes: list[dict[str, Any]], requests=()) -> dict[str, Any]:
@@ -374,7 +516,13 @@ def build_report(decisions: list[dict[str, Any]], outcomes: list[dict[str, Any]]
                            for r in workflows for a in r["attempts"])
     all_costs.extend({'usd': None, 'kind': 'unknown'} for _ in range(unpriced_attempts))
     workload_costs = list(all_costs)
-    unresolved_tasks = len(pending_selected) + sum(d["action"] != "route" for d in ds)
+    # A replanned decision can execute as a fallback attempt.  Initial routing
+    # accuracy remains separate, but a reviewed completed request is no longer
+    # an unresolved workload merely because that fallback was not an initial.
+    workflow_decisions = {did for request in workflows for did in request["decision_history"]}
+    unresolved_tasks = (sum(d["id"] not in workflow_decisions for d in pending_selected)
+                        + sum(d["action"] != "route" and d["id"] not in workflow_decisions for d in ds)
+                        + sum(not request["request_success"] for request in workflows))
     workload_costs.extend({"usd": None, "kind": "unknown"} for _ in range(unresolved_tasks))
     accepted = sum(o["accepted"] for o in selected_outcomes)
     mandatory = [g for o in os for g in o["gates"] if g["mandatory"]]
@@ -452,6 +600,7 @@ def build_report(decisions: list[dict[str, Any]], outcomes: list[dict[str, Any]]
                     "cost": _total_cost(all_costs), "whole_workload_cost": workload_total, "experiment_cost": _total_cost(experiment_costs),
                     "cost_note": "Known logged spend may mix measured and estimated values. Complete workload cost stays unknown while a selected route, fallback, or final coordinator outcome is unobserved; no savings are claimed."},
         "decisions": ds, "outcomes": os, "requests": workflows,
+        "overview": _overview(ds, os, workflows),
         "request_metrics": request_metrics,
     }
 
@@ -500,13 +649,57 @@ def render_html(report: dict[str, Any]) -> str:
     outcome_map: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for outcome in outcomes: outcome_map[outcome["decision_id"]].append(outcome)
     workflow_cards = []
-    identities = {c['configuration_id']: c['model'] + ' / ' + c['effort'] for d in decisions for c in d['candidates']}
-    for r in report.get('requests', []):
-        rows = ''.join('<tr><td>'+_e(a['id'])+'</td><td>'+_e(identities.get(a['configuration_id'], a['configuration_id']))+'</td><td>'+_e(a['kind'])+'</td><td>'+_e(a['state'])+'</td><td>'+_e(a.get('reason_code'))+'<br><small>critical defects: '+_e(', '.join(a.get('critical_defects', [])) or 'none recorded')+'</small></td></tr>' for a in r['attempts'])
-        narrative = r.get('narrative', {})
-        bakeoff = r['initial_bakeoff_success'] if r['initial_bakeoff_success'] is not None else 'not run'
-        workflow_cards.append('<article class="decision"><h2>Request '+task_heading(r['task_id'])+'</h2><p><b>Request state: '+_e(r['state'])+'</b>. First attempt accepted: '+_e(r['first_attempt_success'])+'; initial bake-off accepted: '+_e(bakeoff)+'; final request accepted: '+_e(r['request_success'])+'; recovery attempts: '+_e(r['recovery_attempts'])+'.</p><p class=note>Selected configuration: '+_e(narrative.get('selected_configuration_id'))+'; alternatives: '+_e(', '.join(narrative.get('alternative_configuration_ids', [])) or 'none')+'; reasons: '+_e(', '.join(narrative.get('reason_codes', [])) or 'none recorded')+'; artifact references: '+_e(', '.join(x['artifact_hash'] for x in narrative.get('artifact_references', [])) or 'none recorded')+'.</p><table><thead><tr><th>Attempt</th><th>Worker</th><th>Role</th><th>State</th><th>Recovery / defects</th></tr></thead><tbody>'+rows+'</tbody></table></article>')
-    workflow_html = '<section><h2>What happened to each request</h2>'+''.join(workflow_cards)+'</section>' if workflow_cards else ''
+    unstarted_cards = []
+    has_workflow = any(item.get("request_id") or item.get("attempts") for item in report.get("overview", []))
+    basis_labels = {"comparable-cost-estimates": "Lower comparable estimated cost among suitable workers",
+                    "dated-efficiency-hints": "Dated efficiency hints among suitable workers; not measured cost",
+                    "reviewed-outcomes-and-fit": "Relevant reviewed outcomes and assessed task fit"}
+    state_labels = {"accepted": "Accepted", "rejected": "Not accepted", "failed": "Execution failed",
+                    "not-started": "Not started", "planned": "Not started", "running": "Running",
+                    "launching": "Launch pending", "completed": "Awaiting review", "canceled": "Canceled",
+                    "in-progress": "In progress", "pending": "Pending", "coordinator-required": "Coordinator needed",
+                    "reviewed-rejection": "Not accepted; recovery not recorded"}
+    for item in report.get("overview", []):
+        worker = (str(item["selected_model"]) + " / " + str(item["selected_effort"]) if item["selected_model"] else "No worker selected")
+        basis = basis_labels.get(item["selection_basis"].get("method"))
+        why = basis or (", ".join(item["reason_codes"]) or "Selection reason not recorded")
+        known_costs = item["known_cost_components_usd"]
+        component_text = (f"Known logged components: ${known_costs['measured']:.4f} measured; "
+                          f"${known_costs['estimated']:.4f} estimated. Unreported costs remain unknown.")
+        rows = []
+        for attempt in item["attempts"]:
+            model = (str(attempt["model"]) + " / " + str(attempt["effort"])) if attempt["model"] else attempt["configuration_id"]
+            elapsed = "unknown" if attempt["latency_ms"] is None else f"{attempt['latency_ms'] / 1000:.2f}s"
+            cost = attempt["cost"] if attempt["cost"]["complete"] else {"usd": None}
+            security = attempt["security"]
+            if security == "completed":
+                security += " (advisory " + str(attempt["security_result"]) + ")"
+            rows.append("<tr><td>" + _e(attempt["kind"]) + "</td><td>" + _e(model) + "</td><td>" +
+                        _e(state_labels.get(attempt["state"], attempt["state"])) + "</td><td>" + _e(elapsed) +
+                        "</td><td>" + _money(cost) + "</td><td>" + _e(security) + "</td></tr>")
+        times = ("unknown" if item["reported_worker_time_ms"] is None else
+                 f"{item['reported_worker_time_ms'] / 1000:.2f}s" + (" (partial)" if not item["worker_time_complete"] else ""))
+        hint = item.get("efficiency_hint")
+        hint_text = ("<p class=note>Efficiency hint: rank " + _e(hint["rank"]) + ", checked " + _e(hint["checked_on"]) +
+                     " (" + _e(hint["status"]) + "). This is a relative hint, not a dollar estimate.</p>") if hint else ""
+        synthetic = '<p class="warning">Synthetic telemetry; it does not establish live routing evidence.</p>' if item["synthetic"] else ""
+        corrections = sum(bool(a.get("artifact_correction")) for a in item["attempts"])
+        correction_text = ('<p class=note>Artifact-record corrections before review: ' + str(corrections) +
+                           '. Original hashes remain in the audit trail.</p>') if corrections else ''
+        cards = unstarted_cards if has_workflow and not item.get("request_id") and not item["attempts"] else workflow_cards
+        cards.append('<article class="decision"><h2>' + task_heading(item["task_id"]) + '</h2>' + synthetic +
+            '<p><b>' + _e(state_labels.get(item["final_result"], item["final_result"])) + '</b> · First attempt: ' +
+            _e(state_labels.get(item["first_attempt"], item["first_attempt"])) + '</p><p><b>Selected:</b> ' + _e(worker) +
+            '<br><b>Why:</b> ' + _e(why) + '</p><p>' + _e(item["comparison_attempts"]) + ' comparison attempt(s) · ' +
+            _e(item["recovery_attempts"]) + ' repair/fallback attempt(s) · <b>Total cost:</b> ' + _money(item["cost"]) +
+            '</p><p class=note>' + _e(component_text) + '</p><p class=note>Reported worker time: ' + _e(times) + '; router time: ' + _e(item["router_time_ms"]) +
+            ' ms. Summed worker time is not elapsed wall-clock time.</p>' + hint_text + correction_text +
+            '<table><thead><tr><th>Role</th><th>Worker</th><th>Result</th><th>Time</th><th>Full attempt cost</th><th>Security check</th></tr></thead><tbody>' +
+            (''.join(rows) or '<tr><td colspan=6>No worker execution recorded.</td></tr>') + '</tbody></table></article>')
+    workflow_html = '<section id="overview"><h2>What happened</h2>' + ''.join(workflow_cards) + '</section>' if workflow_cards else ''
+    if unstarted_cards:
+        workflow_html += ('<details class="audit"><summary>Other routing records: ' + str(len(unstarted_cards)) +
+                          ' without a recorded worker run</summary>' + ''.join(unstarted_cards) + '</details>')
     request_metrics = report.get('request_metrics', {})
     request_summary_html = ''
     if request_metrics.get('total'):
@@ -561,4 +754,4 @@ def render_html(report: dict[str, Any]) -> str:
     safe_json = (json.dumps(report, ensure_ascii=False, separators=(",", ":"))
                  .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
                  .replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
-    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Jev pilot telemetry</title><style>:root{{color-scheme:light dark;--bg:#f6f7fb;--card:#fff;--ink:#172033;--muted:#62708a;--line:#dbe1eb;--accent:#5b4bdb;--warn:#9b5c00}}@media(prefers-color-scheme:dark){{:root{{--bg:#121521;--card:#1b2030;--ink:#edf1f8;--muted:#aeb8cb;--line:#31394c;--accent:#a99cff;--warn:#ffca70}}}}*{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 ui-sans-serif,system-ui,sans-serif}}main{{max-width:1200px;margin:auto;padding:32px 20px 72px}}h1{{margin:0;font-size:clamp(1.7rem,4vw,2.6rem)}}h2{{margin:0;font-size:1.12rem}}h3{{font-size:.9rem;margin:24px 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}}.lede,.note{{color:var(--muted)}}.metrics{{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}}.metric,.decision{{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}}.metric b{{display:block;font-size:1.5rem}}.filters{{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}}select{{padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}}.decision{{margin:16px 0;overflow:auto}}.decision header{{display:flex;justify-content:space-between;gap:12px}}.decision p{{margin:9px 0}}.pill{{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 7px;font-size:.78em;color:var(--muted)}}.warning{{color:var(--warn);font-weight:650}}table{{width:100%;border-collapse:collapse;min-width:620px}}th,td{{text-align:left;vertical-align:top;padding:8px;border-top:1px solid var(--line)}}th{{color:var(--muted);font-size:.82em}}.hidden{{display:none}}</style></head><body><main><h1>Jev pilot telemetry</h1><p class="lede">Routing choices and observed worker outcomes. Comparator results are shown only when outcomes share a decision; the report makes no realized-savings claim.</p>{workflow_html}{request_summary_html}<section class="metrics"><div class="metric"><b>{_e(summary.get('decisions', 0))}</b>decisions</div><div class="metric"><b>{_e(summary.get('pending_selected_outcomes', 0))}</b>selected outcomes pending</div><div class="metric"><b>{_e(summary.get('pending_experiments', 0))}</b>experiments pending</div><div class="metric"><b>{_e(summary.get('accepted_outcomes', 0))}/{_e(summary.get('acceptance', {}).get('total', 0))}</b>selected-worker acceptance</div><div class="metric"><b>{_e(summary.get('mandatory_gates', {}).get('passed', 0))}/{_e(summary.get('mandatory_gates', {}).get('total', 0))}</b>mandatory gates passed</div><div class="metric"><b>{_money(summary.get('cost', {'usd': None}))}</b>known logged spend · coverage {_e(summary.get('cost', {}).get('coverage', '0/0'))}</div><div class="metric"><b>{_money(summary.get('whole_workload_cost', {'usd': None}))}</b>complete workload cost · coverage {_e(summary.get('whole_workload_cost', {}).get('coverage', '0/0'))}</div><div class="metric"><b>{_money(summary.get('experiment_cost', {'usd': None}))}</b>experiment spend</div></section><p class="note">{_e(summary.get('cost_note', ''))} Security and quality-judge results are advisory and never change acceptance.</p>{feedback}<div class="filters"><label>Scope <select id="scope"><option value="">All scopes</option>{''.join(f'<option>{_e(x)}</option>' for x in scopes)}</select></label><label>Action <select id="action"><option value="">All actions</option>{''.join(f'<option>{_e(x)}</option>' for x in actions)}</select></label></div><section id="decisions">{''.join(cards) or '<article class="decision">No allowlisted pilot telemetry is available yet.</article>'}</section></main><script type="application/json" id="pilot-data">{safe_json}</script><script>const s=document.querySelector('#scope'),a=document.querySelector('#action');function f(){{document.querySelectorAll('.decision').forEach(x=>x.classList.toggle('hidden',(s.value&&x.dataset.scope!==s.value)||(a.value&&x.dataset.action!==a.value)))}}s.onchange=a.onchange=f;</script></body></html>'''
+    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Jev pilot telemetry</title><style>:root{{color-scheme:light dark;--bg:#f6f7fb;--card:#fff;--ink:#172033;--muted:#62708a;--line:#dbe1eb;--accent:#5b4bdb;--warn:#9b5c00}}@media(prefers-color-scheme:dark){{:root{{--bg:#121521;--card:#1b2030;--ink:#edf1f8;--muted:#aeb8cb;--line:#31394c;--accent:#a99cff;--warn:#ffca70}}}}*{{box-sizing:border-box}}body{{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 ui-sans-serif,system-ui,sans-serif}}main{{max-width:1200px;margin:auto;padding:32px 20px 72px}}h1{{margin:0;font-size:clamp(1.7rem,4vw,2.6rem)}}h2{{margin:0;font-size:1.12rem}}.audit{{margin:24px 0}}summary{{cursor:pointer;font-weight:650}}h3{{font-size:.9rem;margin:24px 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}}.lede,.note{{color:var(--muted)}}.metrics{{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0}}.metric,.decision{{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}}.metric b{{display:block;font-size:1.5rem}}.filters{{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}}select{{padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}}.decision{{margin:16px 0;overflow:auto}}.decision header{{display:flex;justify-content:space-between;gap:12px}}.decision p{{margin:9px 0}}.pill{{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 7px;font-size:.78em;color:var(--muted)}}.warning{{color:var(--warn);font-weight:650}}table{{width:100%;border-collapse:collapse;min-width:620px}}th,td{{text-align:left;vertical-align:top;padding:8px;border-top:1px solid var(--line)}}th{{color:var(--muted);font-size:.82em}}.hidden{{display:none}}</style></head><body><main><h1>Jev pilot telemetry</h1><p class="lede">Routing choices and observed worker outcomes. Comparator results are shown only when outcomes share a decision; the report makes no realized-savings claim.</p>{workflow_html}<details class="audit"><summary>Detailed evidence, Jev answers, and aggregate metrics</summary>{request_summary_html}<section class="metrics"><div class="metric"><b>{_e(summary.get('decisions', 0))}</b>decisions</div><div class="metric"><b>{_e(summary.get('pending_selected_outcomes', 0))}</b>selected outcomes pending</div><div class="metric"><b>{_e(summary.get('pending_experiments', 0))}</b>experiments pending</div><div class="metric"><b>{_e(summary.get('accepted_outcomes', 0))}/{_e(summary.get('acceptance', {}).get('total', 0))}</b>selected-worker acceptance</div><div class="metric"><b>{_e(summary.get('mandatory_gates', {}).get('passed', 0))}/{_e(summary.get('mandatory_gates', {}).get('total', 0))}</b>mandatory gates passed</div><div class="metric"><b>{_money(summary.get('cost', {'usd': None}))}</b>known logged spend · coverage {_e(summary.get('cost', {}).get('coverage', '0/0'))}</div><div class="metric"><b>{_money(summary.get('whole_workload_cost', {'usd': None}))}</b>complete workload cost · coverage {_e(summary.get('whole_workload_cost', {}).get('coverage', '0/0'))}</div><div class="metric"><b>{_money(summary.get('experiment_cost', {'usd': None}))}</b>experiment spend</div></section><p class="note">{_e(summary.get('cost_note', ''))} Security and quality-judge results are advisory; independent review controls acceptance. Confirmed critical defects prevent acceptance.</p>{feedback}<div class="filters"><label>Scope <select id="scope"><option value="">All scopes</option>{''.join(f'<option>{_e(x)}</option>' for x in scopes)}</select></label><label>Action <select id="action"><option value="">All actions</option>{''.join(f'<option>{_e(x)}</option>' for x in actions)}</select></label></div><section id="decisions">{''.join(cards) or '<article class="decision">No allowlisted pilot telemetry is available yet.</article>'}</section></details></main><script type="application/json" id="pilot-data">{safe_json}</script><script>const s=document.querySelector('#scope'),a=document.querySelector('#action');function f(){{document.querySelectorAll('#decisions .decision').forEach(x=>x.classList.toggle('hidden',(s.value&&x.dataset.scope!==s.value)||(a.value&&x.dataset.action!==a.value)))}}s.onchange=a.onchange=f;</script></body></html>'''

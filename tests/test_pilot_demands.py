@@ -13,6 +13,8 @@ def demand_answers(count=1, *, reasoning=0, code=0, context=0, kind="coding", co
     value["context_synthesis"] = {"noul": context}
     value["work_kind"] = {"choice": kind, "confidence": confidence}
     for i in range(count):
+        for tag in core.DEMAND_GATES:
+            value[f"{tag}_fit_{i}"] = {"noul": 1}
         value[f"operation_match_{i}"] = {"noul": 1}
         value[f"scope_exceeded_{i}"] = {"noul": 0}
         value[f"evidence_comparable_{i}_0"] = {"noul": 1}
