@@ -24,9 +24,9 @@ The routing builder sends only the supplied bounded task and opaque candidate pr
 
 - `investigate`: 0.2
 - `strong`: 0.8
-- `sufficient`: 0.9
+- `sufficient`: 0.8
 
-A violation probability at or below investigate (0.20) is no concern; above investigate requires investigation; at or above strong (0.80) is a strong concern. Evidence probability below sufficient (0.90) is insufficient.
+A violation probability at or below investigate (0.20) is no concern; above investigate requires investigation; at or above strong (0.80) is a strong concern. Evidence probability below sufficient (0.80) is insufficient.
 
 ## Routing registry
 

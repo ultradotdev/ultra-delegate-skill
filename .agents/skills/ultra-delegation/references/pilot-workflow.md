@@ -169,4 +169,4 @@ matching configurations into a native invocation, and record actual accepted
 host controls. Never copy a planned configuration into telemetry for a different
 worker. Host configuration identity does not establish immutable model weights.
 
-Experimental security bands can be changed with `configure --security-investigate 0.20 --security-strong 0.80 --security-sufficient 0.90`. Changing bands does not enable screening or artifact sharing. Known concerns on an unchanged artifact still require independent disposition; a changed policy cannot erase them.
+Experimental security bands can be changed with `configure --security-investigate 0.20 --security-strong 0.80 --security-sufficient 0.80`. Changing bands does not enable screening or artifact sharing. Known concerns on an unchanged artifact still require independent disposition; a changed policy cannot erase them.

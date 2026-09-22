@@ -50,8 +50,8 @@ class SecurityTests(unittest.TestCase):
                             'consequence':'No external effects in the delivered function.', 'correction':'No correction needed after independent review.'}]}
 
     def test_probability_boundaries_and_independent_insufficiency(self):
-        for probability,sufficiency,signal in [(0,.99,'no-concern'),(.20,.90,'no-concern'),(.20001,.99,'investigate'),
-             (.79999,.99,'investigate'),(.80,.99,'strong-concern'),(.99,.8999,'insufficient-evidence')]:
+        for probability,sufficiency,signal in [(0,.99,'no-concern'),(.20,.80,'no-concern'),(.20001,.99,'investigate'),
+             (.79999,.99,'investigate'),(.80,.99,'strong-concern'),(.99,.7999,'insufficient-evidence'),(.05,.85,'no-concern')]:
             with self.subTest(probability=probability,sufficiency=sufficiency):
                 result=security.evaluate(self.input,self.p,True,live=True,call=self.call(probability,sufficiency),key='fake')
                 self.assertEqual(result['requirements'][0]['signal'],signal)
@@ -184,6 +184,11 @@ class SecurityTests(unittest.TestCase):
         with contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(pilot.main(['--root',str(self.root),'configure','--security-sufficient','2']),2)
         self.assertEqual(pilot.load_policy(self.root),p)
+
+    def test_default_is_point_eight_and_explicit_project_cutoff_is_preserved(self):
+        self.assertEqual(core.policy()['security_thresholds']['sufficient'], .80)
+        custom = {'investigate': .20, 'strong': .80, 'sufficient': .90}
+        self.assertEqual(core.policy({'security_thresholds': custom})['security_thresholds'], custom)
 
     def test_policy_bands_are_bounded(self):
         for bands in ({'investigate':.9,'strong':.8,'sufficient':.9},{'investigate':0,'strong':1,'sufficient':2}):

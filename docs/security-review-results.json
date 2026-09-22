@@ -16,11 +16,6 @@
     "independent": true,
     "reviewer_id": "security_reports-sol-medium-independent"
   },
-  "default_bands": {
-    "investigate": 0.2,
-    "strong": 0.8,
-    "sufficient": 0.9
-  },
   "frozen": {
     "bands": {
       "investigate": 0.2,
@@ -922,6 +917,16 @@
     "Mock runs test the harness only; they provide no model calibration evidence.",
     "Four repairs came from one Sol medium worker invocation; targeted security follow-up used an independent Terra medium reviewer.",
     "Native fixes were a separate fixed-model test, not router selection, qualification, or portable worker-performance evidence.",
-    "At the shipped .90 evidence threshold, a rule replay flags three of the four fixed outputs; that replay makes no additional inference claim."
-  ]
+    "At the original .90 evidence threshold, a rule replay flags three of the four fixed outputs; that replay makes no additional inference claim."
+  ],
+  "default_bands_at_evaluation": {
+    "investigate": 0.2,
+    "strong": 0.8,
+    "sufficient": 0.9
+  },
+  "current_default_bands": {
+    "investigate": 0.2,
+    "strong": 0.8,
+    "sufficient": 0.8
+  }
 }

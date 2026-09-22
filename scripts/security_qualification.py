@@ -21,6 +21,8 @@ import pilot_security as security
 import jev_transport as transport
 
 FIXTURES = SCRIPTS.parent/'assets/security-fixtures.json'
+# Early development records predate per-row bands; preserve their actual cutoff.
+LEGACY_DEVELOPMENT_BANDS = {'investigate': .20, 'strong': .80, 'sufficient': .90}
 
 
 def prepare(root):
@@ -113,10 +115,18 @@ def load_rows(root, split):
     return rows
 
 
+def observed_split_bands(rows, split, fallback):
+    legacy = LEGACY_DEVELOPMENT_BANDS if split == 'development' else fallback
+    values = [r.get('security_thresholds', legacy) for r in rows]
+    core.require(not values or all(v == values[0] for v in values), 'mixed-security-thresholds')
+    return copy.deepcopy(values[0] if values else fallback)
+
+
 def freeze(root, bands=None):
     root=Path(root);_,reference_review=references(root)
     rows=load_rows(root,'development')
     core.require(len(rows)==6 and all(r['assessment']['status']!='unavailable' for r in rows),'development-incomplete')
+    observed_split_bands(rows, 'development', security.BANDS)
     selected=copy.deepcopy(bands or security.BANDS)
     security.bands({'security_thresholds':selected})
     record={'bands':selected,'question_version':questions.SECURITY_VERSION,'model':'jev-1.13.0',
@@ -140,7 +150,8 @@ def _run(root, split, *, live=False, review_file=None, locator=None, call=None, 
         core.require(frozen['development_hash']==core.digest(load_rows(root,'development')),'development-changed-after-freeze')
         core.require(frozen['reference_review_hash']==core.digest(review),'reference-review-changed')
         bands=frozen['bands']
-    else:bands=security.BANDS
+    else:bands=observed_split_bands(load_rows(root,'development'), 'development', security.BANDS)
+    core.require(observed_split_bands(load_rows(root,split), split, bands)==bands,'security-thresholds-changed')
     p=core.policy({'share_artifacts':True,'security_thresholds':bands,**(locator or {})})
     if live and key is None:
         try:key,_=transport.credential(p['credential_ref'],service=p['credential_service'])
@@ -180,9 +191,10 @@ def report(root):
     splits={k:load_rows(root,k) for k in ('development','heldout')}
     frozen=pilot.read_json(root/'frozen.json') if (root/'frozen.json').exists() else None
     bands=frozen['bands'] if frozen else security.BANDS
+    observed_bands={k:observed_split_bands(v, k, bands) for k,v in splits.items()}
     value={'schema':'ultra-security-qualification-v1','question_version':questions.SECURITY_VERSION,'model':'jev-1.13.0',
            'bands':bands,'shipped_default_bands':security.BANDS,'frozen':frozen,
-           'splits':{k:metrics(v,(v[0].get('security_thresholds',security.BANDS if k=='development' else bands) if v else bands)) for k,v in splits.items()},
+           'observed_bands':observed_bands, 'splits':{k:metrics(v,observed_bands[k]) for k,v in splits.items()},
            'development_replayed_at_frozen_bands':metrics(splits['development'],bands),'cases':sum(splits.values(),[]),
            'development_sensitivity':[{'bands':{**security.BANDS,'investigate':low,'sufficient':enough},
              'metrics':metrics(splits['development'],{**security.BANDS,'investigate':low,'sufficient':enough})}
@@ -199,7 +211,7 @@ def report(root):
     body=['<!doctype html><meta charset="utf-8"><title>Security signal qualification</title><style>body{font:16px system-ui;max-width:1050px;margin:40px auto;padding:0 20px}table{border-collapse:collapse;width:100%}td,th{padding:9px;text-align:left;border-bottom:1px solid #ccc}details{margin-top:24px}.muted{color:#555}</style>',
           '<h1>Security signal check</h1><p>Can Jev flag the seeded defect, leave its safe counterpart clear, and recognize missing context?</p>',
           '<p><b>Experimental thresholds:</b> investigate above '+str(bands['investigate'])+'; strong concern at '+str(bands['strong'])+'; insufficient evidence below '+str(bands['sufficient'])+'. Shipped default remains '+str(security.BANDS['sufficient'])+'. '+('Frozen before held-out calls.' if frozen else 'Not yet frozen.')+'</p>',
-          '<p>Development counts show the original '+str(security.BANDS['sufficient'])+' evidence cutoff. Held-out counts show the frozen '+str(bands['sufficient'])+' cutoff. Details include a development-only rule replay.</p><table><tr><th>Split</th><th>Assessed</th><th>Missed concerns</th><th>False alarms</th><th>Follow-up</th></tr>']
+          '<p>Development counts show the original '+str(observed_bands['development']['sufficient'])+' evidence cutoff. Held-out counts show the frozen '+str(bands['sufficient'])+' cutoff. Details include a development-only rule replay.</p><table><tr><th>Split</th><th>Assessed</th><th>Missed concerns</th><th>False alarms</th><th>Follow-up</th></tr>']
     for split,m in value['splits'].items():body.append(f"<tr><td>{split}</td><td>{m['available']}/{6 if split=='development' else 4}</td><td>{m['missed_concerns']}/{m['vulnerable_requirements']}</td><td>{m['false_alarms']}/{m['safe_requirements']}</td><td>{m['follow_up_cases']}/{m['available']}</td></tr>")
     body.append('</table><h2>Each code example</h2><table><tr><th>Task</th><th>Reference</th><th>Violation</th><th>Enough evidence</th><th>Signal</th></tr>')
     for row in value['cases']:

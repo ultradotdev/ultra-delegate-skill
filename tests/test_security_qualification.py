@@ -65,6 +65,41 @@ class QualificationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'reference-review-changed'):
             q.run(self.root,'heldout',review_file=path)
 
+    def test_legacy_development_report_preserves_actual_point_nine_cutoff(self):
+        q.run(self.root,'development')
+        for path in (self.root/'development').glob('*.json'):
+            row=q.pilot.read_json(path);row.pop('integrity');row.pop('security_thresholds')
+            if path.stem=='access-control-safe':
+                row['assessment']['requirements'][0]['evidence_probability']=.85
+            row['integrity']=q.core.digest(row)
+            path.write_text(__import__('json').dumps(row))
+        q.report(self.root)
+        report=q.pilot.read_json(self.root/'report.json')
+        self.assertEqual(report['shipped_default_bands']['sufficient'],.8)
+        self.assertEqual(report['observed_bands']['development']['sufficient'],.9)
+        self.assertEqual(report['splits']['development']['false_alarms'],1)
+        self.assertIn('original 0.9 evidence cutoff',(self.root/'report.html').read_text())
+
+    def test_resume_preserves_original_development_bands(self):
+        with patch.object(q.security, 'BANDS', q.LEGACY_DEVELOPMENT_BANDS):
+            q.run(self.root,'development')
+        paths=sorted((self.root/'development').glob('*.json'))
+        for path in paths[1:]:path.unlink()
+        q.run(self.root,'development')
+        self.assertEqual({r['security_thresholds']['sufficient'] for r in q.load_rows(self.root,'development')},{.9})
+
+    def test_mixed_development_bands_rejected_before_inference(self):
+        q.run(self.root,'development')
+        path=next((self.root/'development').glob('*.json'))
+        row=q.pilot.read_json(path);row.pop('integrity')
+        row['security_thresholds']['sufficient']=.9
+        row['integrity']=q.core.digest(row)
+        path.write_text(__import__('json').dumps(row))
+        with patch.object(q.transport,'credential',side_effect=AssertionError):
+            with self.assertRaisesRegex(ValueError,'mixed-security-thresholds'):
+                q.run(self.root,'development',live=True)
+        with self.assertRaisesRegex(ValueError,'mixed-security-thresholds'):q.report(self.root)
+
     def test_unavailable_is_not_counted_as_pass_or_miss(self):
         row={'assessment':{'status':'unavailable'},'reference':{'requirements':[]}}
         metrics=q.metrics([row],q.security.BANDS)

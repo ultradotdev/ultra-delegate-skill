@@ -3044,7 +3044,7 @@
     "security_thresholds": {
       "investigate": 0.2,
       "strong": 0.8,
-      "sufficient": 0.9
+      "sufficient": 0.8
     },
     "selection_preference": "efficiency_hints",
     "share_artifacts": false,

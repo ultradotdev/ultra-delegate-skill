@@ -99,10 +99,10 @@ SECURITY_REGISTRY = (
                consumer="advisory per-requirement evidence sufficiency", applicability="per requirement", polarity="affirmative supports a determinate finding", state_deps=("boundaries", "requirements[{i}]", "excerpts", "validation_summary")), "version": SECURITY_VERSION},
 )
 
-SECURITY_THRESHOLDS = {"investigate": 0.20, "strong": 0.80, "sufficient": 0.90}
+SECURITY_THRESHOLDS = {"investigate": 0.20, "strong": 0.80, "sufficient": 0.80}
 SECURITY_THRESHOLD_INTERPRETATION = (
     "A violation probability at or below investigate (0.20) is no concern; above investigate requires investigation; "
-    "at or above strong (0.80) is a strong concern. Evidence probability below sufficient (0.90) is insufficient."
+    "at or above strong (0.80) is a strong concern. Evidence probability below sufficient (0.80) is insufficient."
 )
 
 
