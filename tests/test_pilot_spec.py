@@ -110,8 +110,27 @@ class PilotSpecTests(unittest.TestCase):
         active = pilot.route_packet(packet, core.policy({"mode": "active", "share_summaries": True, "baseline_id": "candidate-2"}), live=True, call=semantic_response, key="fixture")
         self.assertEqual((active["action"], active["selected_configuration_id"]), ("clarify", None))
         prepared = core.prepare(packet, core.policy())
-        self.assertEqual(core.recommendation(packet, prepared, answers(4, coupling=.21), core.policy())["action"], "repackage")
+        self.assertEqual(core.recommendation(packet, prepared, answers(4, coupling=.4001), core.policy())["action"], "repackage")
         self.assertEqual(core.recommendation(packet, prepared, answers(4, severe=.11), core.policy())["action"], "coordinator")
+
+    def test_coordinator_dependency_boundary_preserves_project_override_and_stops(self):
+        packet = real_packet(); prepared = core.prepare(packet, core.policy())
+        allowed = core.recommendation(packet, prepared, answers(4, coupling=.40), core.policy())
+        blocked = core.recommendation(packet, prepared, answers(4, coupling=.4001), core.policy())
+        self.assertEqual(allowed["action"], "route")
+        self.assertEqual((blocked["action"], blocked["reason_codes"]), ("repackage", ["coordinator-dependency"]))
+
+        explicit = core.policy({"thresholds": {"coordinator_coupling": .20}})
+        self.assertEqual(core.recommendation(packet, prepared, answers(4, coupling=.20), explicit)["action"], "route")
+        self.assertEqual(core.recommendation(packet, prepared, answers(4, coupling=.2001), explicit)["action"], "repackage")
+
+        missing = core.recommendation(packet, prepared, answers(4, missing=.2001, coupling=.40), core.policy())
+        self.assertEqual((missing["action"], missing["reason_codes"]), ("clarify", ["missing-or-uncertain-requirement"]))
+        ineligible = real_packet()
+        for candidate in ineligible["candidates"]:
+            candidate["available"] = False
+        result = core.recommendation(ineligible, core.prepare(ineligible, core.policy()), answers(0, coupling=.40), core.policy())
+        self.assertEqual((result["action"], result["reason_codes"]), ("coordinator", ["no-suitable-candidate"]))
 
     def test_candidate_order_and_oversized_payload_keep_contract_boundaries(self):
         packet = real_packet(); p = core.policy({"mode": "off", "baseline_id": "candidate-2"})

@@ -27,7 +27,7 @@ DEFAULTS = {
     "thresholds": copy.deepcopy(ROUTING_THRESHOLDS),
     "demand_bands": copy.deepcopy(DEMAND_BANDS),
 }
-DECISION_POLICY_VERSION = "pilot-selection-v6"
+DECISION_POLICY_VERSION = "pilot-selection-v7"
 DEMAND_GATES = {"reasoning": "review-reasoning", "code_interaction": "review-code-interaction",
                 "context_synthesis": "review-context-synthesis"}
 

@@ -94,6 +94,8 @@ SOURCE_FILES = (
     "tests/test_pilot_fixtures.py",
     "docs/repository-trial-validation.md",
     "docs/repository-trial-results.json",
+    "docs/full-model-matrix-validation.md", "docs/full-model-matrix-results.json",
+    "docs/coordinator-dependency-validation.md", "docs/coordinator-dependency-results.json",
 )
 SOURCE_PREFIX = f"ultra-delegate-skill-{VERSION}"
 SOURCE_GITIGNORE = b"__pycache__/\n*.py[cod]\n/dist/\n/.ultra-delegation/\n.env\n"

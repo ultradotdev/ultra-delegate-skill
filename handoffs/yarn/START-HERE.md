@@ -58,4 +58,7 @@ real trial plan and record only actual observed results.
 
 Use the bundled `runtime/ultra-delegation/references/repository-trial.md` for the
 current prepare/execute/review flow and configurable efficiency preference.
-See `validation/repository-trial-validation.md` for this iteration’s test status.
+See `validation/coordinator-dependency-validation.md` and
+`validation/full-model-matrix-validation.md` for the latest live benchmark.
+The dependency cutoff defaults to 0.40; explicit project cutoffs remain unchanged.
+Suitability remains 0.85. Both are experimental.

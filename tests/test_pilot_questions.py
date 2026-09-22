@@ -51,6 +51,18 @@ class PilotQuestionTests(unittest.TestCase):
             self.assertEqual(set(question["criteria"]), {"true", "false"})
         self.assertEqual(candidates, before)
 
+    def test_dependency_question_is_single_batch_and_excludes_later_coordinator_work(self):
+        payload = p.route_payload(task(), self.candidates(), "jev-1.13.0")
+        question = payload["questions"]["coordinator_coupling"]
+        entry = next(entry for entry in p.ROUTING_REGISTRY if entry["id_template"] == "coordinator_coupling")
+        self.assertEqual(p.ROUTING_VERSION, "pilot-routing-v8")
+        self.assertEqual(p.ROUTING_THRESHOLDS["coordinator_coupling"], .40)
+        self.assertEqual(p.ROUTING_THRESHOLDS["missing_requirement"], .20)
+        self.assertIn("Later review, acceptance, integration or deployment", question["instructions"])
+        self.assertIn("unless its decision is needed to produce the deliverable", question["instructions"])
+        self.assertNotIn("answer", question["instructions"].lower())
+        self.assertNotIn("answer", " ".join(entry["state_deps"]).lower())
+
     def test_security_payload_is_all_noul_and_is_advisory(self):
         payload = p.security_payload({"requirements": ["Auth", "Audit"], "excerpts": ["x"], "validation_summary": "tests"}, "jev-1.13.0")
         self.assertEqual(set(payload["questions"]), {"enough", "requirement_0", "requirement_1", "material_vulnerability"})
