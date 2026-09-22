@@ -1,6 +1,6 @@
 ---
 name: ultra-delegation
-description: Plan high-effort work while delegating bounded tasks to the lowest-cost proven model and thinking budget in the current agent host. Use for model routing, subagent delegation, controlled model/thinking/prompt bakeoffs, long-running coordinator context guardrails and handoffs, delegation quality or savings reports, Cortex-backed recommendations, and portable trust-but-verify learning imports.
+description: Plan high-effort work while delegating bounded tasks to suitable native models and thinking budgets in the current agent host. Use for model routing, subagent delegation, controlled model/thinking/prompt bakeoffs, long-running coordinator context guardrails and handoffs, delegation quality or savings reports, Cortex-backed recommendations, and portable trust-but-verify learning imports.
 ---
 
 # Ultra Delegation
@@ -9,11 +9,33 @@ Use this skill when delegation can improve cost, throughput, or reliability with
 
 ## New project test drives
 
-For the active Jev pilot, including Yarn consolidation, read [pilot.md](references/pilot.md) and use `scripts/pilot.py`. It prepares one batched routing decision, dispatches only through the coordinator's native host tools, preserves independently reviewed outcomes, and writes local HTML/JSON telemetry. The CLI's `init` command defaults to active routing, while the underlying policy default remains off until a project is initialized. Live Jev routing still requires the explicit `--live` command and `share_summaries: true`.
+For a bounded repository task, start with [repository-trial.md](references/repository-trial.md).
+The coordinator prepares the packet, uses active Jev routing, executes native
+workers, independently reviews the result, and follows comparison/repair/fallback
+steps until acceptance or an explicit coordinator handoff. Users provide goals
+and missing requirements; they do not write internal JSON or manage events.
 
-Use [pilot-workflow.md](references/pilot-workflow.md) for the resumable request/attempt protocol: launch reservation, native run record, artifact completion, independent outcome, review event, one targeted repair, then an eligible fallback or coordinator handoff. Python never launches workers. For a bounded read-only Codex task, use [pilot-codex.md](references/pilot-codex.md); use [pilot-demands.md](references/pilot-demands.md) for demand signals and review gates; use [pilot-benchmark.md](references/pilot-benchmark.md) for opt-in practical evaluation. Security and the optional blinded judge are advisory and need separate artifact-sharing permission.
+Selection defaults to efficiency hints among sufficiently suitable candidates;
+`strongest_fit` is configurable. Bake-offs independently support auto/on/off.
+Local reviewed outcomes inform the next run immediately. Research is a prior,
+not a qualification gate. Keep monetary cost separate from efficiency hints.
+
+Use [pilot-codex.md](references/pilot-codex.md) for discovery,
+[pilot-workflow.md](references/pilot-workflow.md) for recovery,
+[pilot-questions.md](references/pilot-questions.md) for generated atomic questions,
+and [repository-benchmark.md](references/repository-benchmark.md) for executable
+multilingual trials. Security and blinded judging are advisory and need separate
+artifact-sharing permission. Read [pilot.md](references/pilot.md) for lower-level
+interfaces and [pilot-demands.md](references/pilot-demands.md) for review gates.
 
 ## Host boundary
+
+Use the [capability index](references/capability-index.md) when preparing researched
+candidate descriptions. It supplies dated, source-attributed priors for exact
+models, including attributed Epoch general ECI scores and uncertainty, with gaps
+and old results labeled. Keep these separate from reviewed
+local outcomes and current host capabilities. The optional index is offline;
+Artificial Analysis is not integrated.
 
 Stay in the current host and provider family. In Codex, use only Codex-native subagents and supported OpenAI model and effort controls. Do not invoke OpenCode, Claude Code, Ollama, another CLI, or a worker provider API as a fallback. The separately enabled Jev decision adapter may evaluate permitted packets; it cannot execute workers or widen provider scope.
 

@@ -51,9 +51,12 @@ def write_new(path, value):
 
 def init_project(root, p=None):
     root = Path(root)
-    p = core.policy(p)
     root.mkdir(parents=True, exist_ok=True)
-    write_new(root / "policy.json", p)
+    if (root / "policy.json").exists():
+        p = load_policy(root)  # Re-entry never resets a project or changes sharing.
+    else:
+        p = core.policy(p)
+        write_new(root / "policy.json", p)
     for directory in ("decisions", "outcomes", "reports"):
         (root / directory).mkdir(exist_ok=True)
     return p
@@ -180,6 +183,7 @@ def route_packet(packet, p, outcomes=(), *, live=False, dry_run=False, call=None
                      nominated_configuration_ids=rec["nominees"], alternative_configuration_ids=rec["alternatives"], reason_codes=rec["reason_codes"])
             for field in ("demand_profile", "required_demands", "review_requirements", "candidate_assessments", "diagnostics"):
                 d[field] = rec[field]
+            d["selection_basis"] = rec["selection_basis"]
             if p["mode"] == "active":
                 d.update(action=rec["action"], selected_configuration_id=rec["configuration_id"])
                 d["acceptance_gates"] = sorted(set(task["acceptance_gates"]) | set(rec["review_requirements"]))
@@ -240,6 +244,8 @@ def observe(root, raw, *, security_input=None, security_check=False, judge_input
     with pilot_workflow._lock(destination.with_suffix('.lock')):
         if destination.exists():
             raise FileExistsError('outcome-already-recorded')
+        if raw.get("request_id"):
+            pilot_workflow.validate_observation(root, raw)
         interrupted = reservation.exists()
         core.require(not reservation.is_symlink(), 'invalid-outcome-reservation')
         fd = os.open(reservation, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, 'O_NOFOLLOW', 0), 0o600)
@@ -298,6 +304,7 @@ def report(root, prefix=None, task_descriptions=None):
     html = pilot_report.render_html(value)
     json_path, html_path = Path(str(prefix)+".json"), Path(str(prefix)+".html")
     # Render and validate before writes. Exclusive outputs never overwrite user artifacts.
+    json_path.parent.mkdir(parents=True, exist_ok=True)
     write_new(json_path, value)
     try:
         fd = os.open(html_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -335,7 +342,7 @@ def synthetic_response(payload, key):
     answers = {}
     for name, q in payload["questions"].items():
         if q["type"] == "noul":
-            yes = 0.98 if name.startswith(("operation_match", "evidence_comparable")) or name == "enough" else 0.02
+            yes = 0.98 if name.startswith(("operation_match", "evidence_comparable", "reasoning_fit", "code_interaction_fit", "context_synthesis_fit")) or name == "enough" else 0.02
             answers[name] = {"type": "noul", "noul": yes}
         elif q["type"] == "choice":
             answers[name] = {"type": "choice", "choice": "coding", "confidence": 1.0, "probabilities": {k: float(k == "coding") for k in q["criteria"]}}
@@ -403,11 +410,23 @@ def main(argv=None):
     init = sub.add_parser("init")
     init.add_argument("--mode", choices=("off", "active"), default="active")
     init.add_argument("--baseline-id")
+    init.add_argument("--selection-preference", choices=("efficiency_hints", "strongest_fit"), default="efficiency_hints")
+    init.add_argument("--bakeoff", choices=("auto", "on", "off"), default="auto")
+    configure = sub.add_parser("configure")
+    configure.add_argument("--selection-preference", choices=("efficiency_hints", "strongest_fit"))
+    configure.add_argument("--bakeoff", choices=("auto", "on", "off"))
+    configure.add_argument("--mode", choices=("off", "active"))
+    for name in ("share-summaries", "share-artifacts", "security-check", "allow-host-managed-output"):
+        configure.add_argument("--"+name, action=argparse.BooleanOptionalAction, default=None)
+    configure.add_argument("--credential-service")
+    configure.add_argument("--credential-ref")
     for key in ("share-summaries", "share-artifacts", "security-check"):
         init.add_argument("--"+key, action="store_true")
     init.add_argument("--allow-host-managed-output", action="store_true")
     init.add_argument("--credential-service", default=transport.SERVICE)
     init.add_argument("--credential-ref", default="default")
+    auth = sub.add_parser("auth", help="Read existing credential status or verify access using a synthetic request")
+    auth.add_argument("action", choices=("status", "check"))
     route = sub.add_parser("route")
     route.add_argument("--input", required=True)
     route.add_argument("--dry-run", action="store_true")
@@ -437,7 +456,7 @@ def main(argv=None):
     workflow_start = sub.add_parser("workflow-start")
     workflow_start.add_argument("--decision", required=True)
     workflow_start.add_argument("--input", required=True)
-    workflow_start.add_argument("--bakeoff", choices=("auto", "on", "off"), default="auto")
+    workflow_start.add_argument("--bakeoff", choices=("auto", "on", "off"))
     workflow_next = sub.add_parser("workflow-next")
     workflow_next.add_argument("--request", required=True)
     workflow_next.add_argument("--input", required=True)
@@ -447,7 +466,30 @@ def main(argv=None):
     workflow_replan.add_argument("--input", required=True)
     workflow_event = sub.add_parser("workflow-event")
     workflow_event.add_argument("--request", required=True)
-    workflow_event.add_argument("--input", required=True)
+    source = workflow_event.add_mutually_exclusive_group(required=True)
+    source.add_argument("--input")
+    source.add_argument("--type", choices=("launching", "dispatched", "completed", "artifact-corrected", "execution-failed", "launch-not-started", "cancel", "reviewed"))
+    workflow_event.add_argument("--attempt")
+    for name in ("run-id", "configuration-id", "checkout-hash", "base-revision", "artifact-hash", "outcome-id", "reason-code", "findings-hash", "configuration-source"):
+        workflow_event.add_argument("--"+name)
+    workflow_event.add_argument("--repairable", action="store_true", default=None)
+    workflow_event.add_argument("--artifact-file", type=Path, help="Hash the actual artifact file locally; do not transcribe a hash")
+    status = sub.add_parser("workflow-status")
+    status.add_argument("--request", required=True)
+    form = sub.add_parser("workflow-review-template")
+    form.add_argument("--request", required=True)
+    form.add_argument("--attempt", required=True)
+    form.add_argument("--output", type=Path, required=True)
+    review = sub.add_parser("workflow-review")
+    review.add_argument("--request", required=True)
+    review.add_argument("--attempt", required=True)
+    review.add_argument("--input", required=True)
+    review.add_argument("--security-check", action="store_true")
+    review.add_argument("--security-input")
+    review.add_argument("--judge-input")
+    review.add_argument("--live", action="store_true")
+    review.add_argument("--repairable", action="store_true", default=None)
+    review.add_argument("--findings-hash")
     workflow_event.add_argument("--packet")
     learning = sub.add_parser("learning")
     learning.add_argument("operation", choices=("audit", "export", "import", "retract"))
@@ -458,9 +500,29 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         if args.command == "init":
-            p = {k: getattr(args, k) for k in ("mode", "baseline_id", "share_summaries", "share_artifacts", "security_check", "credential_service", "credential_ref", "allow_host_managed_output")}
-            init_project(args.root, p)
-            result = {"initialized": True, "mode": args.mode, "security": "advisory" if args.security_check else "off"}
+            p = {k: getattr(args, k) for k in ("mode", "baseline_id", "share_summaries", "share_artifacts", "security_check", "credential_service", "credential_ref", "allow_host_managed_output", "selection_preference", "bakeoff")}
+            existing = (args.root / "policy.json").exists()
+            p = init_project(args.root, p)
+            result = {"initialized": True, "existing_policy_preserved": existing, "mode": p["mode"],
+                      "security": "advisory" if p["security_check"] else "off", "selection_preference": p["selection_preference"], "bakeoff": p["bakeoff"]}
+        elif args.command == "configure":
+            import pilot_workflow, tempfile
+            with pilot_workflow._lock(args.root / ".policy.lock"):
+                p = load_policy(args.root)
+                updates = {k: v for k, v in vars(args).items() if k not in {"root", "command"} and v is not None}
+                p = core.policy({**p, **updates})
+                fd, temp = tempfile.mkstemp(prefix=".policy-", dir=args.root)
+                try:
+                    with os.fdopen(fd, "w", encoding="utf-8") as stream:
+                        json.dump(p, stream, indent=2, sort_keys=True, allow_nan=False)
+                        stream.write("\n"); stream.flush(); os.fsync(stream.fileno())
+                    os.replace(temp, args.root / "policy.json")
+                finally:
+                    Path(temp).unlink(missing_ok=True)
+            result = {"configured": True, "policy_hash": core.digest(p), "changed_fields": sorted(updates), "reevaluate_existing_decisions": True}
+        elif args.command == "auth":
+            p = load_policy(args.root)
+            result = transport.auth(args.action, p["credential_ref"], p["model"], service=p["credential_service"])
         elif args.command == "example":
             write_new(args.output, fixture())
             result = {"example": str(args.output), "synthetic": True, "discovery_required": True}
@@ -489,8 +551,19 @@ def main(argv=None):
                 write_new(args.output, pilot_learning.export(args.root)); result = {'export': str(args.output)}
         elif args.command.startswith("workflow-"):
             import pilot_workflow
-            if args.command == "workflow-start":
-                result = pilot_workflow.start(args.root, get_decision(args.root, args.decision), read_json(args.input), load_policy(args.root), args.bakeoff)
+            import pilot_convenience
+            if args.command == "workflow-status":
+                result = pilot_convenience.status(args.root, args.request)
+            elif args.command == "workflow-review-template":
+                write_new(args.output, pilot_convenience.review_template(args.root, args.request, args.attempt))
+                result = {"template": str(args.output), "independent_assessment_required": True}
+            elif args.command == "workflow-review":
+                result = pilot_convenience.review(args.root, args.request, args.attempt, read_json(args.input),
+                    security_input=read_json(args.security_input) if args.security_input else None,
+                    security_check=args.security_check, judge_input=read_json(args.judge_input) if args.judge_input else None, live=args.live,
+                    repairable=args.repairable, findings_hash=args.findings_hash)
+            elif args.command == "workflow-start":
+                result = pilot_workflow.start(args.root, get_decision(args.root, args.decision), read_json(args.input), load_policy(args.root), args.bakeoff or load_policy(args.root)["bakeoff"])
             elif args.command == "workflow-replan":
                 result = pilot_workflow.replan(args.root, args.request, get_decision(args.root, args.decision), read_json(args.input), load_policy(args.root))
             elif args.command == "workflow-next":
@@ -501,7 +574,16 @@ def main(argv=None):
                         action['check'] = pilot_workflow.recheck(args.root, args.request, action['attempt_id'], read_json(args.input))
             else:
                 packet = read_json(args.packet) if args.packet else None
-                result = pilot_workflow.event(args.root, args.request, read_json(args.input), packet=packet)
+                core.require(not (args.input and args.artifact_file), "invalid-artifact-file-option")
+                if args.input:
+                    result = pilot_workflow.event(args.root, args.request, read_json(args.input), packet=packet)
+                else:
+                    names = ("run_id", "configuration_id", "checkout_hash", "base_revision", "artifact_hash", "outcome_id", "reason_code", "findings_hash", "configuration_source", "repairable")
+                    if args.artifact_file:
+                        core.require(args.artifact_hash is None and args.type in {"completed", "artifact-corrected"}, "invalid-artifact-file-option")
+                        args.artifact_hash = pilot_convenience.file_hash(args.artifact_file)
+                    result = pilot_convenience.event(args.root, args.request, args.attempt, args.type,
+                        packet=packet, **{name: getattr(args, name) for name in names})
         elif args.command == "demo":
             result = demo(args.root)
         elif args.command == "report":

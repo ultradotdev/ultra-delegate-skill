@@ -32,6 +32,7 @@ class PilotQuestionTests(unittest.TestCase):
     def test_routing_coverage_wire_types_and_response_validation(self):
         payload = p.route_payload(task(), self.candidates(), "jev-1.13.0")
         expected = {"work_kind", "missing_requirement", "coordinator_coupling", "reasoning_depth", "failure_impact", "code_interaction", "context_synthesis", "external_information", "operation_match_0", "scope_exceeded_0", "operation_match_1", "scope_exceeded_1", "evidence_comparable_0_0", "evidence_comparable_0_1"}
+        expected |= {f"{tag}_fit_{i}" for tag in ("reasoning", "code_interaction", "context_synthesis") for i in range(2)}
         self.assertEqual(set(payload["questions"]), expected)
         self.assertEqual(payload["questions"]["work_kind"]["type"], "choice")
         self.assertEqual(payload["questions"]["reasoning_depth"]["type"], "score")
@@ -44,6 +45,10 @@ class PilotQuestionTests(unittest.TestCase):
         payload = p.route_payload(task(), candidates[::-1], "jev-1.13.0")
         self.assertIn("candidates[0].capability_description", payload["questions"]["operation_match_0"]["instructions"])
         self.assertNotIn("evidence_comparable_0_0", payload["questions"])
+        for dimension in ("reasoning", "code_interaction", "context_synthesis"):
+            question = payload["questions"][dimension + "_fit_0"]
+            self.assertIn("`candidates[0].capability_description`", question["instructions"])
+            self.assertEqual(set(question["criteria"]), {"true", "false"})
         self.assertEqual(candidates, before)
 
     def test_security_payload_is_all_noul_and_is_advisory(self):

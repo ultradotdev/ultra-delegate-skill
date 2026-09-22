@@ -2,11 +2,11 @@
 
 Let a capable coordinator plan and verify the work while smaller models handle bounded tasks. Learn which model, thinking setting, and prompt work for each task family, then reuse that evidence.
 
-**Active routing and recovery:** after project setup, Jev selects workers immediately, including on an empty history. Native bake-offs, one targeted repair, and eligible fallbacks continue toward an independently accepted result. No qualification gate or routing shadow rollout is required. See the [workflow](.agents/skills/ultra-delegation/references/pilot-workflow.md) and [current validation status](docs/active-recovery-validation.md).
+**Active routing and recovery:** after project setup, Jev selects workers immediately, including on an empty history. Native bake-offs, one targeted repair, and eligible fallbacks continue toward an independently accepted result. No qualification gate or routing shadow rollout is required. See the [workflow](.agents/skills/ultra-delegation/references/pilot-workflow.md) and [current validation status](docs/repository-trial-validation.md).
 
-**Development release candidate: 1.3.0-rc.6.** Python 3.10 or newer. The offline helper and HTTP adapter have no required Python package dependencies; read-only credential lookup uses the native macOS Keychain utility or optional `keyring` on Windows/Linux. Host execution requires an installed agent host and access to its models. See the [compatibility matrix](docs/compatibility.md) for tested capabilities and limits.
+**Development release candidate: 1.3.0-rc.7.** Python 3.10 or newer. The offline helper and HTTP adapter have no required Python package dependencies; read-only credential lookup uses the native macOS Keychain utility or optional `keyring` on Windows/Linux. Host execution requires an installed agent host and access to its models. See the [compatibility matrix](docs/compatibility.md) for tested capabilities and limits.
 
-For a limited local validation run, see the [repository pilot test drive](docs/pilot-test-drive.md) and [native Codex handoff](.agents/skills/ultra-delegation/references/pilot-codex.md).
+For a repository trial, start with the [agent walkthrough](.agents/skills/ultra-delegation/references/repository-trial.md). It covers packet preparation, active routing, native execution, review, recovery, and HTML/JSON reporting. The user supplies an ordinary task; the agent maintains the internal files.
 
 ## Proof of concept — use with care
 
@@ -44,7 +44,9 @@ The first command packages the installable skill. The second creates a clean sou
 
 ## First use
 
-From a project with the repository-local skill installed:
+For active Jev routing, ask the agent to follow the [repository walkthrough](.agents/skills/ultra-delegation/references/repository-trial.md), using your existing credential locator. Default selection uses dated efficiency hints; choose `strongest_fit` if preferred. Automatic bake-offs compare cold or recently failing selections. Security checks are optional, off by default. Summary sharing and artifact sharing remain separate permissions.
+
+For the offline legacy helper, from a project with the repository-local skill installed:
 
 ```sh
 python3 .agents/skills/ultra-delegation/scripts/ultra_delegation.py --root .ultra-delegation init
@@ -63,7 +65,7 @@ Inspect `--help` and the [CLI reference](.agents/skills/ultra-delegation/referen
 
 ## Jev v2 project pilot
 
-The new [project pilot](.agents/skills/ultra-delegation/references/pilot.md) provides a Python CLI and importable functions for batched routing, native-host handoff, independently assessed outcome learning, and self-contained HTML + JSON telemetry. Security assessment is optional and advisory, off by default; evaluator failures are recorded without blocking ordinary outcome recording. Existing mandatory project tests remain authoritative.
+The [repository workflow](.agents/skills/ultra-delegation/references/repository-trial.md) provides a Python CLI and importable functions for batched routing, native-host handoff, independently assessed outcome learning, and self-contained HTML + JSON telemetry. Security assessment is optional and advisory, off by default; evaluator failures are recorded without blocking ordinary outcome recording. Existing mandatory project tests remain authoritative.
 
 Start with an offline synthetic demonstration:
 
@@ -107,3 +109,5 @@ python3 scripts/build_release.py --check
 See [contributing](CONTRIBUTING.md), the [demo guide](docs/demo.md), and [Ultra.dev handoff](docs/ultra-dev-handoff.md).
 
 To uninstall, remove only the installed `ultra-delegation` skill folder and any worker template you explicitly installed, then start a fresh host session. Project evidence and your global catalog are separate data and remain until you choose to remove them. MIT licensed; see [LICENSE](LICENSE).
+
+For agent-operated repository trials, use the [current walkthrough](.agents/skills/ultra-delegation/references/repository-trial.md). It includes active routing, configurable efficiency hints, native execution, review/recovery and HTML/JSON reports. See [current validation](docs/repository-trial-validation.md) for exactly what has been exercised.

@@ -1,8 +1,8 @@
 # Yarn implementation and native pilot plan
 
-## RC6 status
+## Current handoff status
 
-Use RC6 active routing without a qualification-count or routing-shadow gate. The
+Use active routing without a qualification-count or routing-shadow gate. The
 limited live routing validation is not evidence for this Yarn consolidation: v4
 wording returned `clarify` for 12/12 requests; with the same task data and a
 two-question v5 wording revision, 11/12 returned `route` and one returned
@@ -74,3 +74,7 @@ Generate the report from the real local ledger. It must distinguish first-attemp
 bake-off, and eventual request success; recovery attempts; pending and
 coordinator-required requests; and known versus unknown costs. The simulated test
 suite and benchmark fixtures stay visibly separate from real Yarn evidence.
+
+Use the bundled `runtime/ultra-delegation/references/repository-trial.md` for the
+current prepare/execute/review flow and configurable efficiency preference.
+See `validation/repository-trial-validation.md` for this iteration’s test status.

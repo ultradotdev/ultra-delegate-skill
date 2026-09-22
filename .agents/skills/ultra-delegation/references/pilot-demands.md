@@ -33,7 +33,10 @@ contract, native effort, or tool-policy change is a different configuration.
 | `context_synthesis` | Probability of combining separate supplied facts | `review-context-synthesis`: verify the combined claims against supporting and contradictory supplied evidence. |
 
 The policy's `demand_bands` map each signal to `absent`, `uncertain`, or
-`required`. Required and uncertain demands add the corresponding review gate to
+`required`. Required dimensions also apply the candidate capability-fit threshold
+(initially 0.85, experimental). Uncertainty about whether a task needs a capability
+does not prequalify that capability: it adds an independent review obligation.
+Required and uncertain demands add the corresponding review gate to
 an active decision's immutable acceptance contract. They do not add tools,
 authority, source material, or an extra worker call. A route with missing
 requirements or unavailable required tools still goes to clarification,

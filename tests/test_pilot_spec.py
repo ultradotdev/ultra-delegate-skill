@@ -47,6 +47,8 @@ def answers(count, *, missing=0, coupling=0, external=0, severe=0):
         "external_information": {"noul": external},
     }
     for i in range(count):
+        for tag in core.DEMAND_GATES:
+            value[f"{tag}_fit_{i}"] = {"noul": 1}
         value["operation_match_" + str(i)] = {"noul": 1}
         value["scope_exceeded_" + str(i)] = {"noul": 0}
     return value

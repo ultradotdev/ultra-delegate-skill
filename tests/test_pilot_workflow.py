@@ -54,7 +54,7 @@ class RecoveryTests(unittest.TestCase):
         self.assertTrue(summary['bakeoff_success']); self.assertTrue(summary['request_success'])
         self.assertEqual(workflow.next_actions(r), [])
         paths = pilot.report(self.root)
-        self.assertIn('What happened to each request', Path(paths['html']).read_text())
+        self.assertIn('What happened', Path(paths['html']).read_text())
 
     def test_both_fail_then_fallback_and_one_repair(self):
         r = self.start()

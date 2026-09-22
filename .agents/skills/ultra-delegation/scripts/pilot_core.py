@@ -8,6 +8,7 @@ import itertools
 import json
 import math
 import re
+from urllib.parse import urlsplit
 
 import jev_transport as transport
 from pilot_questions import ROUTING_THRESHOLDS, DEMAND_BANDS
@@ -20,13 +21,13 @@ DEFAULTS = {
     "model": "jev-1.13.0", "credential_service": transport.SERVICE,
     "credential_ref": "default", "baseline_id": None, "pin_id": None,
     "excluded_models": [], "quarantined_configurations": [], "shortlist_limit": 8, "allowed_risks": ["low"],
-    "workflow": {},
+    "workflow": {}, "bakeoff": "auto", "selection_preference": "efficiency_hints",
     "evidence_days": 90, "capability_age_seconds": 300,
     "quality_floor": 80, "dimension_floor": 70,
     "thresholds": copy.deepcopy(ROUTING_THRESHOLDS),
     "demand_bands": copy.deepcopy(DEMAND_BANDS),
 }
-DECISION_POLICY_VERSION = "pilot-selection-v4"
+DECISION_POLICY_VERSION = "pilot-selection-v6"
 DEMAND_GATES = {"reasoning": "review-reasoning", "code_interaction": "review-code-interaction",
                 "context_synthesis": "review-context-synthesis"}
 
@@ -102,6 +103,8 @@ def policy(value=None):
     p.update(value)
     p["thresholds"] = {**DEFAULTS["thresholds"], **value.get("thresholds", {})}
     require(p["schema"] == SCHEMA and p["mode"] in {"off", "active"}, "invalid-policy")
+    require(isinstance(p["selection_preference"], str) and p["selection_preference"] in {"efficiency_hints", "strongest_fit"}, "invalid-selection-preference")
+    require(isinstance(p["bakeoff"], str) and p["bakeoff"] in {"auto", "on", "off"}, "invalid-bakeoff")
     for key in ("share_summaries", "share_artifacts", "security_check", "allow_host_managed_output"):
         require(type(p[key]) is bool, "invalid-policy")
     require(isinstance(p["model"], str) and re.fullmatch(r"jev-\d+\.\d+\.\d+", p["model"]), "unpinned-model")
@@ -172,7 +175,7 @@ def validate_packet(packet):
     require(isinstance(packet["candidates"], list) and 0 < len(packet["candidates"]) <= 128, "invalid-candidates")
     seen, configs = set(), set()
     for c in packet["candidates"]:
-        fields(c, {"id", "provider", "model", "model_revision", "host", "adapter", "effort", "prompt_contract", "tool_policy", "capability_description", "scope_envelope", "available", "tools", "modalities", "context_window", "max_output_tokens", "execution_location", "estimate_usd"}, {"prompt_version", "roles", "output_limit_source"})
+        fields(c, {"id", "provider", "model", "model_revision", "host", "adapter", "effort", "prompt_contract", "tool_policy", "capability_description", "scope_envelope", "available", "tools", "modalities", "context_window", "max_output_tokens", "execution_location", "estimate_usd"}, {"prompt_version", "roles", "output_limit_source", "efficiency_hint"})
         require(c.get("output_limit_source", "explicit") in {"explicit", "native-host"}, "invalid-capacity-source")
         for key in ("id", "provider", "model", "model_revision", "host", "adapter", "effort", "prompt_contract", "tool_policy"):
             label(c[key])
@@ -189,10 +192,39 @@ def validate_packet(packet):
                 integer(c[key], 1)
         require(c["execution_location"] in {"remote", "local", "unknown"}, "invalid-location")
         amount(c["estimate_usd"])
+        validate_efficiency_hint(c.get("efficiency_hint"))
         cid = configuration_id(c)
         require(c["id"] not in seen and cid not in configs, "duplicate-candidate")
         seen.add(c["id"]); configs.add(cid)
     return packet
+
+
+def validate_efficiency_hint(hint):
+    """Relative research metadata never doubles as a monetary estimate."""
+    if hint is None:
+        return
+    fields(hint, {"rank", "basis", "source_url", "checked_on"})
+    integer(hint["rank"]); label(hint["basis"])
+    try:
+        source = urlsplit(hint["source_url"])
+        require(source.scheme == "https" and bool(source.hostname) and not source.username
+                and not source.password and not source.query and not source.fragment
+                and isinstance(hint["source_url"], str) and len(hint["source_url"]) <= 2048
+                and hint["source_url"].isprintable()
+                and not any(ch.isspace() for ch in hint["source_url"]), "invalid-efficiency-source")
+        # Require the portable ISO date shape, not Python's additional accepted forms.
+        require(isinstance(hint["checked_on"], str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", hint["checked_on"]), "invalid-efficiency-date")
+        dt.date.fromisoformat(hint["checked_on"])
+    except (ValueError, TypeError, AttributeError):
+        raise PilotError("invalid-efficiency-hint") from None
+
+
+def efficiency_metadata(hint, clock):
+    if hint is None:
+        return None
+    age = (clock.date() - dt.date.fromisoformat(hint["checked_on"])).days
+    return {"rank": hint["rank"], "basis": hint["basis"], "checked_on": hint["checked_on"],
+            "status": "current" if 0 <= age <= 180 else "future" if age < 0 else "stale"}
 
 
 def wilson_lower(passed, n):
@@ -273,6 +305,7 @@ def evidence_for(candidate, packet, outcomes, p, clock, required_demands=()):
 def summarize_evidence(records, p, required_demands=()):
     groups = {}
     costs = {}
+    retained = []
     for o in records:
         accepted = (o["accepted"] and all(g["passed"] for g in o["gates"] if g["mandatory"])
                     and min(o["scores"].values()) >= p["dimension_floor"]
@@ -286,6 +319,7 @@ def summarize_evidence(records, p, required_demands=()):
             if not (set(required_demands) <= set(reviewed)
                     and {DEMAND_GATES[x] for x in required_demands} <= passed_gates):
                 continue
+        retained.append(o)
         groups.setdefault(o["group_id"], []).append(accepted)
         components = [o["costs"][k]["usd"] for k in ("worker", "review", "retry", "fallback")]
         costs.setdefault(o["group_id"], []).append(sum(components) if all(v is not None for v in components) else None)
@@ -294,7 +328,7 @@ def summarize_evidence(records, p, required_demands=()):
     lower = wilson_lower(passed, len(groups))
     return {"groups": len(groups), "passed_groups": passed, "failed_groups": len(groups)-passed,
             "lower_bound": lower, "support": "observed" if groups else "unobserved",
-            "recent_failure": bool(groups) and not all(groups[max(records, key=lambda o: o["created_at"])["group_id"]]) if groups and not required_demands else bool(groups) and passed < len(groups),
+            "recent_failure": bool(retained) and not all(groups[max(retained, key=lambda o: o["created_at"])["group_id"]]),
             "observed_mean_cost_usd": sum(complete_costs)/len(complete_costs) if complete_costs else None,
             "cost_observations": len(complete_costs)}
 
@@ -344,7 +378,8 @@ def prepare(packet, p, outcomes=(), clock=None):
                      "output_limit_source": "native-host" if host_output and c["max_output_tokens"] is None else "explicit",
                      "max_output_tokens": c["max_output_tokens"], "context_window": c["context_window"],
                      "input_budget_tokens": t["input_tokens"], "output_budget_tokens": t["output_tokens"],
-                     "estimate_usd": estimate, "evidence": ev, "demand_evidence": demand_evidence})
+                     "estimate_usd": estimate, "efficiency_hint": efficiency_metadata(c.get("efficiency_hint"), clock),
+                     "evidence": ev, "demand_evidence": demand_evidence})
     by_id = {c["id"]: c for c in packet["candidates"]}
     eligible = [r for r in rows if r["eligible"]]
     def cost_key(r):
@@ -383,6 +418,7 @@ def recommendation(packet, prepared, answers, p):
     t, th = packet["task"], p["thresholds"]
     profile = demand_profile(t, answers, p)
     demands = sorted(k for k, v in profile.items() if v in {"required", "uncertain"})
+    fit_demands = sorted(k for k, v in profile.items() if v == "required")
     assessments = []
     kind = answers["work_kind"]
     diagnostics = (["work-kind-disagreement"] if kind["confidence"] >= th["demand"]
@@ -393,7 +429,8 @@ def recommendation(packet, prepared, answers, p):
                 "reason_codes": [reason], "nominees": list(nominees), "alternatives": [],
                 "demand_profile": profile, "required_demands": demands,
                 "review_requirements": [DEMAND_GATES[k] for k in demands],
-                "candidate_assessments": assessments, "diagnostics": diagnostics}
+                "candidate_assessments": assessments, "diagnostics": diagnostics,
+                "selection_basis": {"preference": p["selection_preference"], "method": "not-selected", "tie_breakers": []}}
     if answers["missing_requirement"]["noul"] > th["missing_requirement"]:
         return result("clarify", "missing-or-uncertain-requirement")
     if answers["coordinator_coupling"]["noul"] > th["coordinator_coupling"]:
@@ -413,8 +450,11 @@ def recommendation(packet, prepared, answers, p):
         if evidence is None:
             evidence = {"groups": 0, "passed_groups": 0, "failed_groups": 0, "lower_bound": 0.0,
                         "support": "unobserved", "observed_mean_cost_usd": None, "cost_observations": 0}
+        fits = {tag: answers[f"{tag}_fit_{i}"]["noul"] for tag in DEMAND_GATES}
+        fit = min([answers[f"operation_match_{i}"]["noul"]] + [fits[tag] for tag in fit_demands])
         assessment = {"configuration_id": row["configuration_id"], "status": "excluded",
-                      "reason_codes": [], "evidence": evidence}
+                      "reason_codes": [], "evidence": evidence, "fit_probabilities": fits,
+                      "applicable_fits": fit_demands, "assessed_fit": fit}
         assessments.append(assessment)
         if answers["external_information"]["noul"] >= th["demand"] and "external-retrieval" not in c["tools"]:
             assessment["reason_codes"] = ["missing-retrieval-tool"]
@@ -425,23 +465,45 @@ def recommendation(packet, prepared, answers, p):
         if answers[f"scope_exceeded_{i}"]["noul"] > th["scope_exceeded"]:
             assessment["reason_codes"] = ["candidate-scope-exceeded-or-uncertain"]
             continue
+        # Uncertain task demand is a review obligation, not evidence that the
+        # worker needs a capability. Gate expected fit for required dimensions.
+        inadequate = [tag for tag in fit_demands if fits[tag] < th[tag + "_fit"]]
+        if inadequate:
+            assessment["reason_codes"] = [tag.replace("_", "-") + "-fit-insufficient" for tag in inadequate]
+            continue
         comparable = all(answers[f"evidence_comparable_{i}_{j}"]["noul"] >= th["evidence_comparable"] for j in range(len(prepared["cards"][i]["evidence_cohorts"])))
         assessment.update(status="suitable", reason_codes=["semantic-match-with-history" if evidence.get("groups", 0) and comparable else "semantic-match-without-history"])
         # History informs selection, never authorizes it or blocks a cold start.
         used = evidence if comparable else {"groups": 0, "lower_bound": 0, "recent_failure": False}
+        assessment["evidence"] = used
         cost = used.get("observed_mean_cost_usd")
-        suitable.append({**row, "evidence": used, "estimate_usd": cost if cost is not None else c["estimate_usd"]})
+        suitable.append({**row, "evidence": used, "assessed_fit": fit, "estimate_usd": cost if cost is not None else c["estimate_usd"]})
     if suitable:
-        baseline = prepared.get("baseline")
         comparable_costs = all(r["estimate_usd"] is not None for r in suitable)
+        hints = [r.get("efficiency_hint") for r in suitable]
+        comparable_hints = (all(h and h["status"] == "current" for h in hints)
+                            and len({h["basis"] for h in hints if h}) == 1)
+        method = "reviewed-outcomes-and-fit"
+        tie_breakers = ["recent-comparable-failure"]
+        if p["selection_preference"] == "efficiency_hints":
+            if comparable_costs:
+                method = "comparable-cost-estimates"
+                tie_breakers.append("estimate-usd")
+            elif comparable_hints:
+                method = "dated-efficiency-hints"
+                tie_breakers.append("efficiency-rank")
+        tie_breakers += ["reviewed-outcome-lower-bound", "assessed-fit", "configuration-id"]
         def preference(r):
             history = r["evidence"]
-            return (history.get("recent_failure", False),
-                    r["estimate_usd"] if comparable_costs else (0 if baseline and r["configuration_id"] == baseline["configuration_id"] else 1),
-                    -history.get("lower_bound", 0), r["configuration_id"])
+            economy = (r["estimate_usd"] if method == "comparable-cost-estimates" else
+                       r["efficiency_hint"]["rank"] if method == "dated-efficiency-hints" else 0)
+            return (history.get("recent_failure", False), economy,
+                    -history.get("lower_bound", 0), -r["assessed_fit"], r["configuration_id"])
         ranked = sorted(suitable, key=preference)
         answer = result("route", "jev-semantic-selection", ranked[0])
         answer["alternatives"] = [r["configuration_id"] for r in ranked[1:]]
+        answer["selection_basis"] = {"preference": p["selection_preference"], "method": method,
+                                     "tie_breakers": tie_breakers}
         return answer
     if assessments and all(a["reason_codes"] == ["missing-retrieval-tool"] for a in assessments):
         return result("repackage", "external-information-unavailable")

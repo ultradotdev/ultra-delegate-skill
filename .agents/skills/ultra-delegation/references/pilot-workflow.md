@@ -4,6 +4,10 @@ The workflow module persists a request and its attempts. It plans native actions
 the coordinator executes Codex tools and project checks. It never dispatches a
 worker, creates a worktree, merges output, or guesses a native run result.
 
+For flag-based events, combined review publication, and resume instructions,
+start with [repository-trial.md](repository-trial.md). The raw event interface
+below remains supported for integrations.
+
 Start only from a saved active route and the identical packet:
 
 ```sh

@@ -12,10 +12,10 @@ python3 "$SKILL_PATH/scripts/pilot.py" --help
 python3 "$SKILL_PATH/scripts/pilot_questions.py" --check
 ```
 
-Do not reuse or migrate a prior-release policy into this RC6 ledger. Keep historic
+Do not reuse or migrate a prior-release policy into this current pilot ledger. Keep historic
 records only as historic report inputs. The initial CLI policy is active, but it
 does not send a routing request until a command uses `--live` and summary sharing
-is explicitly enabled. RC6 permits immediate routing with empty history; it has
+is explicitly enabled. The pilot permits immediate routing with empty history; it has
 no local qualification-count or shadow-rollout prerequisite.
 
 The scoped live routing validation is not a Yarn worker trial: v4 wording yielded
@@ -28,56 +28,23 @@ are correlated development evidence; security/artifact judges were off and
 worker/review costs are unknown. They are not Yarn quality, savings, or
 calibration evidence.
 
-## Prepare a real packet
+## Prepare, run and recover
 
-Discover current native model IDs, supported efforts, capacity, modalities, and
-the declared host tools. Use `pilot_codex.py` to turn that observation into a
-non-synthetic packet. `read-files`, `edit-files`, and `run-tests` describe host
-capabilities only; normal task authorization and native controls still apply.
+Use `runtime/ultra-delegation/references/repository-trial.md` as the current
+agent walkthrough. The agent creates the task/discovery inputs and uses
+`pilot_codex.py prepare` to produce a validated packet and sharing preview.
+The Yarn user does not need to author JSON or manage events.
 
-```sh
-python3 "$SKILL_PATH/scripts/pilot_codex.py" \
-  --task task.json --catalog codex-model-catalog.json --host-observation host.json \
-  --output .ultra-delegation/yarn-packet.json \
-  --candidate discovered-model:medium \
-  --capability-description 'Bounded Yarn slice with declared project validation.' \
-  --scope-envelope 'One isolated low-risk task; coordinator owns integration.'
+Selection defaults to `efficiency_hints`. Configure `strongest_fit` if preferred;
+`bakeoff auto/on/off` remains independent. Read-only credentials and artifact
+sharing retain their existing boundaries. Use flag-based `workflow-event`,
+`workflow-review-template`, `workflow-review`, and `workflow-status` for the
+persisted execution/recovery cycle. Repeated initialization preserves policy.
 
-python3 "$SKILL_PATH/scripts/pilot.py" --root .ultra-delegation/yarn-pilot init \
-  --share-summaries
-python3 "$SKILL_PATH/scripts/pilot.py" --root .ultra-delegation/yarn-pilot route \
-  --input .ultra-delegation/yarn-packet.json --dry-run
-python3 "$SKILL_PATH/scripts/pilot.py" --root .ultra-delegation/yarn-pilot route \
-  --input .ultra-delegation/yarn-packet.json --live
-```
-
-Do not execute a synthetic fixture, example model ID, invented capacity, or stale
-host context. Use `--allow-host-managed-output` only for the documented native
-output exception and include the `complete-output` mandatory gate.
-
-## Run the persisted native workflow
-
-Use the returned `dec_...` identifier and follow the detailed event examples in
-`runtime/ultra-delegation/references/pilot-workflow.md`.
-
-```sh
-python3 "$SKILL_PATH/scripts/pilot.py" --root .ultra-delegation/yarn-pilot workflow-start \
-  --decision dec_RETURNED_ID --input .ultra-delegation/yarn-packet.json --bakeoff auto
-python3 "$SKILL_PATH/scripts/pilot.py" --root .ultra-delegation/yarn-pilot workflow-next \
-  --request req_RETURNED_ID --input .ultra-delegation/yarn-packet.json
-```
-
-For each returned action: write the `launching` event with `--packet`, call the
-native coordinator tool in an isolated checkout, then send `dispatched` with the
-actual run/config/base/checkout values and `completed` with the artifact hash.
-Create an outcome template with `--request` and `--attempt`, independently review
-it, call `observe`, and send `reviewed`. On failure use a stable code and only a
-specific review findings hash for the one allowed repair. Do not redispatch an
-uncertain launch; use `launch-not-started` only after the host confirms absence.
-
-Only refresh `context.observed_at` before a fallback recheck. Any other packet
-change needs a new routing decision. The helper may return `coordinator-required`;
-that is a real handoff, not a reason to weaken gates or invent another worker.
+Keep consolidation architecture with the coordinator. First delegate one bounded
+slice with project tests and independent review. Deliver the actual reviewed
+patch and its HTML/JSON report; do not equate an accepted isolated proposal with
+completion of the Yarn consolidation.
 
 ## Inspect results
 
