@@ -40,7 +40,9 @@ it uses the first explicitly exposed supported effort. Supply repeatable
 Omit those flags to consider the full native pool; the coordinator's own model
 is not a reason to restrict the worker pool to that one model.
 It never silently drops profiles beyond the twelve-candidate packet bound.
-It writes packet.json, sharing-preview.json, task-labels.json, and next-steps.json.
+It writes packet.json, sharing-preview.json, worker-contract.md, task-labels.json,
+and next-steps.json. Inspect the worker contract's exact structured boundaries and
+SHA-256. Preparation never invents boundaries for a real task.
 These explicit local files contain task text; retain them only in ignored local
 storage. Decision/outcome ledgers stay sanitized.
 
@@ -68,6 +70,8 @@ Auto compares cold or recently failing selections. No qualification count blocks
 first use. Configuration changes invalidate earlier decisions; route again.
 Security is off by default. `--share-artifacts` is a separate permission for
 explicitly selected judge/security excerpts, not part of routing permission.
+The helper never runs a scanner; project checks and evidence collection remain
+coordinator actions.
 
 ## Execute and review
 
@@ -113,13 +117,27 @@ python3 "$SKILL_PATH/scripts/pilot.py" --root .ultra-delegation/pilot workflow-r
   --request req_RETURNED_ID --attempt attempt-1 --output .ultra-delegation/review.json
 # Coordinator runs checks and independently fills gates, scores, reviewer identity,
 # reviewed demands, defects and observed telemetry. Unknown costs remain unknown.
+# If security is enabled, first inspect the exact artifact-bound payload locally:
+python3 "$SKILL_PATH/scripts/pilot.py" --root .ultra-delegation/pilot workflow-security \
+  --request req_RETURNED_ID --attempt attempt-1 \
+  --input .ultra-delegation/security-input.json --dry-run
+# Use --live only after that exact evidence is authorized for artifact sharing.
 python3 "$SKILL_PATH/scripts/pilot.py" --root .ultra-delegation/pilot workflow-review \
   --request req_RETURNED_ID --attempt attempt-1 --input .ultra-delegation/review.json
+# When security follow-up is required, use the same command with:
+#   --security-findings .ultra-delegation/security-findings.json
 ```
 
 Review is independent of the worker, blinded to identity/cost where practical.
-Mandatory checks plus reviewed quality and absence of critical defects determine
-acceptance. Jev's fit numbers and optional artifact judge do not accept a patch.
+Use the same `--security-findings` option with lower-level `observe` integrations.
+Omit it when screening is off or no follow-up is required. When screening flags
+follow-up, or the boundary marks the task security-sensitive,
+an independent human/frontier reviewer must disposition the relevant requirements
+and findings before acceptance. Jev probabilities never decide severity or
+acceptance. Confirmed mandatory delivered findings block acceptance; unresolved
+findings require an explicit coordinator disposition. Mandatory checks plus
+reviewed quality and absence of critical defects determine acceptance. Jev's fit
+numbers and optional artifact judge do not accept a patch.
 For a concrete repairable failure, add `--repairable --findings-hash SHA256` to
 workflow-review. One targeted repair per configuration is permitted. Otherwise
 the existing comparison/fallback protocol applies. See [pilot-workflow.md](pilot-workflow.md)

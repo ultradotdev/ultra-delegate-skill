@@ -8,7 +8,8 @@ not failed or passed.
 - [ ] The selected unified slice builds and passes its declared user-flow checks.
 - [ ] A fresh pilot ledger was initialized; no older policy was silently migrated or activated.
 - [ ] Fresh host discovery records exact model/effort, capacities, modalities, and declared native tools.
-- [ ] Each executed task used a real non-synthetic packet, current context, bounded scope, and immutable gates.
+- [ ] Each executed task used a real non-synthetic packet, current context, bounded scope, immutable gates, and explicit granted authorization.
+- [ ] Each prepared `worker-contract.md` contains the reviewed scope-specific boundary JSON and matching hash.
 - [ ] Every dispatch had a per-attempt recheck and a `launching` reservation before the native tool call.
 - [ ] Every native execution records actual run ID, configuration, base revision, isolated checkout hash, and artifact hash.
 - [ ] Mandatory tests and independent quality review were recorded before each `reviewed` event.
@@ -16,7 +17,9 @@ not failed or passed.
 - [ ] Any repair used concrete review findings and occurred at most once for its configuration.
 - [ ] Coordinator-required requests, stale candidates, unavailable tools, and genuine blockers are explicit.
 - [ ] No candidate patch was automatically merged, published, or treated as final application acceptance.
-- [ ] Optional security and judge statuses are labelled advisory, disabled, unavailable, or insufficient evidence as applicable.
+- [ ] Security is recorded as off unless separately enabled; no helper-run scanner is claimed.
+- [ ] Any security payload was dry-run before live sharing, and required findings were independently dispositioned before acceptance.
+- [ ] Security and judge signals are labelled advisory; independent confirmed mandatory findings and unresolved coordinator dispositions are recorded accurately.
 - [ ] No credential was created, changed, logged, exposed to a client bundle, or placed in argv.
 - [ ] Report HTML/JSON was regenerated from the actual ledger and inspected.
 - [ ] The report separates first-attempt, bake-off, eventual request success, recovery attempts, and unknown costs.

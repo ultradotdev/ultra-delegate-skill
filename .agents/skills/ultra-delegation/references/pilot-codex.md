@@ -30,7 +30,9 @@ Supply a current native catalog and a task object with `task_id`, `group_id`, an
 the complete task contract. The contract must include an explicit scope,
 requirements, mandatory acceptance gates, worker boundary, intended use, risk,
 work kind, operation, complexity, required tools/modalities, and input/output
-reservations. Keep the packet summary sanitized: source excerpts and credentials
+reservations. It must also contain the structured `boundaries` object shown below.
+Every category has nonempty items or a nonempty `not_applicable` explanation,
+never both. Set authorization explicitly; `unknown` cannot route. Keep the packet summary sanitized: source excerpts and credentials
 do not belong in routing inputs.
 
 The coordinator writes this shape (the user does not fill it in). Replace the
@@ -45,6 +47,16 @@ example with the actual request, including every field; `task` is a nested objec
     "summary": "Repair a bounded parser edge case in the supplied repository.",
     "requirements": ["Preserve the public API.", "Reject malformed tokens with ValueError."],
     "acceptance_gates": ["behavioral-tests", "scope", "complete-output"],
+    "boundaries": {
+      "allowed_changes": {"items": ["Modify the parser and its focused tests."], "not_applicable": null},
+      "allowed_actions": {"items": ["Read assigned files and run focused tests locally."], "not_applicable": null},
+      "protected_behavior": {"items": ["Preserve the public API and unrelated parser behavior."], "not_applicable": null},
+      "protected_data": {"items": [], "not_applicable": "No user, production, or credential data is supplied."},
+      "coordinator_decisions": {"items": ["The coordinator owns integration and release."], "not_applicable": null},
+      "security_requirements": {"items": [{"id": "no-external-effects", "requirement": "Do not use networks, external services, credentials, or external writes.", "mandatory": true}], "not_applicable": null},
+      "authorization": "granted",
+      "security_sensitive": false
+    },
     "worker_boundary": "One parser and focused tests in an isolated checkout; coordinator owns integration.",
     "intended_use": "Patch proposal independently reviewed before integration.",
     "risk": "low",
@@ -61,7 +73,9 @@ example with the actual request, including every field; `task` is a nested objec
 
 Token reservations are coordinator-supplied planning bounds, not observed usage.
 `prepare` accepts a new or empty output directory and refuses to overwrite a
-previous bundle. Its default candidate declaration names supported work types;
+previous bundle. It writes `worker-contract.md` beside `packet.json` and the
+sharing preview. Inspect its exact boundary JSON and SHA-256 before routing; a
+hash mismatch or changed contract requires a fresh packet. Its default candidate declaration names supported work types;
 the appended, model-specific research supplies expectations, not proven success.
 
 ```sh

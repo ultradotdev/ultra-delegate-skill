@@ -1,3 +1,10 @@
+# Current native benchmark and coordinator-gate refinement
+
+See the [complete 60-cell model matrix](full-model-matrix-validation.md) and
+[coordinator-dependency experiment](coordinator-dependency-validation.md).
+Runtime questions are now v8 and selection v7; the RC7 record below remains
+historical validation of its original implementation.
+
 # Current repository-trial iteration: 1.3.0-rc.7
 
 See [RC7 validation](repository-trial-validation.md) for the current status.

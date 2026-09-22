@@ -1,6 +1,14 @@
 {
-  "schema": "yarn-native-pilot-task-cards-v2",
-  "note": "Planning worksheet, not pilot CLI input. Replace every placeholder from repository discovery. These are twelve real-trial candidates, not completed runs or model-quality evidence.",
+  "schema": "yarn-native-pilot-task-cards-v3",
+  "note": "Planning worksheet, not pilot CLI input. Replace every placeholder from repository discovery. Each card's boundary sentence is only a starting worker_boundary: the coordinator must author the full scope-specific boundary contract below and receive granted authorization before preparing a packet. These are twelve real-trial candidates, not completed runs or model-quality evidence.",
+  "boundary_contract": {
+    "required_categories": ["allowed_changes", "allowed_actions", "protected_behavior", "protected_data", "coordinator_decisions", "security_requirements"],
+    "category_rule": "Each category contains nonempty explicit items or a nonempty not_applicable explanation, never both.",
+    "security_requirement_fields": ["id", "requirement", "mandatory"],
+    "authorization": "granted-or-unknown; unknown cannot route",
+    "security_sensitive": "explicit boolean",
+    "preparation_check": "Inspect worker-contract.md exact JSON and SHA-256 before routing."
+  },
   "source_versions": {"gpt6": {"path_or_ref": null}, "fable51": {"path_or_ref": null}},
   "cards": [
     {"id": "review-01", "family": "review", "scope_id": "yarn.component-review-01", "operation": "code-review", "goal": "Independently review one reconciled component's behavior against both source versions.", "paths": [], "acceptance_gates": ["behavior-trace", "independent-review"], "boundary": "Findings only; coordinator decides changes."},

@@ -33,7 +33,7 @@ API or pretend the bundle dispatches workers.
 | Boundary | Responsibility |
 | --- | --- |
 | Yarn settings | Active/off policy, summary sharing, separate artifact sharing, credential locator, advisory checks |
-| Packet preparation | Task contract, exact host discovery, candidates, tools, capacities, and acceptance gates |
+| Packet preparation | Task contract, explicit structured boundaries and authorization, exact host discovery, candidates, tools, capacities, and acceptance gates |
 | Pilot | Eligibility, one Jev routing batch, ordered routes, persisted workflow, metadata learning, reports |
 | Coordinator/native host | Per-attempt recheck, isolated tool execution, native run/checkout/base record, artifact custody |
 | Independent review | Project tests, scope/quality review, critical-defect finding, authoritative outcome |
@@ -46,13 +46,18 @@ four localized bug fixes across independently scoped groups. First run the work
 needed to make each card meaningful in the actual repository. For every trial:
 
 1. Prepare a real non-synthetic packet from fresh native discovery and an
-   immutable acceptance contract.
+   immutable acceptance contract. Write scope-specific allowed changes/actions,
+   protected behavior/data, coordinator decisions, security requirements,
+   authorization, and security sensitivity; inspect the generated worker contract.
 2. Route it with active sharing enabled and `--live`, then start a workflow.
 3. Obtain its planned action and per-attempt recheck; reserve `launching`.
 4. Call the native tool in an isolated checkout and record the actual run ID,
    configuration, base revision, checkout hash, and artifact hash.
-5. Run declared tests and independent review. Generate, complete, and observe the
-   bound outcome; emit `reviewed`.
+5. Run declared tests and independent review. Security remains off unless
+   separately enabled. If enabled, dry-run the artifact-bound security payload,
+   then run it live only with artifact-sharing permission. Independently review
+   and submit required findings before the bound outcome can be accepted; emit
+   `reviewed` only after publication.
 6. Let one concrete repair or an eligible fallback proceed when needed. Preserve
    the original contract, failures, and unresolved blocker.
 
@@ -65,8 +70,10 @@ model-only causal result when effort or tools differ.
 ## Review and hand back
 
 Acceptance requires all mandatory gates, an independent review, required quality
-floors, and no critical defect. The optional security evaluator and blinded judge
-are advisory; their unavailable state does not block ordinary review. Use the
+floors, and no critical defect. The helper runs no scanners. Jev security signals
+and the blinded judge are advisory, while independent confirmed mandatory
+findings affect acceptance and unresolved findings require a coordinator
+disposition. Use the
 checklist to retain exact command results, artifacts, workers, validators, and
 remaining limitations.
 

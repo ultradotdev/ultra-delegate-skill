@@ -29,6 +29,14 @@ cases. Its linked pilot HTML/JSON report contains routing telemetry. The separat
 `security.json` contains the advisory result, when reached. No workers execute and
 no downstream quality or savings claim follows from these examples.
 
+Current packets also require a structured task-boundary contract with explicit
+authorization. Missing boundaries and `authorization: unknown` fail before
+routing. Security remains off by default. The security helper does not run
+scanners: when separately enabled it evaluates only selected excerpts and a
+validation summary after an exact dry-run preview. Advisory signals that require
+follow-up must be resolved through independent, artifact-bound findings before
+acceptance.
+
 ## Explicit live option
 
 Inspect the synthetic fixtures and generated previews before opting in. A live
@@ -66,6 +74,8 @@ budget. An exit status of zero means the report was written: inspect `status`,
 | Unknown capacity and changed candidate order preserve hard boundaries | `test_pilot_spec.py`, `test_pilot_integration.py` |
 | Incomplete/duplicate observations reject; failed mandatory gate vetoes favorable quality scores | `test_pilot_integration.py` |
 | Synthetic decisions cannot authorize dispatch; unavailable optional security does not block observation | `test_pilot_integration.py` |
+| Missing/invalid task boundaries and unknown authorization fail closed; prepared worker contracts preserve exact JSON and hash | `test_pilot_boundaries.py` |
+| Artifact-bound security screening requires independent finding disposition before acceptance and stores detailed findings outside the outcome ledger | `test_pilot_security.py`, `test_pilot_security_report.py` |
 | Output reservation precedes paid work; credentials/errors remain redacted; live retries are disabled | `test_pilot_smoke.py`, `test_jev.py` |
 
 `action` is the effective decision; `recommended_action` is Jev's suggestion.

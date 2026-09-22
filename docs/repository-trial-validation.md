@@ -1,5 +1,9 @@
 # Repository trial validation: 1.3.0-rc.7
 
+For subsequent live results, see the [complete model matrix](full-model-matrix-validation.md)
+and [dependency-gate refinement](coordinator-dependency-validation.md). This document
+preserves the original RC7 implementation/trial status.
+
 RC7 adds native packet preparation, configurable selection, workflow conveniences,
 attributed research, twelve executable fixtures, and concise HTML/JSON reports.
 This is development evidence for repository trials, not general model qualification.

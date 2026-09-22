@@ -31,7 +31,11 @@ does not set, migrate, delete, print, or prompt for credentials.
 A packet has schema `ultra-pilot-task-v1`, opaque `task_id` and `group_id`, a
 bounded task contract, a fresh host context, and exact discovered candidates.
 Its task declares requirements, mandatory acceptance gates, worker boundary,
-risk, tools/modalities, and input/output admission reservations. Candidates
+risk, tools/modalities, input/output admission reservations, and structured
+boundaries. The boundary contract explicitly enumerates allowed changes/actions,
+protected behavior/data, coordinator decisions, security requirements,
+authorization, and security sensitivity. Missing boundaries or unknown
+authorization fail before routing. Candidates
 declare the exact model revision, host, adapter, native effort, prompt contract,
 tool policy, availability, capacities, and roles. `pilot_codex.py` builds a
 Codex packet from current host discovery.
@@ -79,8 +83,14 @@ review records every declared mandatory gate, coverage/correctness/maintainabili
 clarity scores, critical defects, observed latency and measured/estimated/unknown
 cost components. The optional judge is a blinded advisory score supplied through
 `observe --judge-input`; it needs `share_artifacts` and never accepts a result.
-Security is similarly advisory through `observe --security-check --security-input`.
-Neither unavailable evaluator blocks ordinary outcome recording.
+Security screening is off by default and never runs scanners. Use
+`workflow-security --dry-run` to inspect the artifact-bound payload, then `--live`
+only when artifact sharing and the selected evidence are authorized. Jev signals
+remain advisory. If they require follow-up, or the task is security-sensitive,
+publish independent findings through `workflow-review --security-findings` (or
+`observe --security-findings`) before acceptance. Confirmed mandatory delivered
+findings become failed security gates; unresolved findings require an explicit
+coordinator disposition. An unavailable evaluator does not manufacture a pass.
 
 Use `learning audit`, `learning export --output FILE`, `learning import --input
 FILE`, and `learning retract --outcome ID --reason CODE` for metadata-only local

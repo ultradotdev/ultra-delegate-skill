@@ -1,6 +1,6 @@
-# Current repository-trial iteration: 1.3.0-rc.7
+# Current repository-trial iteration: 1.3.0-rc.8
 
-See [RC7 validation](repository-trial-validation.md) for the current status.
+See [RC8 security validation](security-review-validation.md) for boundaries, optional screening, and the targeted live signal tests. The earlier [RC7 validation](repository-trial-validation.md) covers repository routing.
 The historical RC6 record below describes its original trial; it does not
 establish performance of the new questions or selection preference.
 

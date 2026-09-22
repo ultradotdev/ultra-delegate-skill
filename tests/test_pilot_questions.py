@@ -6,11 +6,12 @@ from pathlib import Path
 SCRIPT = Path(__file__).resolve().parents[1] / ".agents/skills/ultra-delegation/scripts"
 sys.path.insert(0, str(SCRIPT))
 import jev_transport
+import pilot_boundaries
 import pilot_questions as p
 
 
 def task():
-    return {"summary": "Fix parser.", "requirements": ["Keep API."], "worker_boundary": "Patch and tests.", "intended_use": "Internal review.", "scope_id": "parser", "risk": "medium", "work_kind": "coding", "operation": "repair parser", "complexity": "routine", "acceptance_gates": ["tests-pass"], "required_tools": ["tests"], "required_modalities": [], "input_tokens": 10, "output_tokens": 20}
+    return {"summary": "Fix parser.", "requirements": ["Keep API."], "worker_boundary": "Patch and tests.", "intended_use": "Internal review.", "scope_id": "parser", "risk": "medium", "work_kind": "coding", "operation": "repair parser", "complexity": "routine", "acceptance_gates": ["tests-pass"], "required_tools": ["tests"], "required_modalities": [], "input_tokens": 10, "output_tokens": 20, "boundaries": pilot_boundaries.example()}
 
 
 def answer(payload):
@@ -51,10 +52,25 @@ class PilotQuestionTests(unittest.TestCase):
             self.assertEqual(set(question["criteria"]), {"true", "false"})
         self.assertEqual(candidates, before)
 
+    def test_dependency_question_is_single_batch_and_excludes_later_coordinator_work(self):
+        payload = p.route_payload(task(), self.candidates(), "jev-1.13.0")
+        question = payload["questions"]["coordinator_coupling"]
+        entry = next(entry for entry in p.ROUTING_REGISTRY if entry["id_template"] == "coordinator_coupling")
+        self.assertEqual(p.ROUTING_VERSION, "pilot-routing-v9")
+        self.assertEqual(p.ROUTING_THRESHOLDS["coordinator_coupling"], .40)
+        self.assertEqual(p.ROUTING_THRESHOLDS["missing_requirement"], .20)
+        self.assertIn("Later review, acceptance, integration or deployment", question["instructions"])
+        self.assertIn("unless its decision is needed to produce the deliverable", question["instructions"])
+        self.assertNotIn("answer", question["instructions"].lower())
+        self.assertNotIn("answer", " ".join(entry["state_deps"]).lower())
+
     def test_security_payload_is_all_noul_and_is_advisory(self):
-        payload = p.security_payload({"requirements": ["Auth", "Audit"], "excerpts": ["x"], "validation_summary": "tests"}, "jev-1.13.0")
-        self.assertEqual(set(payload["questions"]), {"enough", "requirement_0", "requirement_1", "material_vulnerability"})
+        requirements = [{"id": "auth", "requirement": "Auth", "mandatory": True}, {"id": "audit", "requirement": "Audit", "mandatory": False}]
+        boundaries = pilot_boundaries.example(); boundaries["security_requirements"] = {"items": copy.deepcopy(requirements), "not_applicable": None}
+        payload = p.security_payload({"requirements": requirements, "excerpts": ["x"], "validation_summary": "tests", "boundaries": boundaries}, "jev-1.13.0")
+        self.assertEqual(set(payload["questions"]), {"violation_0", "sufficient_0", "violation_1", "sufficient_1"})
         self.assertTrue(all(q["type"] == "noul" for q in payload["questions"].values()))
+        self.assertTrue(all(set(q["criteria"]) == {"true", "false"} for q in payload["questions"].values()))
         jev_transport.validate_response(payload, answer(payload))
         self.assertIn("do not accept", p.manifest()["security_note"])
 

@@ -7,7 +7,9 @@ supplied independently reviewed outcomes, and writes HTML, JSON, and CSV.
 
 Create a manifest with `init`, then add real bounded tasks: four each for review,
 tests, and implementation. The generated twelve-case `example` is synthetic
-template material only. Keep related variants in one `group_id`; groups cannot
+template material only. Its review, test-authoring, and implementation families
+carry distinct explicit boundary contracts rather than inheriting a generic
+patch boundary. Keep related variants in one `group_id`; groups cannot
 cross the development/test split. Evidence for an evaluation group must predate
 its packet and cannot come from any group in the same evaluation set. Store real
 worker artifacts and reviews outside the manifest; the manifest contains only the

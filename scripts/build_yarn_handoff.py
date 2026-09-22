@@ -28,7 +28,8 @@ def build(output_dir):
     archives = {skill_name: release.zip_bytes(release.release_entries(ROOT)),
                 source_name: release.zip_bytes(release.source_entries(ROOT))}
     hashes = {name: hashlib.sha256(data).hexdigest() for name, data in archives.items()}
-    entries = {name: release.read_checked(ROOT, Path("handoffs/yarn") / name) for name in DOCS}
+    entries = {name: release.read_checked(ROOT, Path("handoffs/yarn") / name).replace(
+        b"../../docs/", b"validation/") for name in DOCS}
     with zipfile.ZipFile(io.BytesIO(archives[skill_name])) as z:
         for name in z.namelist():
             path = Path(name)
@@ -37,8 +38,12 @@ def build(output_dir):
             entries["runtime/" + name] = z.read(name)
     entries["validation/" + source_name] = archives[source_name]
     with zipfile.ZipFile(io.BytesIO(archives[source_name])) as z:
-        for name in ("active-recovery-validation.md", "compatibility.md", "repository-trial-validation.md"):
-            entries["validation/" + name] = z.read(release.SOURCE_PREFIX+"/docs/" + name)
+        for name in ("active-recovery-validation.md", "active-recovery-results.json", "compatibility.md", "repository-trial-validation.md",
+                     "full-model-matrix-validation.md", "full-model-matrix-results.json",
+                     "coordinator-dependency-validation.md", "coordinator-dependency-results.json",
+                     "security-review-validation.md", "security-review-results.json"):
+            entries["validation/" + name] = z.read(release.SOURCE_PREFIX+"/docs/" + name).replace(
+                b"../.agents/skills/", b"../runtime/")
     sys.path.insert(0, str(ROOT / ".agents/skills/ultra-delegation/scripts"))
     import pilot
     packet = pilot.fixture()
@@ -54,8 +59,10 @@ def build(output_dir):
         "schema": "yarn-agent-handoff-v1", "pilot_version": VERSION,
         "source_snapshot_sha256": hashes[source_name], "pilot_archives_sha256": hashes,
         "purpose": "Consolidate the GPT-6 and Fable 5.1 Yarn app versions and integrate the optional Jev project pilot.",
-        "validation_status_file": "validation/repository-trial-validation.md",
+        "validation_status_file": "validation/security-review-validation.md",
         "routing": "active after explicit project setup; no statistical admission gate",
+        "task_boundaries": "required explicit contract with granted authorization; inspect worker-contract.md and hash",
+        "security": "off by default; no scanners; preview optional screening and disposition required findings before acceptance",
         "runtime_entrypoint": "runtime/ultra-delegation/scripts/pilot.py",
         "agent_entrypoint": "START-HERE.md", "synthetic_example_only": True,
         "credential_material_included": False,
