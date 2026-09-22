@@ -8,6 +8,8 @@ Refresh: `python3 <skill>/scripts/pilot_questions.py --write`. Check: `python3 <
 
 The routing builder sends only the supplied bounded task and opaque candidate projections. The security builder is advisory only; it cannot accept work, authorize execution, or guarantee security.
 
+Identical complete leading lines of candidate capability descriptions may be stored once in state.candidate_capability_prefix, with an explicit reference in each description. The prefix is part of every candidate description; all remaining text, evidence, and questions are retained. This is lossless factoring, not truncation. Oversized payloads still fail.
+
 ## Proposed thresholds
 
 - `status`: experimental operating thresholds; evaluation informs refinement without gating first use

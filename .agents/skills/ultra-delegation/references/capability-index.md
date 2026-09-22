@@ -17,14 +17,21 @@ the candidate capability description; code does not sort candidates by ECI or
 convert ECI to suitability probabilities. The existing routing, review and
 recovery rules continue to apply.
 
-Research coverage is broader than worker availability. The initial five verified
-native-ID bindings are included; other rows preserve Epoch's exact model and
+Research coverage is broader than worker availability. Seven exact native-ID bindings are included in the importer; the shipped
+Epoch snapshot contains scored rows for five of them; other rows preserve Epoch's exact model and
 organization names under stable research IDs. Add explicit bindings for additional
 host-discovered models with `epoch_import.py --mappings FILE`. This is identity
 matching, not a performance qualification requirement. Unmapped research rows
 stay visible but cannot masquerade as native model IDs. Host/provider restrictions
 and tool/context eligibility still apply. Only matched shortlisted candidates
 are sent to Jev, not the entire catalog.
+
+GPT-6 Sol and GPT-6 Luna have dated provider descriptions and Standard API
+pricing hints checked on September 22, 2026. Their Epoch scores remain unknown
+in the shipped September 21 snapshot; GPT-5.6 scores and local outcomes do not
+transfer to the new identities. Preparation includes them only when discovered
+in both the native model catalog and current host capabilities. Native effort
+options and context limits remain authoritative over API documentation.
 
 ## Build and inspect
 
@@ -119,7 +126,7 @@ record illustrates the shape, not a real provider ID:
   "provider":"example-provider","model":"exact-host-exposed-model-id"}]
 ```
 
-Mappings augment the built-in five and must be supplied again on refresh; native
+Mappings augment the built-in seven and must be supplied again on refresh; native
 bindings are not guessed or silently retained from a previous source snapshot.
 Duplicate source or target mappings fail. Keep project mapping files alongside
 the project-local research snapshot.
