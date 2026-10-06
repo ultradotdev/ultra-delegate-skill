@@ -54,6 +54,15 @@ def leaks(f, out_dir):
     return sorted({m for m in markers if m in text})
 
 
+def scrub(text):
+    """Strip machine-specific paths before anything is written to results/ (which is committed)."""
+    text = str(text or '')
+    for path, label in ((str(RAW), '<raw>'), (tempfile.gettempdir(), '<tmp>'), ('/private/var/folders', '<tmp>'),
+                        (str(Path.home()), '~')):
+        text = text.replace(path, label)
+    return text
+
+
 def interleave(fixtures):
     """easy, medium, hard, easy, ... so a run stopped by the budget still covers every band."""
     by_band = {b: [f for f in fixtures if f['band'] == b] for b in BAND_ORDER}
@@ -94,9 +103,9 @@ def run_cell(f, rung, host, run):
     return {'fixture': f['id'], 'band': f['band'], 'language': f['language'], 'host': host, 'rung': rung['id'],
             'model': rung['model'], 'effort': rung.get('effort'), 'run': run, 'status': r['status'],
             'public_pass': bool(r['passed']), 'hidden_pass': bool(r.get('hidden_pass')) if r['status'] == 'completed' else False,
-            'cost_usd': r['cost_usd'], 'seconds': r['seconds'], 'usage': r['usage'], 'error': r.get('error'),
-            'patch_bytes': r.get('patch_bytes'), 'raw': str(out), 'hidden_tail': (r.get('hidden_output') or '')[-400:],
-            'leak': leaks(f, out)}
+            'cost_usd': r['cost_usd'], 'seconds': r['seconds'], 'usage': r['usage'], 'error': scrub(r.get('error')),
+            'patch_bytes': r.get('patch_bytes'), 'raw': scrub(out), 'hidden_tail': scrub((r.get('hidden_output') or '')[-400:]),
+            'leak': [scrub(m) for m in leaks(f, out)]}
 
 
 def execute(host, plan, max_usd):

@@ -4,6 +4,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'experiments'))
+import calibrate  # noqa: E402
 import fx  # noqa: E402
 import replay  # noqa: E402
 
@@ -41,6 +42,15 @@ class Replay(unittest.TestCase):
     def test_auc(self):
         self.assertEqual(replay.auc([(0.9, True), (0.1, False)]), 1.0)
         self.assertEqual(replay.auc([(0.5, True), (0.5, False)]), 0.5)
+
+
+class Scrub(unittest.TestCase):
+    def test_committed_results_carry_no_machine_paths(self):
+        import tempfile
+        text = f'{calibrate.RAW}/codex/x {tempfile.gettempdir()}/eval {Path.home()}/notes'
+        cleaned = calibrate.scrub(text)
+        self.assertNotIn(str(Path.home()), cleaned)
+        self.assertNotIn(tempfile.gettempdir(), cleaned)
 
 
 class Fixtures(unittest.TestCase):
