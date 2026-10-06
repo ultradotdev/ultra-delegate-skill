@@ -1,0 +1,12 @@
+{
+  "id": "rust-aggregates",
+  "language": "rust",
+  "band": "hard",
+  "summary": "Fix a small library crate that parses CSV-like text, aggregates money per group in i64 cents and renders an aligned table.",
+  "goal": "Fix the aggregates crate (parser.rs, aggregate.rs, format.rs, lib.rs) so it meets every requirement in SPEC.md.",
+  "files": ["SPEC.md", "Cargo.toml", "src/lib.rs", "src/error.rs", "src/parser.rs", "src/aggregate.rs", "src/format.rs"],
+  "public_check": "cargo test --offline --test public",
+  "public_check_files": ["tests/public.rs"],
+  "hidden_check": "cargo test --offline --test hidden",
+  "timeout": 120
+}

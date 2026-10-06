@@ -1,0 +1,822 @@
+{
+ "go-kvstore-tx": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.15,
+   "difficulty_probs": {
+    "0": 0.0,
+    "1": 0.01,
+    "2": 0.82,
+    "3": 0.17
+   },
+   "passes": [
+    0.23,
+    0.39,
+    0.37
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-medium": 0.61,
+    "sol-medium": 0.03,
+    "luna-high": 0.36
+   },
+   "input_tokens": 3801,
+   "cost_usd": 0.00015964,
+   "request_bytes": 13183,
+   "seconds": 0.119
+  }
+ ],
+ "go-token-bucket": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 1.98,
+   "difficulty_probs": {
+    "0": 0.01,
+    "1": 0.05,
+    "2": 0.9,
+    "3": 0.04
+   },
+   "passes": [
+    0.23,
+    0.52,
+    0.48
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-high": 0.21,
+    "luna-medium": 0.78,
+    "sol-medium": 0.01
+   },
+   "input_tokens": 2721,
+   "cost_usd": 0.00011428,
+   "request_bytes": 8945,
+   "seconds": 0.148
+  }
+ ],
+ "python-config-merge": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.09,
+   "difficulty_probs": {
+    "0": 0.0,
+    "1": 0.02,
+    "2": 0.86,
+    "3": 0.12
+   },
+   "passes": [
+    0.15,
+    0.39,
+    0.4
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-high": 0.4,
+    "sol-medium": 0.02,
+    "luna-medium": 0.58
+   },
+   "input_tokens": 2944,
+   "cost_usd": 0.00012365,
+   "request_bytes": 10308,
+   "seconds": 0.118
+  }
+ ],
+ "python-csv": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.26,
+   "difficulty_probs": {
+    "0": 0.01,
+    "1": 0.04,
+    "2": 0.63,
+    "3": 0.32
+   },
+   "passes": [
+    0.27,
+    0.58,
+    0.49
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-medium": 0.76,
+    "luna-high": 0.23,
+    "sol-medium": 0.01
+   },
+   "input_tokens": 1799,
+   "cost_usd": 7.556e-05,
+   "request_bytes": 5828,
+   "seconds": 0.111
+  },
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.27,
+   "difficulty_probs": {
+    "0": 0.01,
+    "1": 0.05,
+    "2": 0.61,
+    "3": 0.33
+   },
+   "passes": [
+    0.27,
+    0.58,
+    0.51
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-high": 0.22,
+    "luna-medium": 0.78,
+    "sol-medium": 0.0
+   },
+   "input_tokens": 1799,
+   "cost_usd": 7.556e-05,
+   "request_bytes": 5828,
+   "seconds": 0.114
+  },
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.29,
+   "difficulty_probs": {
+    "0": 0.01,
+    "1": 0.04,
+    "2": 0.61,
+    "3": 0.34
+   },
+   "passes": [
+    0.26,
+    0.57,
+    0.53
+   ],
+   "start": 0,
+   "start_probs": {
+    "sol-medium": 0.01,
+    "luna-medium": 0.77,
+    "luna-high": 0.22
+   },
+   "input_tokens": 1799,
+   "cost_usd": 7.556e-05,
+   "request_bytes": 5828,
+   "seconds": 0.11
+  }
+ ],
+ "python-inventory": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.24,
+   "difficulty_probs": {
+    "0": 0.0,
+    "1": 0.01,
+    "2": 0.74,
+    "3": 0.25
+   },
+   "passes": [
+    0.22,
+    0.35,
+    0.34
+   ],
+   "start": 0,
+   "start_probs": {
+    "sol-medium": 0.03,
+    "luna-medium": 0.71,
+    "luna-high": 0.26
+   },
+   "input_tokens": 5000,
+   "cost_usd": 0.00021,
+   "request_bytes": 18606,
+   "seconds": 0.17
+  },
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.25,
+   "difficulty_probs": {
+    "0": 0.0,
+    "1": 0.01,
+    "2": 0.73,
+    "3": 0.26
+   },
+   "passes": [
+    0.22,
+    0.37,
+    0.36
+   ],
+   "start": 0,
+   "start_probs": {
+    "sol-medium": 0.02,
+    "luna-medium": 0.69,
+    "luna-high": 0.29
+   },
+   "input_tokens": 5000,
+   "cost_usd": 0.00021,
+   "request_bytes": 18606,
+   "seconds": 0.132
+  },
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.3,
+   "difficulty_probs": {
+    "0": 0.0,
+    "1": 0.01,
+    "2": 0.68,
+    "3": 0.31
+   },
+   "passes": [
+    0.21,
+    0.35,
+    0.35
+   ],
+   "start": 0,
+   "start_probs": {
+    "sol-medium": 0.02,
+    "luna-medium": 0.74,
+    "luna-high": 0.24
+   },
+   "input_tokens": 5000,
+   "cost_usd": 0.00021,
+   "request_bytes": 18606,
+   "seconds": 0.248
+  }
+ ],
+ "python-jsonl": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.03,
+   "difficulty_probs": {
+    "0": 0.01,
+    "1": 0.09,
+    "2": 0.77,
+    "3": 0.13
+   },
+   "passes": [
+    0.28,
+    0.55,
+    0.47
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-high": 0.22,
+    "luna-medium": 0.78,
+    "sol-medium": 0.0
+   },
+   "input_tokens": 1800,
+   "cost_usd": 7.56e-05,
+   "request_bytes": 5791,
+   "seconds": 0.18
+  }
+ ],
+ "python-ledger-rounding": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.08,
+   "difficulty_probs": {
+    "0": 0.0,
+    "1": 0.04,
+    "2": 0.84,
+    "3": 0.12
+   },
+   "passes": [
+    0.21,
+    0.5,
+    0.45
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-medium": 0.6,
+    "luna-high": 0.38,
+    "sol-medium": 0.02
+   },
+   "input_tokens": 3383,
+   "cost_usd": 0.00014209,
+   "request_bytes": 10949,
+   "seconds": 0.173
+  }
+ ],
+ "python-ranges": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 1.8,
+   "difficulty_probs": {
+    "0": 0.03,
+    "1": 0.16,
+    "2": 0.79,
+    "3": 0.02
+   },
+   "passes": [
+    0.38,
+    0.67,
+    0.63
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-high": 0.2,
+    "sol-medium": 0.0,
+    "luna-medium": 0.8
+   },
+   "input_tokens": 1475,
+   "cost_usd": 6.195e-05,
+   "request_bytes": 4581,
+   "seconds": 0.167
+  },
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 1.78,
+   "difficulty_probs": {
+    "0": 0.05,
+    "1": 0.16,
+    "2": 0.76,
+    "3": 0.03
+   },
+   "passes": [
+    0.34,
+    0.65,
+    0.64
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-medium": 0.75,
+    "luna-high": 0.25,
+    "sol-medium": 0.0
+   },
+   "input_tokens": 1475,
+   "cost_usd": 6.195e-05,
+   "request_bytes": 4581,
+   "seconds": 0.11
+  },
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 1.79,
+   "difficulty_probs": {
+    "0": 0.04,
+    "1": 0.17,
+    "2": 0.76,
+    "3": 0.03
+   },
+   "passes": [
+    0.36,
+    0.67,
+    0.65
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-high": 0.25,
+    "sol-medium": 0.0,
+    "luna-medium": 0.75
+   },
+   "input_tokens": 1475,
+   "cost_usd": 6.195e-05,
+   "request_bytes": 4581,
+   "seconds": 0.126
+  }
+ ],
+ "python-recurrence": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.08,
+   "difficulty_probs": {
+    "0": 0.0,
+    "1": 0.03,
+    "2": 0.85,
+    "3": 0.12
+   },
+   "passes": [
+    0.17,
+    0.34,
+    0.29
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-medium": 0.51,
+    "sol-medium": 0.02,
+    "luna-high": 0.47
+   },
+   "input_tokens": 4797,
+   "cost_usd": 0.00020147,
+   "request_bytes": 16638,
+   "seconds": 0.132
+  }
+ ],
+ "python-slugify": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 1.71,
+   "difficulty_probs": {
+    "0": 0.02,
+    "1": 0.31,
+    "2": 0.61,
+    "3": 0.06
+   },
+   "passes": [
+    0.39,
+    0.69,
+    0.71
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-high": 0.2,
+    "luna-medium": 0.79,
+    "sol-medium": 0.01
+   },
+   "input_tokens": 1630,
+   "cost_usd": 6.846e-05,
+   "request_bytes": 5046,
+   "seconds": 0.133
+  }
+ ],
+ "python-template-engine": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.39,
+   "difficulty_probs": {
+    "0": 0.0,
+    "1": 0.01,
+    "2": 0.59,
+    "3": 0.4
+   },
+   "passes": [
+    0.18,
+    0.32,
+    0.32
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-high": 0.25,
+    "luna-medium": 0.72,
+    "sol-medium": 0.03
+   },
+   "input_tokens": 5121,
+   "cost_usd": 0.00021508,
+   "request_bytes": 18707,
+   "seconds": 0.146
+  }
+ ],
+ "rust-aggregates": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.03,
+   "difficulty_probs": {
+    "0": 0.01,
+    "1": 0.03,
+    "2": 0.9,
+    "3": 0.06
+   },
+   "passes": [
+    0.23,
+    0.39,
+    0.36
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-high": 0.34,
+    "sol-medium": 0.02,
+    "luna-medium": 0.64
+   },
+   "input_tokens": 4878,
+   "cost_usd": 0.00020488,
+   "request_bytes": 17158,
+   "seconds": 0.164
+  },
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.05,
+   "difficulty_probs": {
+    "0": 0.01,
+    "1": 0.03,
+    "2": 0.87,
+    "3": 0.09
+   },
+   "passes": [
+    0.22,
+    0.36,
+    0.35
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-medium": 0.61,
+    "luna-high": 0.37,
+    "sol-medium": 0.02
+   },
+   "input_tokens": 4878,
+   "cost_usd": 0.00020488,
+   "request_bytes": 17158,
+   "seconds": 0.126
+  },
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.03,
+   "difficulty_probs": {
+    "0": 0.01,
+    "1": 0.04,
+    "2": 0.87,
+    "3": 0.08
+   },
+   "passes": [
+    0.23,
+    0.39,
+    0.35
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-medium": 0.5700000000000001,
+    "luna-high": 0.42,
+    "sol-medium": 0.01
+   },
+   "input_tokens": 4878,
+   "cost_usd": 0.00020488,
+   "request_bytes": 17158,
+   "seconds": 0.16
+  }
+ ],
+ "typescript-debounce-free": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 1.75,
+   "difficulty_probs": {
+    "0": 0.06,
+    "1": 0.14,
+    "2": 0.79,
+    "3": 0.01
+   },
+   "passes": [
+    0.28,
+    0.57,
+    0.52
+   ],
+   "start": 0,
+   "start_probs": {
+    "sol-medium": 0.0,
+    "luna-high": 0.22,
+    "luna-medium": 0.78
+   },
+   "input_tokens": 1809,
+   "cost_usd": 7.598e-05,
+   "request_bytes": 5749,
+   "seconds": 0.129
+  }
+ ],
+ "typescript-event-cart": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.16,
+   "difficulty_probs": {
+    "0": 0.0,
+    "1": 0.02,
+    "2": 0.79,
+    "3": 0.19
+   },
+   "passes": [
+    0.19,
+    0.34,
+    0.32
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-medium": 0.54,
+    "luna-high": 0.43,
+    "sol-medium": 0.03
+   },
+   "input_tokens": 6071,
+   "cost_usd": 0.00025498,
+   "request_bytes": 20478,
+   "seconds": 0.154
+  }
+ ],
+ "typescript-latest": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 1.9,
+   "difficulty_probs": {
+    "0": 0.04,
+    "1": 0.08,
+    "2": 0.82,
+    "3": 0.06
+   },
+   "passes": [
+    0.46,
+    0.7,
+    0.66
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-medium": 0.86,
+    "luna-high": 0.14,
+    "sol-medium": 0.0
+   },
+   "input_tokens": 1630,
+   "cost_usd": 6.846e-05,
+   "request_bytes": 5192,
+   "seconds": 0.132
+  }
+ ],
+ "typescript-lru-ttl": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.01,
+   "difficulty_probs": {
+    "0": 0.0,
+    "1": 0.03,
+    "2": 0.92,
+    "3": 0.05
+   },
+   "passes": [
+    0.2,
+    0.49,
+    0.47
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-medium": 0.56,
+    "luna-high": 0.43,
+    "sol-medium": 0.01
+   },
+   "input_tokens": 2991,
+   "cost_usd": 0.00012562,
+   "request_bytes": 9881,
+   "seconds": 0.119
+  },
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.02,
+   "difficulty_probs": {
+    "0": 0.0,
+    "1": 0.03,
+    "2": 0.91,
+    "3": 0.06
+   },
+   "passes": [
+    0.2,
+    0.46,
+    0.49
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-medium": 0.6,
+    "luna-high": 0.38,
+    "sol-medium": 0.02
+   },
+   "input_tokens": 2991,
+   "cost_usd": 0.00012562,
+   "request_bytes": 9881,
+   "seconds": 0.104
+  },
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.01,
+   "difficulty_probs": {
+    "0": 0.0,
+    "1": 0.03,
+    "2": 0.92,
+    "3": 0.05
+   },
+   "passes": [
+    0.19,
+    0.46,
+    0.44
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-high": 0.34,
+    "luna-medium": 0.64,
+    "sol-medium": 0.02
+   },
+   "input_tokens": 2991,
+   "cost_usd": 0.00012562,
+   "request_bytes": 9881,
+   "seconds": 0.125
+  }
+ ],
+ "typescript-markdown": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.2,
+   "difficulty_probs": {
+    "0": 0.0,
+    "1": 0.01,
+    "2": 0.78,
+    "3": 0.21
+   },
+   "passes": [
+    0.18,
+    0.31,
+    0.31
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-high": 0.3,
+    "sol-medium": 0.03,
+    "luna-medium": 0.67
+   },
+   "input_tokens": 5643,
+   "cost_usd": 0.00023701,
+   "request_bytes": 18932,
+   "seconds": 0.156
+  }
+ ],
+ "typescript-options": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 1.86,
+   "difficulty_probs": {
+    "0": 0.03,
+    "1": 0.13,
+    "2": 0.78,
+    "3": 0.06
+   },
+   "passes": [
+    0.32,
+    0.64,
+    0.59
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-high": 0.18,
+    "luna-medium": 0.82,
+    "sol-medium": 0.0
+   },
+   "input_tokens": 1724,
+   "cost_usd": 7.241e-05,
+   "request_bytes": 5438,
+   "seconds": 0.122
+  }
+ ],
+ "typescript-package-resolver": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 2.21,
+   "difficulty_probs": {
+    "0": 0.0,
+    "1": 0.01,
+    "2": 0.76,
+    "3": 0.23
+   },
+   "passes": [
+    0.18,
+    0.32,
+    0.31
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-high": 0.28,
+    "luna-medium": 0.71,
+    "sol-medium": 0.01
+   },
+   "input_tokens": 5324,
+   "cost_usd": 0.00022361,
+   "request_bytes": 17784,
+   "seconds": 0.133
+  }
+ ],
+ "typescript-state": [
+  {
+   "route": "jev",
+   "model": "jev-1.13.0",
+   "difficulty": 1.95,
+   "difficulty_probs": {
+    "0": 0.02,
+    "1": 0.12,
+    "2": 0.75,
+    "3": 0.11
+   },
+   "passes": [
+    0.29,
+    0.57,
+    0.54
+   ],
+   "start": 0,
+   "start_probs": {
+    "luna-medium": 0.79,
+    "luna-high": 0.2,
+    "sol-medium": 0.01
+   },
+   "input_tokens": 1894,
+   "cost_usd": 7.955e-05,
+   "request_bytes": 6162,
+   "seconds": 0.114
+  }
+ ]
+}

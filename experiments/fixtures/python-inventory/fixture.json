@@ -1,0 +1,12 @@
+{
+  "id": "python-inventory",
+  "language": "python",
+  "band": "hard",
+  "summary": "Fix a multi-module warehouse inventory and order system: allocation, reservations, cancels, refunds, idempotency and audit log.",
+  "goal": "Fix the inventory package so that every numbered requirement in SPEC.md holds.",
+  "files": ["SPEC.md", "inventory/__init__.py", "inventory/errors.py", "inventory/money.py", "inventory/catalog.py", "inventory/stock.py", "inventory/allocation.py", "inventory/audit.py", "inventory/requests.py", "inventory/reservations.py", "inventory/orders.py", "inventory/refunds.py", "inventory/system.py"],
+  "public_check": "python3 -m unittest -q tests/test_public.py",
+  "public_check_files": ["tests/test_public.py"],
+  "hidden_check": "python3 -m unittest -q test_hidden.py",
+  "timeout": 60
+}

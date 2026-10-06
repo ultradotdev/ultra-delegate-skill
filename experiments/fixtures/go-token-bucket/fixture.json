@@ -1,0 +1,12 @@
+{
+  "id": "go-token-bucket",
+  "language": "go",
+  "band": "medium",
+  "summary": "Fix a token-bucket rate limiter on an injected clock: fractional refill, capacity cap, Allow/Reserve edge cases, debt, ceil-rounded waits, backwards clock.",
+  "goal": "Fix/Complete the Limiter in bucket.go so it meets every requirement in SPEC.md.",
+  "files": ["SPEC.md", "bucket.go"],
+  "public_check": "go test -count=1 -run '^TestPublic' .",
+  "public_check_files": ["public_test.go"],
+  "hidden_check": "go test -count=1 -run '^TestHidden' .",
+  "timeout": 60
+}

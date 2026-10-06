@@ -1,4 +1,4 @@
 interface:
   display_name: "Ultra Delegation"
-  short_description: "Route delegated work with context safety"
-  default_prompt: "Use $ultra-delegation to plan at high effort, delegate bounded host-native work, guard coordinator context, and report measured value."
+  short_description: "Cheapest adequate worker, checked and escalated"
+  default_prompt: "Use $ultra-delegation to delegate this bounded task: write task.json with the goal, acceptance criteria, files and a check command, run ud.py delegate, then review and apply the patch or do the task yourself if every rung fails."

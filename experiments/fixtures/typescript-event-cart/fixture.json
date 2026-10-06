@@ -1,0 +1,12 @@
+{
+  "id": "typescript-event-cart",
+  "language": "typescript",
+  "band": "hard",
+  "summary": "Fix an event-sourced shopping cart: reducer purity, snapshot replay with legacy upcasting, projections and optimistic concurrency.",
+  "goal": "Fix the cart modules in src/ so that every numbered requirement in SPEC.md holds.",
+  "files": ["SPEC.md", "src/events.ts", "src/store.ts", "src/upcast.ts", "src/reducer.ts", "src/projections.ts", "src/snapshots.ts", "src/cart.ts"],
+  "public_check": "node --test tests/public.test.ts",
+  "public_check_files": ["tests/public.test.ts"],
+  "hidden_check": "node --test hidden.test.ts",
+  "timeout": 60
+}

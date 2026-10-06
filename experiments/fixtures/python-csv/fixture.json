@@ -1,0 +1,12 @@
+{
+  "id": "python-csv",
+  "language": "python",
+  "band": "medium",
+  "summary": "Fix a strict name,count CSV parser that must report bad rows and survive quoting edge cases.",
+  "goal": "Fix parse_counts in solution.py so it meets every requirement in SPEC.md.",
+  "files": ["SPEC.md", "solution.py"],
+  "public_check": "python3 -m unittest -q tests/test_public.py",
+  "public_check_files": ["tests/test_public.py"],
+  "hidden_check": "python3 -m unittest -q test_hidden.py",
+  "timeout": 60
+}

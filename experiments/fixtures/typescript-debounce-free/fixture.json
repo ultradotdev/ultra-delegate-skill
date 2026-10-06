@@ -1,0 +1,12 @@
+{
+  "id": "typescript-debounce-free",
+  "language": "typescript",
+  "band": "easy",
+  "summary": "Fix a pure query-string builder: key order, encoding, falsy values and arrays.",
+  "goal": "Fix buildQuery in query.ts so it meets every requirement in SPEC.md.",
+  "files": ["SPEC.md", "query.ts"],
+  "public_check": "node --test tests/public.test.ts",
+  "public_check_files": ["tests/public.test.ts"],
+  "hidden_check": "node --test hidden.test.ts",
+  "timeout": 60
+}

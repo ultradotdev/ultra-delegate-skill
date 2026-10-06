@@ -1,209 +1,38 @@
 #!/usr/bin/env python3
-"""Build deterministic allowlisted skill/source ZIPs. Never package repository history."""
-from __future__ import annotations
-
+"""Build the allowlisted skill ZIP. Experiments, fixtures and evidence are never packaged."""
 import argparse
-import hashlib
-import io
-import json
-import os
 from pathlib import Path
-import re
-import tempfile
 import zipfile
 
-VERSION = "1.3.0-rc.8"
-REPOSITORY = Path(__file__).resolve().parents[1]
-SKILL = Path(".agents/skills/ultra-delegation")
-SKILL_FILES = (
-    "SKILL.md",
-    "agents/openai.yaml",
-    "scripts/ultra_delegation.py",
-    "scripts/evidence.py",
-    "scripts/jev_contract.py",
-    "scripts/jev_transport.py",
-    "scripts/jev.py",
-    "scripts/jev_questions.py",
-    "scripts/jev_docs.py",
-    "scripts/jev_benchmark.py",
-    "scripts/jev_benchmark_capture.py",
-    "scripts/shortlist.py",
-    "scripts/pilot.py",
-    "scripts/pilot_workflow.py", "scripts/pilot_judge.py", "scripts/pilot_benchmark.py", "scripts/pilot_learning.py",
-    "scripts/pilot_core.py", "scripts/pilot_boundaries.py", "scripts/pilot_security.py",
-    "scripts/pilot_questions.py",
-    "scripts/pilot_report.py",
-    "scripts/pilot_codex.py",
-    "scripts/pilot_convenience.py",
-    "scripts/pilot_fixtures.py",
-    "assets/repository-fixtures.json", "assets/security-fixtures.json",
-    "assets/efficiency-hints.json",
-    "references/repository-trial.md",
-    "references/repository-benchmark.md",
-    "scripts/capability_index.py",
-    "scripts/epoch_import.py",
-    "assets/capability-index.json",
-    "references/capability-index.md", "references/capability-index-data.md",
-    "references/pilot.md",
-    "references/pilot-workflow.md", "references/pilot-benchmark.md",
-    "references/pilot-codex.md",
-    "references/pilot-demands.md",
-    "references/pilot-questions.md",
-    "references/pilot-questions.json",
-    "assets/pilot-catalog.json", "assets/pilot-benchmark.json",
-    "scripts/jev_qualification.py",
-    "references/jev.md",
-    "references/jev-questions.md",
-    "references/jev-questions.json",
-    "references/jev-benchmark.md",
-    "references/shortlist.md",
-    "assets/standing-shortlist.json",
-    "scripts/local_resources.py",
-    "references/cli.md",
-    "references/host-native.md",
-    "references/hosts.md",
-    "references/measurement-and-portability.md",
-    "references/orchestration.md",
-    "assets/hosts/codex-worker.toml",
-    "assets/hosts/claude-worker.md",
-    "assets/hosts/opencode-worker.md",
-)
-SOURCE_FILES = (
-    "README.md", "LICENSE", "CONTRIBUTING.md", ".github/workflows/tests.yml",
-    "docs/compatibility.md", "docs/demo.md", "docs/ultra-dev-handoff.md", "docs/qualification.md",
-    "docs/release-audit.md", "docs/release-notes.md",
-    "docs/jev-routing-v2-design.md",
-    "docs/pilot-test-drive.md", "scripts/pilot_smoke.py",
-    "scripts/build_release.py", "scripts/demo_learning.py", "tests/test_demo.py",
-    "tests/test_beta_safety.py", "tests/test_ultra_delegation.py",
-    "tests/test_local_resources.py", "tests/test_release_packaging.py",
-    "tests/test_evidence.py", "tests/test_guard_freshness.py", "tests/test_jev.py",
-    "tests/test_jev_docs.py", "tests/test_jev_benchmark.py", "tests/test_jev_benchmark_capture.py", "tests/test_shortlist.py",
-    "tests/test_pilot.py", "tests/test_pilot_core.py", "tests/test_pilot_questions.py", "tests/test_pilot_report.py",
-    "tests/test_pilot_integration.py", "tests/test_pilot_smoke.py", "tests/test_pilot_spec.py",
-    "tests/test_pilot_workflow.py", "tests/test_pilot_recovery_cli.py", "tests/test_pilot_event_cli.py", "tests/test_pilot_judge.py", "tests/test_pilot_benchmark.py", "tests/test_pilot_learning.py",
-    "tests/test_pilot_native_regressions.py", "docs/active-recovery-results.json", "docs/postmerge-round2-validation.md",
-    "scripts/build_yarn_handoff.py", "docs/active-router-plan.md", "docs/active-recovery-validation.md",
-    "handoffs/yarn/START-HERE.md", "handoffs/yarn/PLAN.md", "handoffs/yarn/RUNBOOK.md",
-    "handoffs/yarn/templates/task-cards.json", "handoffs/yarn/templates/acceptance-checklist.md",
-    "tests/test_pilot_native_capacity.py", "tests/test_pilot_demands.py", "tests/test_pilot_boundaries.py",
-    "tests/test_pilot_security.py", "tests/test_pilot_security_questions.py", "tests/test_pilot_security_report.py",
-    "tests/test_security_qualification.py",
-    "tests/test_capability_index.py",
-    "tests/test_epoch_import.py",
-    "tests/test_pilot_convenience.py",
-    "tests/test_pilot_selection.py",
-    "tests/test_pilot_fixtures.py",
-    "docs/repository-trial-validation.md",
-    "docs/repository-trial-results.json",
-    "docs/full-model-matrix-validation.md", "docs/full-model-matrix-results.json",
-    "docs/coordinator-dependency-validation.md", "docs/coordinator-dependency-results.json",
-    "docs/security-review-validation.md", "docs/security-review-results.json",
-    "scripts/security_qualification.py",
-    "tests/test_security_fixture_execution.py", "tests/test_pilot_security_workflow.py",
-)
-SOURCE_PREFIX = f"ultra-delegate-skill-{VERSION}"
-SOURCE_GITIGNORE = b"__pycache__/\n*.py[cod]\n/dist/\n/.ultra-delegation/\n.env\n"
-MAX_FILE_BYTES = 1_048_576
-PERSONAL_PATH = re.compile(rb"(?:/" rb"Users/[^/\s]+/|/" rb"home/[^/\s]+/)")
-SECRET = re.compile(rb"(?:-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----\r?\n[A-Za-z0-9+/=]{20,}|gh[pousr]_[A-Za-z0-9]{30,}|sk-[A-Za-z0-9_-]{32,})")
+ROOT = Path(__file__).resolve().parents[1]
+VERSION = '3.0.0-dev'
+FILES = ('SKILL.md', 'agents/openai.yaml', 'assets/tiers.json',
+         'scripts/ud.py', 'scripts/jev.py', 'scripts/ladder.py', 'scripts/workers.py')
 
 
-def read_checked(repository: Path, relative: Path) -> bytes:
-    current = repository
-    for part in relative.parts:
-        current = current / part
-        if current.is_symlink():
-            raise ValueError(f"Symlink is not a release input: {relative}")
-    if not current.is_file():
-        raise ValueError(f"Missing required release file: {relative}")
-    if current.stat().st_size > MAX_FILE_BYTES:
-        raise ValueError(f"Release file exceeds size limit: {relative}")
-    data = current.read_bytes()
-    if len(data) > MAX_FILE_BYTES:
-        raise ValueError(f"Release file exceeds size limit: {relative}")
-    data.decode("utf-8")
-    if PERSONAL_PATH.search(data) or SECRET.search(data):
-        raise ValueError(f"Review personal path or recognizable secret in: {relative}")
-    # All allowlisted inputs are UTF-8 text. Normalize checkout line endings
-    # so Windows CRLF checkouts produce the same archive as LF checkouts.
-    return data.replace(b"\r\n", b"\n")
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument('--output-dir', default='dist')
+    p.add_argument('--check', action='store_true')
+    a = p.parse_args()
+    base = ROOT / '.agents/skills/ultra-delegation'
+    present = {str(f.relative_to(base)) for f in base.rglob('*') if f.is_file() and '__pycache__' not in f.parts}
+    missing, extra = set(FILES) - present, present - set(FILES)
+    if missing or extra:
+        raise SystemExit(f'skill files do not match the allowlist: missing {sorted(missing)}, extra {sorted(extra)}')
+    if a.check:
+        return
+    out = Path(a.output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    target = out / f'ultra-delegation-{VERSION}.zip'
+    with zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED) as z:
+        for name in FILES:
+            info = zipfile.ZipInfo('ultra-delegation/' + name, date_time=(2026, 10, 4, 0, 0, 0))
+            info.external_attr = (0o755 if name.endswith('ud.py') else 0o644) << 16
+            info.compress_type = zipfile.ZIP_DEFLATED
+            z.writestr(info, (base / name).read_bytes())
+    print(target)
 
 
-def release_entries(repository: Path) -> dict[str, bytes]:
-    entries = {f"ultra-delegation/{name}": read_checked(repository, SKILL / name)
-               for name in SKILL_FILES}
-    entries["ultra-delegation/LICENSE"] = read_checked(repository, Path("LICENSE"))
-    entrypoint = entries["ultra-delegation/SKILL.md"].decode("utf-8")
-    if not entrypoint.startswith("---\n") or "\nname: ultra-delegation\n" not in entrypoint:
-        raise ValueError("Skill frontmatter must name ultra-delegation")
-    helper = entries["ultra-delegation/scripts/ultra_delegation.py"].decode("utf-8")
-    if not re.search(r'(?:VERSION|SKILL_VERSION|RELEASE)\s*=\s*[\"\x27]' + re.escape(VERSION) + r'[\"\x27]', helper):
-        raise ValueError("Helper version and release version must match")
-    return entries
-
-
-def source_entries(repository: Path) -> dict[str, bytes]:
-    release_entries(repository)  # Apply the same version/frontmatter release gate.
-    paths = [Path(name) for name in SOURCE_FILES] + [SKILL / name for name in SKILL_FILES]
-    entries = {f"{SOURCE_PREFIX}/{path.as_posix()}": read_checked(repository, path)
-               for path in paths}
-    # Never copy the development checkout's personal ignore/configuration files.
-    entries[f"{SOURCE_PREFIX}/.gitignore"] = SOURCE_GITIGNORE
-    return entries
-
-
-def zip_bytes(entries: dict[str, bytes]) -> bytes:
-    buffer = io.BytesIO()
-    # Stored entries avoid zlib-version variability; metadata is fully normalized.
-    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_STORED) as archive:
-        for name, data in sorted(entries.items()):
-            info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
-            info.create_system = 3
-            info.external_attr = 0o100644 << 16
-            info.compress_type = zipfile.ZIP_STORED
-            archive.writestr(info, data)
-    return buffer.getvalue()
-
-
-def atomic_write(path: Path, data: bytes) -> None:
-    if path.is_symlink():
-        raise ValueError(f"Refusing symlink output: {path.name}")
-    fd, name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
-    temp = Path(name)
-    try:
-        with os.fdopen(fd, "wb") as stream:
-            stream.write(data)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temp, path)
-    finally:
-        temp.unlink(missing_ok=True)
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true", help="Validate inputs and reproducibility without writing")
-    parser.add_argument("--source", action="store_true", help="Build a clean public source archive instead of the installable skill")
-    parser.add_argument("--output-dir", type=Path, default=Path("dist"))
-    args = parser.parse_args()
-    try:
-        entries = source_entries(REPOSITORY) if args.source else release_entries(REPOSITORY)
-        data = zip_bytes(entries)
-        if data != zip_bytes(entries):
-            raise ValueError("Archive reproducibility check failed")
-        digest = hashlib.sha256(data).hexdigest()
-        name = f"ultra-delegate-skill-{VERSION}-source.zip" if args.source else f"ultra-delegation-{VERSION}.zip"
-        if not args.check:
-            args.output_dir.mkdir(parents=True, exist_ok=True)
-            atomic_write(args.output_dir / name, data)
-            atomic_write(args.output_dir / f"{name}.sha256", f"{digest}  {name}\n".encode())
-        print(json.dumps({"version": VERSION, "archive": name, "sha256": digest,
-                          "files": sorted(entries), "written": not args.check}, indent=2))
-        return 0
-    except (ValueError, OSError, UnicodeError) as exc:
-        parser.exit(1, f"Release check failed: {exc}\n")
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+if __name__ == '__main__':
+    main()

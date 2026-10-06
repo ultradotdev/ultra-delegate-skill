@@ -1,0 +1,12 @@
+{
+  "id": "python-slugify",
+  "language": "python",
+  "band": "easy",
+  "summary": "Fix a URL slug function: separator runs, transliteration and length limit.",
+  "goal": "Fix slugify in slugify.py so it meets every requirement in SPEC.md.",
+  "files": ["SPEC.md", "slugify.py"],
+  "public_check": "python3 -m unittest -q tests/test_public.py",
+  "public_check_files": ["tests/test_public.py"],
+  "hidden_check": "python3 -m unittest -q test_hidden.py",
+  "timeout": 60
+}

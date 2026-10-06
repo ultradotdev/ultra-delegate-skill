@@ -1,0 +1,39 @@
+{
+  "prices_date": "2026-10-04",
+  "prices_note": "USD per million tokens, standard API list rates. Codex: OpenAI pricing snapshot 2026-09-28. Claude: Anthropic list rates; claude -p also reports total_cost_usd, which takes precedence.",
+  "share_code": true,
+  "default_rule": "jev_noul",
+  "cutoff": 0.5,
+  "worker_timeout_seconds": 1200,
+  "check_timeout_seconds": 300,
+  "ladders": {
+    "codex": [
+      {"id": "luna-medium", "launcher": "codex", "model": "gpt-6-luna", "effort": "medium",
+       "description": "GPT-6 Luna, medium reasoning. Fastest and cheapest; good at bounded single-file changes.",
+       "price": {"input": 0.1, "cached_input": 0.01, "output": 0.5}},
+      {"id": "luna-high", "launcher": "codex", "model": "gpt-6-luna", "effort": "high",
+       "description": "GPT-6 Luna, high reasoning. Same price per token as Luna medium; thinks longer on edge cases.",
+       "price": {"input": 0.1, "cached_input": 0.01, "output": 0.5}},
+      {"id": "sol-medium", "launcher": "codex", "model": "gpt-6-sol", "effort": "medium",
+       "description": "GPT-6 Sol, medium reasoning. Workhorse coding model; about 20x Luna's price per token.",
+       "price": {"input": 2.0, "cached_input": 0.2, "output": 10.0}}
+    ],
+    "claude": [
+      {"id": "haiku", "launcher": "claude", "model": "claude-haiku-4-5", "effort": null,
+       "description": "Claude Haiku 4.5. Cheapest Claude model; older generation, suited to simple edits.",
+       "price": {"input": 1.0, "cached_input": 0.1, "cache_write": 2.0, "output": 5.0}},
+      {"id": "sonnet-medium", "launcher": "claude", "model": "claude-sonnet-5-5", "effort": "medium",
+       "description": "Claude Sonnet 5.5, medium effort. Current everyday coding model; 2x Haiku's price per token.",
+       "price": {"input": 2.0, "cached_input": 0.2, "cache_write": 4.0, "output": 10.0}},
+      {"id": "opus-medium", "launcher": "claude", "model": "claude-opus-5-5", "effort": "medium",
+       "description": "Claude Opus 5.5, medium effort. Most capable worker rung; 4x Haiku's price per token.",
+       "price": {"input": 4.0, "cached_input": 0.2, "cache_write": 8.0, "output": 20.0}}
+    ]
+  },
+  "coordinator_proxy": {
+    "codex": {"id": "astra-high", "launcher": "codex", "model": "gpt-6-astra", "effort": "high",
+              "price": {"input": 10.0, "cached_input": 1.0, "output": 50.0}},
+    "claude": {"id": "fable", "launcher": "claude", "model": "claude-fable-5-1", "effort": "medium",
+               "price": {"input": 10.0, "cached_input": 0.25, "cache_write": 20.0, "output": 50.0}}
+  }
+}

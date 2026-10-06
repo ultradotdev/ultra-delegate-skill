@@ -1,0 +1,12 @@
+{
+  "id": "go-kvstore-tx",
+  "language": "go",
+  "band": "hard",
+  "summary": "Fix an in-memory key-value store with nested transactions, value counts and snapshot iterators split across store, tx and iterator files.",
+  "goal": "Fix the kvstore package (store.go, tx.go, iterator.go) so it meets every requirement in SPEC.md.",
+  "files": ["SPEC.md", "go.mod", "store.go", "tx.go", "iterator.go"],
+  "public_check": "go test -run Public ./...",
+  "public_check_files": ["public_test.go"],
+  "hidden_check": "go test ./...",
+  "timeout": 120
+}

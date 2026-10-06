@@ -1,0 +1,12 @@
+{
+  "id": "python-template-engine",
+  "language": "python",
+  "band": "hard",
+  "summary": "Fix and complete a small template engine (lexer, parser, renderer, filters, scopes): elif, loop scoping, autoescape/safe rules and error positions.",
+  "goal": "Fix and complete the engine package so that every numbered requirement in SPEC.md holds.",
+  "files": ["SPEC.md", "engine/__init__.py", "engine/errors.py", "engine/markup.py", "engine/context.py", "engine/filters.py", "engine/lexer.py", "engine/nodes.py", "engine/parser.py", "engine/renderer.py", "engine/template.py"],
+  "public_check": "python3 -m unittest -q tests/test_public.py",
+  "public_check_files": ["tests/test_public.py"],
+  "hidden_check": "python3 -m unittest -q test_hidden.py",
+  "timeout": 60
+}

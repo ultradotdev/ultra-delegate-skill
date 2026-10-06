@@ -1,0 +1,12 @@
+{
+  "id": "python-ranges",
+  "language": "python",
+  "band": "easy",
+  "summary": "Fix inclusive integer-range parsing in one function.",
+  "goal": "Fix parse_ranges in ranges.py so it meets every requirement in SPEC.md.",
+  "files": ["SPEC.md", "ranges.py"],
+  "public_check": "python3 -m unittest -q tests/test_public.py",
+  "public_check_files": ["tests/test_public.py"],
+  "hidden_check": "python3 -m unittest -q test_hidden.py",
+  "timeout": 60
+}

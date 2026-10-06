@@ -3,3 +3,8 @@ __pycache__/
 /dist/
 /.ultra-delegation/
 .env
+
+# Machine-specific settings stay out of the repo: ~/.config/ultra-delegation/config.json,
+# environment variables, and ignored local files.
+*.local.json
+.env.*
